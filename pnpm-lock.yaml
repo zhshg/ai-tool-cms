@@ -191,6 +191,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@ai-tool-cms/seo':
+        specifier: workspace:*
+        version: link:../../packages/seo
       next:
         specifier: ^15.1.0
         version: 15.5.19(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
@@ -260,6 +263,18 @@ importers:
       prisma:
         specifier: ^6.19.3
         version: 6.19.3(typescript@5.9.3)
+      typescript:
+        specifier: ^5.7.3
+        version: 5.9.3
+
+  packages/seo:
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.0
+        version: 22.20.0
+      next:
+        specifier: ^15.1.0
+        version: 15.5.19(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       typescript:
         specifier: ^5.7.3
         version: 5.9.3

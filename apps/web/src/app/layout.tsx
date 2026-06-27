@@ -1,10 +1,7 @@
-import type { Metadata } from "next";
+import { buildMetadata } from "@ai-tool-cms/seo";
 import "./globals.css";
 
-export const metadata: Metadata = {
-  title: "AI Tool CMS",
-  description: "AI 工具内容管理系统",
-};
+export const metadata = buildMetadata();
 
 export default function RootLayout({
   children,
