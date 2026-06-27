@@ -74,6 +74,29 @@ pnpm typecheck
 API 文档：`http://localhost:4000/docs`  
 健康检查：`http://localhost:4000/health`
 
+### 4. 数据库（Prisma）
+
+确保 PostgreSQL 已启动（见 `docker-compose.yml`），然后执行迁移与种子数据：
+
+```bash
+pnpm db:migrate    # 开发环境迁移
+pnpm db:seed       # 填充初始角色与权限
+```
+
+常用命令：
+
+| 命令 | 说明 |
+|------|------|
+| `pnpm db:generate` | 生成 Prisma Client |
+| `pnpm db:migrate` | 创建并应用开发迁移 |
+| `pnpm db:migrate:deploy` | 生产环境应用迁移 |
+| `pnpm db:seed` | 执行种子脚本 |
+| `pnpm db:studio` | 打开 Prisma Studio |
+
+初始模型：`User`、`Role`、`Permission`（含 RBAC 关联表与时间戳）。
+
+Prisma Client 由 `@ai-tool-cms/database` 包导出，供各应用引用。
+
 ## 文档
 
 详细设计文档见 `docs/` 目录：
