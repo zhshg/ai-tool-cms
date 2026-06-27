@@ -113,7 +113,7 @@ pnpm db:seed       # 填充初始角色与权限
 | `pnpm db:seed` | 执行种子脚本 |
 | `pnpm db:studio` | 打开 Prisma Studio |
 
-初始模型：`User`、`Role`、`Permission`（含 RBAC 关联表与时间戳）。
+初始模型：`User`、`Role`、`Permission`（RBAC）、`Tool`（AI 工具实体，含 `slug` / `website` 唯一索引）。
 
 Prisma Client 由 `@ai-tool-cms/database` 包导出，供各应用引用。
 

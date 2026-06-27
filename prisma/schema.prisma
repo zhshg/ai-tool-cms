@@ -87,3 +87,32 @@ model RefreshToken {
   @@index([userId])
   @@map("refresh_tokens")
 }
+
+enum ToolPricing {
+  FREE
+  FREEMIUM
+  PAID
+  CONTACT
+}
+
+enum ToolStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+model Tool {
+  id          String      @id @default(cuid())
+  slug        String      @unique
+  name        String
+  description String?     @db.Text
+  website     String      @unique
+  logo        String?
+  pricing     ToolPricing
+  status      ToolStatus  @default(DRAFT)
+  publishedAt DateTime?   @map("published_at")
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+
+  @@map("tools")
+}
