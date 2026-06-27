@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import { ToolPricing, ToolStatus } from "@prisma/client";
 import {
+  IsArray,
   IsEnum,
   IsNotEmpty,
   IsOptional,
@@ -56,4 +57,16 @@ export class CreateToolDto {
   @IsOptional()
   @IsString()
   publishedAt?: string;
+
+  @ApiPropertyOptional({ type: [String], description: "关联分类 ID 列表" })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  categoryIds?: string[];
+
+  @ApiPropertyOptional({ type: [String], description: "关联标签 ID 列表" })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  tagIds?: string[];
 }

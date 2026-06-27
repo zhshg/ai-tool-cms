@@ -4,10 +4,15 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import { Prisma, Tool, ToolStatus } from "@prisma/client";
+import { CategoriesService } from "../categories/categories.service";
+import { CategorySummaryDto, TagSummaryDto } from "../common/dto/relation.dto";
 import { PrismaService } from "../prisma/prisma.service";
+import { TagsService } from "../tags/tags.service";
 import type { CreateToolDto } from "./dto/create-tool.dto";
 import type { PaginatedToolsResponseDto } from "./dto/paginated-tools-response.dto";
 import type { QueryToolsDto } from "./dto/query-tools.dto";
+import type { SetToolCategoriesDto } from "./dto/set-tool-relations.dto";
+import type { SetToolTagsDto } from "./dto/set-tool-relations.dto";
 import type { ToolResponseDto } from "./dto/tool-response.dto";
 import type { UpdateToolDto } from "./dto/update-tool.dto";
 
@@ -21,9 +26,28 @@ const SORTABLE_FIELDS = new Set([
   "pricing",
 ]);
 
+const toolInclude = {
+  categories: {
+    include: {
+      category: true,
+    },
+  },
+  tags: {
+    include: {
+      tag: true,
+    },
+  },
+} as const;
+
+type ToolWithRelations = Prisma.ToolGetPayload<{ include: typeof toolInclude }>;
+
 @Injectable()
 export class ToolsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly categoriesService: CategoriesService,
+    private readonly tagsService: TagsService,
+  ) {}
 
   async findAll(query: QueryToolsDto): Promise<PaginatedToolsResponseDto> {
     const page = query.page ?? 1;
@@ -38,6 +62,7 @@ export class ToolsService {
         orderBy,
         skip,
         take: limit,
+        include: toolInclude,
       }),
       this.prisma.tool.count({ where }),
     ]);
@@ -52,7 +77,11 @@ export class ToolsService {
   }
 
   async findOne(id: string): Promise<ToolResponseDto> {
-    const tool = await this.prisma.tool.findUnique({ where: { id } });
+    const tool = await this.prisma.tool.findUnique({
+      where: { id },
+      include: toolInclude,
+    });
+
     if (!tool) {
       throw new NotFoundException("工具不存在");
     }
@@ -63,6 +92,9 @@ export class ToolsService {
   async create(dto: CreateToolDto): Promise<ToolResponseDto> {
     const status = dto.status ?? ToolStatus.DRAFT;
     const publishedAt = this.resolvePublishedAt(status, dto.publishedAt);
+
+    await this.categoriesService.ensureCategoryIdsExist(dto.categoryIds ?? []);
+    await this.tagsService.ensureTagIdsExist(dto.tagIds ?? []);
 
     try {
       const tool = await this.prisma.tool.create({
@@ -75,7 +107,18 @@ export class ToolsService {
           pricing: dto.pricing,
           status,
           publishedAt,
+          categories: dto.categoryIds?.length
+            ? {
+                create: dto.categoryIds.map((categoryId) => ({ categoryId })),
+              }
+            : undefined,
+          tags: dto.tagIds?.length
+            ? {
+                create: dto.tagIds.map((tagId) => ({ tagId })),
+              }
+            : undefined,
         },
+        include: toolInclude,
       });
 
       return this.toResponseDto(tool);
@@ -93,19 +136,48 @@ export class ToolsService {
     const nextStatus = dto.status ?? existing.status;
     const publishedAt = this.resolveUpdatePublishedAt(existing, dto, nextStatus);
 
+    if (dto.categoryIds !== undefined) {
+      await this.categoriesService.ensureCategoryIdsExist(dto.categoryIds);
+    }
+
+    if (dto.tagIds !== undefined) {
+      await this.tagsService.ensureTagIdsExist(dto.tagIds);
+    }
+
     try {
-      const tool = await this.prisma.tool.update({
-        where: { id },
-        data: {
-          slug: dto.slug,
-          name: dto.name,
-          description: dto.description,
-          website: dto.website,
-          logo: dto.logo,
-          pricing: dto.pricing,
-          status: dto.status,
-          ...(publishedAt !== undefined ? { publishedAt } : {}),
-        },
+      const tool = await this.prisma.$transaction(async (tx) => {
+        if (dto.categoryIds !== undefined) {
+          await tx.toolCategory.deleteMany({ where: { toolId: id } });
+          if (dto.categoryIds.length > 0) {
+            await tx.toolCategory.createMany({
+              data: dto.categoryIds.map((categoryId) => ({ toolId: id, categoryId })),
+            });
+          }
+        }
+
+        if (dto.tagIds !== undefined) {
+          await tx.toolTag.deleteMany({ where: { toolId: id } });
+          if (dto.tagIds.length > 0) {
+            await tx.toolTag.createMany({
+              data: dto.tagIds.map((tagId) => ({ toolId: id, tagId })),
+            });
+          }
+        }
+
+        return tx.tool.update({
+          where: { id },
+          data: {
+            slug: dto.slug,
+            name: dto.name,
+            description: dto.description,
+            website: dto.website,
+            logo: dto.logo,
+            pricing: dto.pricing,
+            status: dto.status,
+            ...(publishedAt !== undefined ? { publishedAt } : {}),
+          },
+          include: toolInclude,
+        });
       });
 
       return this.toResponseDto(tool);
@@ -114,10 +186,61 @@ export class ToolsService {
     }
   }
 
-  async remove(id: string): Promise<ToolResponseDto> {
+  async setCategories(id: string, dto: SetToolCategoriesDto): Promise<ToolResponseDto> {
     await this.ensureExists(id);
+    await this.categoriesService.ensureCategoryIdsExist(dto.categoryIds);
 
-    const tool = await this.prisma.tool.delete({ where: { id } });
+    const tool = await this.prisma.$transaction(async (tx) => {
+      await tx.toolCategory.deleteMany({ where: { toolId: id } });
+
+      if (dto.categoryIds.length > 0) {
+        await tx.toolCategory.createMany({
+          data: dto.categoryIds.map((categoryId) => ({ toolId: id, categoryId })),
+        });
+      }
+
+      return tx.tool.findUniqueOrThrow({
+        where: { id },
+        include: toolInclude,
+      });
+    });
+
+    return this.toResponseDto(tool);
+  }
+
+  async setTags(id: string, dto: SetToolTagsDto): Promise<ToolResponseDto> {
+    await this.ensureExists(id);
+    await this.tagsService.ensureTagIdsExist(dto.tagIds);
+
+    const tool = await this.prisma.$transaction(async (tx) => {
+      await tx.toolTag.deleteMany({ where: { toolId: id } });
+
+      if (dto.tagIds.length > 0) {
+        await tx.toolTag.createMany({
+          data: dto.tagIds.map((tagId) => ({ toolId: id, tagId })),
+        });
+      }
+
+      return tx.tool.findUniqueOrThrow({
+        where: { id },
+        include: toolInclude,
+      });
+    });
+
+    return this.toResponseDto(tool);
+  }
+
+  async remove(id: string): Promise<ToolResponseDto> {
+    const tool = await this.prisma.tool.findUnique({
+      where: { id },
+      include: toolInclude,
+    });
+
+    if (!tool) {
+      throw new NotFoundException("工具不存在");
+    }
+
+    await this.prisma.tool.delete({ where: { id } });
     return this.toResponseDto(tool);
   }
 
@@ -130,6 +253,22 @@ export class ToolsService {
 
     if (query.pricing) {
       conditions.push({ pricing: query.pricing });
+    }
+
+    if (query.categoryId) {
+      conditions.push({
+        categories: {
+          some: { categoryId: query.categoryId },
+        },
+      });
+    }
+
+    if (query.tagId) {
+      conditions.push({
+        tags: {
+          some: { tagId: query.tagId },
+        },
+      });
     }
 
     if (query.search?.trim()) {
@@ -197,7 +336,7 @@ export class ToolsService {
     }
   }
 
-  private toResponseDto(tool: Tool): ToolResponseDto {
+  private toResponseDto(tool: ToolWithRelations): ToolResponseDto {
     return {
       id: tool.id,
       slug: tool.slug,
@@ -208,8 +347,30 @@ export class ToolsService {
       pricing: tool.pricing,
       status: tool.status,
       publishedAt: tool.publishedAt?.toISOString() ?? null,
+      categories: tool.categories.map((item) => this.toCategorySummary(item.category)),
+      tags: tool.tags.map((item) => this.toTagSummary(item.tag)),
       createdAt: tool.createdAt.toISOString(),
       updatedAt: tool.updatedAt.toISOString(),
+    };
+  }
+
+  private toCategorySummary(category: {
+    id: string;
+    slug: string;
+    name: string;
+  }): CategorySummaryDto {
+    return {
+      id: category.id,
+      slug: category.slug,
+      name: category.name,
+    };
+  }
+
+  private toTagSummary(tag: { id: string; slug: string; name: string }): TagSummaryDto {
+    return {
+      id: tag.id,
+      slug: tag.slug,
+      name: tag.name,
     };
   }
 

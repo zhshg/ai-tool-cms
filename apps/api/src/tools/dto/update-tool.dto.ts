@@ -25,4 +25,10 @@ export class UpdateToolDto extends PartialType(CreateToolDto) {
 
   @ApiPropertyOptional()
   declare publishedAt?: string;
+
+  @ApiPropertyOptional({ type: [String] })
+  declare categoryIds?: string[];
+
+  @ApiPropertyOptional({ type: [String] })
+  declare tagIds?: string[];
 }

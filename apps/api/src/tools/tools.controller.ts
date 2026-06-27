@@ -24,6 +24,7 @@ import { PaginatedToolsResponseDto } from "./dto/paginated-tools-response.dto";
 import { QueryToolsDto } from "./dto/query-tools.dto";
 import { ToolResponseDto } from "./dto/tool-response.dto";
 import { UpdateToolDto } from "./dto/update-tool.dto";
+import { SetToolCategoriesDto, SetToolTagsDto } from "./dto/set-tool-relations.dto";
 import { ToolsService } from "./tools.service";
 
 @ApiTags("tools")
@@ -64,6 +65,25 @@ export class ToolsController {
   @ApiUnauthorizedResponse({ description: "未授权访问" })
   update(@Param("id") id: string, @Body() dto: UpdateToolDto): Promise<ToolResponseDto> {
     return this.toolsService.update(id, dto);
+  }
+
+  @Put(":id/categories")
+  @ApiOperation({ summary: "设置工具关联分类" })
+  @ApiOkResponse({ type: ToolResponseDto })
+  @ApiNotFoundResponse({ description: "工具或分类不存在" })
+  setCategories(
+    @Param("id") id: string,
+    @Body() dto: SetToolCategoriesDto,
+  ): Promise<ToolResponseDto> {
+    return this.toolsService.setCategories(id, dto);
+  }
+
+  @Put(":id/tags")
+  @ApiOperation({ summary: "设置工具关联标签" })
+  @ApiOkResponse({ type: ToolResponseDto })
+  @ApiNotFoundResponse({ description: "工具或标签不存在" })
+  setTags(@Param("id") id: string, @Body() dto: SetToolTagsDto): Promise<ToolResponseDto> {
+    return this.toolsService.setTags(id, dto);
   }
 
   @Delete(":id")

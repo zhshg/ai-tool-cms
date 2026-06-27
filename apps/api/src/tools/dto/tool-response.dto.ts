@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import { ToolPricing, ToolStatus } from "@prisma/client";
+import { CategorySummaryDto, TagSummaryDto } from "../../common/dto/relation.dto";
 
 export class ToolResponseDto {
   @ApiProperty()
@@ -28,6 +29,12 @@ export class ToolResponseDto {
 
   @ApiPropertyOptional({ example: "2026-06-27T00:00:00.000Z" })
   publishedAt!: string | null;
+
+  @ApiProperty({ type: [CategorySummaryDto] })
+  categories!: CategorySummaryDto[];
+
+  @ApiProperty({ type: [TagSummaryDto] })
+  tags!: TagSummaryDto[];
 
   @ApiProperty({ example: "2026-06-27T00:00:00.000Z" })
   createdAt!: string;

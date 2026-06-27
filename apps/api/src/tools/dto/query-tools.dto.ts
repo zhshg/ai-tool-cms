@@ -56,4 +56,14 @@ export class QueryToolsDto {
   @IsOptional()
   @IsEnum(ToolPricing)
   pricing?: ToolPricing;
+
+  @ApiPropertyOptional({ description: "按分类 ID 筛选" })
+  @IsOptional()
+  @IsString()
+  categoryId?: string;
+
+  @ApiPropertyOptional({ description: "按标签 ID 筛选" })
+  @IsOptional()
+  @IsString()
+  tagId?: string;
 }
