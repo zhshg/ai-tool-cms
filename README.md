@@ -36,12 +36,43 @@ ai-tool-cms/
 
 ## 快速开始
 
-> 依赖安装与启动命令将在包管理配置完成后补充。
+### 1. 环境变量
 
-1. 复制环境变量：`cp .env.example .env`
-2. 安装依赖（待配置）
-3. 初始化数据库（待配置）
-4. 启动开发服务（待配置）
+```bash
+cp .env.example .env
+```
+
+### 2. 安装依赖
+
+```bash
+pnpm install
+```
+
+### 3. 启动应用
+
+各应用可独立运行：
+
+| 应用 | 技术栈 | 端口 | 命令 |
+|------|--------|------|------|
+| `web` | Next.js 15 + React 19 + Tailwind | 3000 | `pnpm dev:web` |
+| `admin` | Next.js 15 + Tailwind | 3001 | `pnpm dev:admin` |
+| `api` | NestJS + Swagger | 4000 | `pnpm dev:api` |
+
+同时启动全部应用：
+
+```bash
+pnpm dev
+```
+
+构建与类型检查：
+
+```bash
+pnpm build
+pnpm typecheck
+```
+
+API 文档：`http://localhost:4000/docs`  
+健康检查：`http://localhost:4000/health`
 
 ## 文档
 
