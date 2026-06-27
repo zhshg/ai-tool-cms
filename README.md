@@ -74,6 +74,26 @@ pnpm typecheck
 API 文档：`http://localhost:4000/docs`  
 健康检查：`http://localhost:4000/health`
 
+### 5. 认证（Admin API）
+
+管理员默认账号（由 `pnpm db:seed` 创建）：
+
+- 邮箱：`admin@example.com`
+- 密码：`Admin@123`
+
+| 端点 | 方法 | 说明 |
+|------|------|------|
+| `/auth/login` | POST | 管理员登录，返回 JWT 与 Refresh Token |
+| `/auth/me` | GET | 获取当前用户（含角色与权限，需 Bearer Token） |
+| `/auth/logout` | POST | 退出登录并吊销 Refresh Token |
+
+```bash
+# 登录
+curl -X POST http://localhost:4000/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@example.com","password":"Admin@123"}'
+```
+
 ### 4. 数据库（Prisma）
 
 确保 PostgreSQL 已启动（见 `docker-compose.yml`），然后执行迁移与种子数据：

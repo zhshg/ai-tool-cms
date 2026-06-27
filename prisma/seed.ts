@@ -1,6 +1,9 @@
 import { PrismaClient } from "@ai-tool-cms/database";
+import { hashPassword } from "@ai-tool-cms/auth";
 
 const prisma = new PrismaClient();
+
+const ADMIN_DEFAULT_PASSWORD = "Admin@123";
 
 const PERMISSIONS = [
   {
@@ -43,6 +46,8 @@ const ROLES = [
 ] as const;
 
 async function main() {
+  const adminPasswordHash = await hashPassword(ADMIN_DEFAULT_PASSWORD);
+
   for (const permission of PERMISSIONS) {
     await prisma.permission.upsert({
       where: { name: permission.name },
@@ -92,10 +97,11 @@ async function main() {
     update: {
       displayName: "系统管理员",
       isActive: true,
+      passwordHash: adminPasswordHash,
     },
     create: {
       email: "admin@example.com",
-      passwordHash: "CHANGE_ME",
+      passwordHash: adminPasswordHash,
       displayName: "系统管理员",
       roles: {
         create: {
