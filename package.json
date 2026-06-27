@@ -6,6 +6,9 @@
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
+    "dev:web": "pnpm --filter @ai-tool-cms/web dev",
+    "dev:admin": "pnpm --filter @ai-tool-cms/admin dev",
+    "dev:api": "pnpm --filter @ai-tool-cms/api dev",
     "lint": "turbo run lint",
     "test": "turbo run test",
     "typecheck": "turbo run typecheck",
