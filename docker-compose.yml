@@ -1,54 +1,73 @@
 services:
   postgres:
-    image: postgres:16-alpine
+    image: postgres:16
     container_name: ai-tool-cms-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: ai_tool_cms
+      POSTGRES_USER: ${POSTGRES_USER:-user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      POSTGRES_DB: ${POSTGRES_DB:-ai_tool_cms}
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - ai-tool-cms-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U user -d ai_tool_cms"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-user} -d ${POSTGRES_DB:-ai_tool_cms}"]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 30s
 
   redis:
-    image: redis:7-alpine
+    image: redis:7
     container_name: ai-tool-cms-redis
     restart: unless-stopped
     command: redis-server /usr/local/etc/redis/redis.conf
     ports:
-      - "6379:6379"
+      - "${REDIS_PORT:-6379}:6379"
     volumes:
       - redis_data:/data
       - ./docker/redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
+    networks:
+      - ai-tool-cms-network
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 10s
 
-  nginx:
-    image: nginx:1.27-alpine
-    container_name: ai-tool-cms-nginx
+  meilisearch:
+    image: getmeili/meilisearch:latest
+    container_name: ai-tool-cms-meilisearch
     restart: unless-stopped
+    environment:
+      MEILI_ENV: ${MEILI_ENV:-development}
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:-masterKey}
+      MEILI_NO_ANALYTICS: ${MEILI_NO_ANALYTICS:-true}
+      MEILI_CONFIG_FILE_PATH: /etc/meilisearch/meilisearch.toml
     ports:
-      - "80:80"
+      - "${MEILI_PORT:-7700}:7700"
     volumes:
-      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./docker/nginx/conf.d:/etc/nginx/conf.d:ro
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+      - meilisearch_data:/meili_data
+      - ./docker/meilisearch/meilisearch.toml:/etc/meilisearch/meilisearch.toml:ro
+    networks:
+      - ai-tool-cms-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:7700/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+networks:
+  ai-tool-cms-network:
+    driver: bridge
 
 volumes:
   postgres_data:
   redis_data:
+  meilisearch_data:

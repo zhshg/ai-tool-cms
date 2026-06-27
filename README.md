@@ -30,18 +30,60 @@ ai-tool-cms/
 ├── docs/                 # 项目文档
 ├── spec/                 # 业务规格与内容规范
 ├── docker/               # Docker 相关
+│   ├── postgres/         # PostgreSQL 初始化脚本
+│   ├── redis/            # Redis 配置
+│   └── meilisearch/      # Meilisearch 配置
 ├── scripts/              # 脚本
 └── prisma/               # 数据库 Schema 与迁移
 ```
 
 ## 快速开始
 
-> 依赖安装与启动命令将在包管理配置完成后补充。
+### 1. 环境变量
 
-1. 复制环境变量：`cp .env.example .env`
-2. 安装依赖（待配置）
-3. 初始化数据库（待配置）
-4. 启动开发服务（待配置）
+```bash
+cp .env.example .env
+```
+
+按需修改 `.env` 中的数据库、Redis、Meilisearch 等连接信息。
+
+### 2. 启动本地基础设施（Docker Compose）
+
+```bash
+docker compose up -d
+```
+
+服务默认端口：
+
+| 服务 | 镜像 | 端口 | 说明 |
+|------|------|------|------|
+| PostgreSQL | `postgres:16` | 5432 | 主数据库 |
+| Redis | `redis:7` | 6379 | 缓存与消息队列 |
+| Meilisearch | `getmeili/meilisearch:latest` | 7700 | 全文搜索引擎 |
+
+常用命令：
+
+```bash
+# 查看服务状态与健康检查
+docker compose ps
+
+# 查看日志
+docker compose logs -f
+
+# 停止服务（保留数据卷）
+docker compose down
+
+# 停止并清除数据卷
+docker compose down -v
+```
+
+容器间通过 `ai-tool-cms-network` 桥接网络通信；宿主机应用使用 `localhost` 与上述端口连接。
+
+### 3. 应用开发（待各包就绪后补充）
+
+1. 安装依赖（待配置）
+2. 初始化数据库（待配置）
+3. 启动开发服务（待配置）
 
 ## 文档
 

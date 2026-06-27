@@ -1,0 +1,8 @@
+# Meilisearch 本地开发配置
+# 敏感项通过 docker-compose 环境变量注入（MEILI_MASTER_KEY 等）
+
+db_path = "/meili_data"
+http_addr = "0.0.0.0:7700"
+log_level = "INFO"
+max_indexing_memory = "2 GiB"
+max_indexing_threads = 4
