@@ -36,12 +36,86 @@ ai-tool-cms/
 
 ## 快速开始
 
-> 依赖安装与启动命令将在包管理配置完成后补充。
+### 1. 环境变量
 
-1. 复制环境变量：`cp .env.example .env`
-2. 安装依赖（待配置）
-3. 初始化数据库（待配置）
-4. 启动开发服务（待配置）
+```bash
+cp .env.example .env
+```
+
+### 2. 安装依赖
+
+```bash
+pnpm install
+```
+
+### 3. 启动应用
+
+各应用可独立运行：
+
+| 应用 | 技术栈 | 端口 | 命令 |
+|------|--------|------|------|
+| `web` | Next.js 15 + React 19 + Tailwind | 3000 | `pnpm dev:web` |
+| `admin` | Next.js 15 + Tailwind | 3001 | `pnpm dev:admin` |
+| `api` | NestJS + Swagger | 4000 | `pnpm dev:api` |
+
+同时启动全部应用：
+
+```bash
+pnpm dev
+```
+
+构建与类型检查：
+
+```bash
+pnpm build
+pnpm typecheck
+```
+
+API 文档：`http://localhost:4000/docs`  
+健康检查：`http://localhost:4000/health`
+
+### 5. 认证（Admin API）
+
+管理员默认账号（由 `pnpm db:seed` 创建）：
+
+- 邮箱：`admin@example.com`
+- 密码：`Admin@123`
+
+| 端点 | 方法 | 说明 |
+|------|------|------|
+| `/auth/login` | POST | 管理员登录，返回 JWT 与 Refresh Token |
+| `/auth/me` | GET | 获取当前用户（含角色与权限，需 Bearer Token） |
+| `/auth/logout` | POST | 退出登录并吊销 Refresh Token |
+
+```bash
+# 登录
+curl -X POST http://localhost:4000/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@example.com","password":"Admin@123"}'
+```
+
+### 4. 数据库（Prisma）
+
+确保 PostgreSQL 已启动（见 `docker-compose.yml`），然后执行迁移与种子数据：
+
+```bash
+pnpm db:migrate    # 开发环境迁移
+pnpm db:seed       # 填充初始角色与权限
+```
+
+常用命令：
+
+| 命令 | 说明 |
+|------|------|
+| `pnpm db:generate` | 生成 Prisma Client |
+| `pnpm db:migrate` | 创建并应用开发迁移 |
+| `pnpm db:migrate:deploy` | 生产环境应用迁移 |
+| `pnpm db:seed` | 执行种子脚本 |
+| `pnpm db:studio` | 打开 Prisma Studio |
+
+初始模型：`User`、`Role`、`Permission`（含 RBAC 关联表与时间戳）。
+
+Prisma Client 由 `@ai-tool-cms/database` 包导出，供各应用引用。
 
 ## 文档
 
