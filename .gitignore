@@ -1,0 +1,60 @@
+# 依赖
+node_modules/
+.pnp
+.pnp.js
+
+# 构建产物
+dist/
+build/
+.next/
+out/
+.turbo/
+*.tsbuildinfo
+
+# 环境变量
+.env
+.env.local
+.env.*.local
+
+# 日志
+logs/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 测试与覆盖率
+coverage/
+.nyc_output/
+
+# IDE
+.idea/
+*.swp
+*.swo
+*~
+
+# 操作系统
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Prisma
+prisma/*.db
+prisma/*.db-journal
+
+# Docker
+docker/data/
+
+# 临时文件
+tmp/
+temp/
+*.tmp
+.cache/
+
+# 密钥与证书
+*.pem
+*.key
+*.p12
+*.pfx
+secrets/
