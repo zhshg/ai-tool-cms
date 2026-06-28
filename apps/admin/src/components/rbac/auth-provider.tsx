@@ -1,19 +1,10 @@
 "use client";
 
 import { createContext, useContext, useMemo, type ReactNode } from "react";
-import {
-  Permission,
-  RolePermissions,
-  type PermissionCode,
-} from "@/lib/permissions";
-import {
-  filterByPermission,
-  hasAnyPermission,
-  hasPermission,
-  type AuthUser,
-} from "@/lib/rbac";
+import { Permission, RolePermissions, type PermissionCode } from "@/lib/permissions";
+import { filterByPermission, hasAnyPermission, hasPermission, type AuthUser } from "@/lib/rbac";
 import { navItems, type NavItem } from "@/lib/nav";
-import { env } from "@ai-tool-cms/config";
+import { clientEnv } from "@ai-tool-cms/config/client";
 
 type AuthContextValue = {
   user: AuthUser;
@@ -25,7 +16,7 @@ type AuthContextValue = {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 function resolveMockUser(): AuthUser {
-  const role = env.NEXT_PUBLIC_ADMIN_MOCK_ROLE;
+  const role = clientEnv.NEXT_PUBLIC_ADMIN_MOCK_ROLE;
   const permissions = RolePermissions[role] ?? RolePermissions.admin;
 
   return {

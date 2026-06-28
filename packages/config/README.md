@@ -18,7 +18,13 @@ const anthropicKey = env.ANTHROPIC_API_KEY;
 const jwtSecret = env.JWT_SECRET;
 ```
 
-`env` 为模块加载时解析的单例。测试中可调用 `resetEnv()` 后使用 `getEnv(customSource)` 重新解析。
+`env` 为模块加载时解析的单例。`parseEnv()` 会自动从 monorepo 根目录加载 `.env`（无需等待 Nest/Next 的 ConfigModule）。测试中可调用 `resetEnv()` 后使用 `getEnv(customSource)` 重新解析。
+
+客户端组件请使用 `@ai-tool-cms/config/client`（仅 `NEXT_PUBLIC_*`，无 Node 依赖）：
+
+```typescript
+import { clientEnv } from "@ai-tool-cms/config/client";
+```
 
 ## 核心环境变量
 

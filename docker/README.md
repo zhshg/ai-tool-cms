@@ -1,10 +1,12 @@
 # Docker 本地开发环境
 
-一条命令启动所有基础设施：
+一条命令启动基础设施与应用：
 
 ```bash
-docker compose up -d
+pnpm dev:local
 ```
+
+等价于：`setup:env` → `docker compose up -d --wait` → 并行启动 `web` + `api`。
 
 ## 服务
 
@@ -36,7 +38,9 @@ MAILPIT_URL=http://localhost:8025
 启动 API：
 
 ```bash
-docker compose up -d
+pnpm dev:local
+# 或分步：
+pnpm docker:up
 pnpm dev:api
 ```
 

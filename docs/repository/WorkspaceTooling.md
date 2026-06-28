@@ -34,10 +34,13 @@ pnpm format:check  # CI 检查
 ## 常用命令
 
 ```bash
-pnpm dev          # 启动所有 dev 任务
-pnpm build        # 构建（Turbo 缓存）
-pnpm lint         # ESLint
-pnpm test         # Vitest
-pnpm typecheck    # TypeScript 检查
-pnpm docker:up    # 启动 Docker 基础设施
+pnpm setup:env     # 从 .env.example 生成 .env
+pnpm dev:local     # 一键：Docker 基础设施 + web + api
+pnpm dev:stack     # 仅并行启动 web + api
+pnpm dev           # 启动所有 dev 任务
+pnpm build         # 构建（Turbo 缓存）
+pnpm lint          # ESLint
+pnpm test          # Vitest
+pnpm typecheck     # TypeScript 检查
+pnpm docker:up     # 启动 Docker 基础设施
 ```
