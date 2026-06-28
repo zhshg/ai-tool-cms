@@ -1,6 +1,6 @@
 {
   "name": "ai-tool-cms",
-  "version": "1.0.0-rc.1",
+  "version": "1.0.0-prod.1",
   "private": true,
   "description": "AI 工具内容管理系统 Monorepo",
   "scripts": {
@@ -25,6 +25,12 @@
     "format:check": "prettier --check .",
     "lint": "turbo run lint",
     "test": "turbo run test",
+    "test:unit": "vitest run --config vitest.config.ts tests/unit packages",
+    "test:integration": "vitest run --config vitest.config.ts tests/integration",
+    "test:e2e": "playwright test -c tests/playwright.config.ts",
+    "audit:prod": "node scripts/audit/production-audit.mjs",
+    "backup:postgres": "bash scripts/backup/backup-postgres.sh",
+    "backup:verify": "bash scripts/backup/verify-backup.sh",
     "typecheck": "turbo run typecheck",
     "clean": "turbo run clean",
     "prepare": "husky"
@@ -35,6 +41,7 @@
     "husky": "^9.1.7",
     "lint-staged": "^15.4.3",
     "prettier": "^3.4.2",
+    "@playwright/test": "^1.49.1",
     "turbo": "^2.4.4",
     "typescript": "^5.7.3",
     "typescript-eslint": "^8.18.0",

@@ -3,9 +3,9 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "predev": "pnpm --filter @ai-tool-cms/config build && pnpm --filter @ai-tool-cms/auth build && pnpm --filter @ai-tool-cms/common build && pnpm --filter @ai-tool-cms/logger build && pnpm --filter @ai-tool-cms/database build && pnpm --filter @ai-tool-cms/ai build && pnpm --filter @ai-tool-cms/seo build && pnpm --filter @ai-tool-cms/geo build && pnpm --filter @ai-tool-cms/i18n build && pnpm --filter @ai-tool-cms/growth build && pnpm --filter @ai-tool-cms/search build && pnpm --filter @ai-tool-cms/ranking build && pnpm --filter @ai-tool-cms/recommendation build && pnpm --filter @ai-tool-cms/affiliate build && pnpm --filter @ai-tool-cms/ads build && pnpm --filter @ai-tool-cms/api-platform build && pnpm --filter @ai-tool-cms/email build && pnpm --filter @ai-tool-cms/discovery build && pnpm --filter @ai-tool-cms/screenshot build && pnpm --filter @ai-tool-cms/automation build && pnpm --filter @ai-tool-cms/public-api build && pnpm --filter @ai-tool-cms/mcp-server build && pnpm --filter @ai-tool-cms/crawler-core build && pnpm --filter @ai-tool-cms/queue build",
+    "predev": "pnpm --filter @ai-tool-cms/config build && pnpm --filter @ai-tool-cms/auth build && pnpm --filter @ai-tool-cms/common build && pnpm --filter @ai-tool-cms/logger build && pnpm --filter @ai-tool-cms/database build && pnpm --filter @ai-tool-cms/cache build && pnpm --filter @ai-tool-cms/monitoring build && pnpm --filter @ai-tool-cms/ai build && pnpm --filter @ai-tool-cms/seo build && pnpm --filter @ai-tool-cms/geo build && pnpm --filter @ai-tool-cms/i18n build && pnpm --filter @ai-tool-cms/growth build && pnpm --filter @ai-tool-cms/search build && pnpm --filter @ai-tool-cms/ranking build && pnpm --filter @ai-tool-cms/recommendation build && pnpm --filter @ai-tool-cms/affiliate build && pnpm --filter @ai-tool-cms/ads build && pnpm --filter @ai-tool-cms/api-platform build && pnpm --filter @ai-tool-cms/email build && pnpm --filter @ai-tool-cms/discovery build && pnpm --filter @ai-tool-cms/screenshot build && pnpm --filter @ai-tool-cms/automation build && pnpm --filter @ai-tool-cms/public-api build && pnpm --filter @ai-tool-cms/mcp-server build && pnpm --filter @ai-tool-cms/crawler-core build && pnpm --filter @ai-tool-cms/queue build",
     "dev": "nest start --watch",
-    "prebuild": "pnpm --filter @ai-tool-cms/config build && pnpm --filter @ai-tool-cms/auth build && pnpm --filter @ai-tool-cms/common build && pnpm --filter @ai-tool-cms/logger build && pnpm --filter @ai-tool-cms/database build && pnpm --filter @ai-tool-cms/ai build && pnpm --filter @ai-tool-cms/seo build && pnpm --filter @ai-tool-cms/geo build && pnpm --filter @ai-tool-cms/i18n build && pnpm --filter @ai-tool-cms/growth build && pnpm --filter @ai-tool-cms/search build && pnpm --filter @ai-tool-cms/ranking build && pnpm --filter @ai-tool-cms/recommendation build && pnpm --filter @ai-tool-cms/affiliate build && pnpm --filter @ai-tool-cms/ads build && pnpm --filter @ai-tool-cms/api-platform build && pnpm --filter @ai-tool-cms/email build && pnpm --filter @ai-tool-cms/discovery build && pnpm --filter @ai-tool-cms/screenshot build && pnpm --filter @ai-tool-cms/automation build && pnpm --filter @ai-tool-cms/public-api build && pnpm --filter @ai-tool-cms/mcp-server build && pnpm --filter @ai-tool-cms/crawler-core build && pnpm --filter @ai-tool-cms/queue build",
+    "prebuild": "pnpm --filter @ai-tool-cms/config build && pnpm --filter @ai-tool-cms/auth build && pnpm --filter @ai-tool-cms/common build && pnpm --filter @ai-tool-cms/logger build && pnpm --filter @ai-tool-cms/database build && pnpm --filter @ai-tool-cms/cache build && pnpm --filter @ai-tool-cms/monitoring build && pnpm --filter @ai-tool-cms/ai build && pnpm --filter @ai-tool-cms/seo build && pnpm --filter @ai-tool-cms/geo build && pnpm --filter @ai-tool-cms/i18n build && pnpm --filter @ai-tool-cms/growth build && pnpm --filter @ai-tool-cms/search build && pnpm --filter @ai-tool-cms/ranking build && pnpm --filter @ai-tool-cms/recommendation build && pnpm --filter @ai-tool-cms/affiliate build && pnpm --filter @ai-tool-cms/ads build && pnpm --filter @ai-tool-cms/api-platform build && pnpm --filter @ai-tool-cms/email build && pnpm --filter @ai-tool-cms/discovery build && pnpm --filter @ai-tool-cms/screenshot build && pnpm --filter @ai-tool-cms/automation build && pnpm --filter @ai-tool-cms/public-api build && pnpm --filter @ai-tool-cms/mcp-server build && pnpm --filter @ai-tool-cms/crawler-core build && pnpm --filter @ai-tool-cms/queue build",
     "build": "nest build",
     "start": "node dist/main.js",
     "start:prod": "node dist/main.js",
@@ -15,7 +15,8 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@ai-tool-cms/mcp-server": "workspace:*",
+    "@ai-tool-cms/cache": "workspace:*",
+    "@ai-tool-cms/monitoring": "workspace:*",
     "@ai-tool-cms/observability": "workspace:*",
     "@ai-tool-cms/plugins": "workspace:*",
     "@ai-tool-cms/public-api": "workspace:*",
@@ -51,6 +52,7 @@
     "@nestjs/swagger": "^11.0.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
+    "compression": "^1.7.5",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
     "reflect-metadata": "^0.2.2",
@@ -60,6 +62,7 @@
     "@eslint/js": "^9.17.0",
     "@nestjs/cli": "^11.0.0",
     "@nestjs/schematics": "^11.0.0",
+    "@types/compression": "^1.7.5",
     "@types/express": "^5.0.0",
     "@types/node": "^22.10.0",
     "@types/passport-jwt": "^4.0.1",

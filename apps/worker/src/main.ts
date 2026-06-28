@@ -1,5 +1,5 @@
 import { getEnv } from "@ai-tool-cms/config";
-import { initObservability } from "@ai-tool-cms/observability";
+import { initObservability } from "@ai-tool-cms/monitoring";
 import { registerBuiltinPlugins } from "@ai-tool-cms/plugins";
 import { disconnectPrisma } from "@ai-tool-cms/database";
 import { closeAllQueues } from "@ai-tool-cms/queue";

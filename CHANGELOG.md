@@ -2,6 +2,26 @@
 
 All notable changes to AI Tool CMS are documented in this file.
 
+## [1.0.0-prod.1] — 2026-06-27
+
+Sprint 11: Production Readiness — Zero Downtime Release (Commits 101–110)
+
+### Added
+
+- **Production audit** — `scripts/audit/production-audit.mjs`, `docs/11-production/*`
+- **Performance** — `@ai-tool-cms/cache` (Redis cache-aside), API compression, Public API response cache
+- **Security** — Helmet-equivalent headers, CORS config, `docs/security/*`
+- **Monitoring** — `@ai-tool-cms/monitoring` (Prometheus metrics, health probes `/live` `/ready` `/metrics`)
+- **Testing** — `tests/e2e`, `tests/performance/k6`, Playwright smoke tests
+- **Backup/DR** — `scripts/backup/*` (Postgres, Redis)
+- **CI/CD** — `.github/workflows/ci.yml`, `deploy.yml`, Dependabot
+
+### Changed
+
+- Health controller: liveness + readiness probes with DB/Redis checks
+- Next.js: compress, image optimization, package import optimization
+- Worker uses `@ai-tool-cms/monitoring`
+
 ## [1.0.0-rc.1] — 2026-06-27
 
 Sprint 10: AI Platform & Open Ecosystem (Commits 091–100)
