@@ -57,6 +57,28 @@ export default function AutomationPage() {
         </div>
 
         <div className="mt-6 rounded-lg border bg-card p-6 shadow-sm">
+          <h2 className="text-sm font-medium">MCP Server — AI Native Interface</h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            ChatGPT、Claude Desktop、Cursor、Windsurf、Cherry Studio 可通过 MCP 直接连接 AI Tool
+            CMS。
+          </p>
+          <ul className="mt-3 list-inside list-disc text-sm text-muted-foreground">
+            <li>search_ai_tools — AI 工具搜索</li>
+            <li>get_tool_details — 工具详情</li>
+            <li>compare_tools — 工具对比</li>
+            <li>search_categories — 分类搜索</li>
+            <li>query_pricing — 定价查询</li>
+            <li>latest_ai_tools — 最新 / 热门工具</li>
+          </ul>
+          <p className="mt-3 text-sm text-muted-foreground">
+            启动：<code>pnpm --filter @ai-tool-cms/mcp-server start</code>
+          </p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            <code>GET /v1/automation/mcp</code>
+          </p>
+        </div>
+
+        <div className="mt-6 rounded-lg border bg-card p-6 shadow-sm">
           <p className="text-sm text-muted-foreground">
             <code>GET /v1/automation/center</code> · <code>GET /v1/automation/discovery</code> ·{" "}
             <code>POST /v1/automation/daily</code>

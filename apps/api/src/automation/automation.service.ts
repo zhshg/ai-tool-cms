@@ -96,4 +96,25 @@ export class AutomationService {
       data: { status: "DISMISSED" },
     });
   }
+
+  mcpInfo() {
+    return {
+      name: "ai-tool-cms",
+      transport: "stdio",
+      command: "npx",
+      args: ["-y", "pnpm", "--filter", "@ai-tool-cms/mcp-server", "start"],
+      tools: [
+        "search_ai_tools",
+        "get_tool_details",
+        "compare_tools",
+        "search_categories",
+        "query_pricing",
+        "latest_ai_tools",
+      ],
+      clients: ["Cursor", "Claude Desktop", "ChatGPT", "Windsurf", "Cherry Studio"],
+      configExample: "packages/mcp-server/mcp-config.example.json",
+      description:
+        "AI Native Interface — connect any MCP client to search, compare, and query AI tools from the CMS.",
+    };
+  }
 }

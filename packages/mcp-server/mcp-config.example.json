@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "ai-tool-cms": {
+      "command": "node",
+      "args": ["../../packages/mcp-server/dist/main.js"],
+      "env": {
+        "DATABASE_URL": "${DATABASE_URL}",
+        "MEILI_URL": "${MEILI_URL}",
+        "MEILI_MASTER_KEY": "${MEILI_MASTER_KEY}"
+      }
+    }
+  }
+}

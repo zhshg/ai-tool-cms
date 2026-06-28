@@ -76,4 +76,11 @@ export class AutomationController {
   index() {
     return this.automationService.triggerIndex();
   }
+
+  @Get("mcp")
+  @RequirePermission(PermissionCode.AutomationRead)
+  @ApiOperation({ summary: "MCP Server connection info (AI Native Interface)" })
+  mcp() {
+    return this.automationService.mcpInfo();
+  }
 }
