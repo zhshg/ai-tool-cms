@@ -77,6 +77,16 @@ export class HomeRecommendationsQueryDto {
   @IsString()
   category?: string;
 
+  @ApiPropertyOptional({ description: "BCP 47 locale for regional recommendations (Commit 078)" })
+  @IsOptional()
+  @IsString()
+  locale?: string;
+
+  @ApiPropertyOptional({ description: "Region code e.g. us, jp, tw" })
+  @IsOptional()
+  @IsString()
+  region?: string;
+
   @ApiPropertyOptional({ default: 6 })
   @IsOptional()
   @Type(() => Number)

@@ -32,6 +32,9 @@ export const PermissionCode = {
   RevenueRead: "revenue:read",
   PartnerRead: "partner:read",
   GrowthRead: "growth:read",
+  I18nRead: "i18n:read",
+  I18nManage: "i18n:manage",
+  GlobalRead: "global:read",
 } as const;
 
 export type PermissionCodeValue = (typeof PermissionCode)[keyof typeof PermissionCode];
@@ -235,6 +238,24 @@ export const PERMISSION_DEFINITIONS: PermissionDefinition[] = [
     slug: "growth-read",
     name: "Read Growth Center",
     module: "growth",
+  },
+  {
+    code: PermissionCode.I18nRead,
+    slug: "i18n-read",
+    name: "Read Localization",
+    module: "i18n",
+  },
+  {
+    code: PermissionCode.I18nManage,
+    slug: "i18n-manage",
+    name: "Manage Translations",
+    module: "i18n",
+  },
+  {
+    code: PermissionCode.GlobalRead,
+    slug: "global-read",
+    name: "Read Global Dashboard",
+    module: "global",
   },
 ];
 

@@ -4,6 +4,7 @@ import {
   AI_QUEUE_NAMES,
   CRAWL_QUEUE_NAMES,
   GROWTH_QUEUE_NAMES,
+  I18N_QUEUE_NAMES,
   PLATFORM_QUEUE_NAMES,
   SEARCH_QUEUE_NAMES,
   type AiQueueName,
@@ -12,6 +13,8 @@ import {
   type CrawlQueuePayloadMap,
   type GrowthQueueName,
   type GrowthQueuePayloadMap,
+  type I18nQueueName,
+  type I18nQueuePayloadMap,
   type PlatformQueueName,
   type PlatformQueuePayloadMap,
   type SearchQueueName,
@@ -35,6 +38,7 @@ const aiQueueCache = new Map<AiQueueName, Queue>();
 const growthQueueCache = new Map<GrowthQueueName, Queue>();
 const searchQueueCache = new Map<SearchQueueName, Queue>();
 const platformQueueCache = new Map<PlatformQueueName, Queue>();
+const i18nQueueCache = new Map<I18nQueueName, Queue>();
 
 export function getCrawlQueue<T extends CrawlQueueName>(name: T): Queue<CrawlQueuePayloadMap[T]> {
   const existing = crawlQueueCache.get(name);
@@ -229,6 +233,31 @@ export async function getAllPlatformQueueStats() {
   return Object.fromEntries(entries);
 }
 
+export function getI18nQueue<T extends I18nQueueName>(name: T): Queue<I18nQueuePayloadMap[T]> {
+  const existing = i18nQueueCache.get(name);
+  if (existing) {
+    return existing as Queue<I18nQueuePayloadMap[T]>;
+  }
+
+  const queue = new Queue<I18nQueuePayloadMap[T]>(name, createQueueOptions());
+  i18nQueueCache.set(name, queue as Queue);
+  return queue;
+}
+
+export async function enqueueI18nJob<T extends I18nQueueName>(
+  queueName: T,
+  jobName: string,
+  payload: I18nQueuePayloadMap[T],
+  options?: JobsOptions,
+): Promise<string> {
+  const job = await getI18nQueue(queueName).add(jobName as never, payload as never, options);
+  return job.id ?? jobName;
+}
+
+export function getAllI18nQueues(): Queue[] {
+  return Object.values(I18N_QUEUE_NAMES).map((name) => getI18nQueue(name));
+}
+
 export async function getQueueStats(queueName: CrawlQueueName) {
   const queue = getCrawlQueue(queueName);
   const [waiting, active, completed, failed, delayed] = await Promise.all([
@@ -282,6 +311,7 @@ export async function closeAllQueues(): Promise<void> {
     ...growthQueueCache.values(),
     ...searchQueueCache.values(),
     ...platformQueueCache.values(),
+    ...i18nQueueCache.values(),
   ];
   await Promise.all(all.map((queue) => queue.close()));
   crawlQueueCache.clear();
@@ -289,4 +319,5 @@ export async function closeAllQueues(): Promise<void> {
   growthQueueCache.clear();
   searchQueueCache.clear();
   platformQueueCache.clear();
+  i18nQueueCache.clear();
 }

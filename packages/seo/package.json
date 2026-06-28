@@ -22,7 +22,8 @@
   },
   "dependencies": {
     "@ai-tool-cms/config": "workspace:*",
-    "@ai-tool-cms/database": "workspace:*"
+    "@ai-tool-cms/database": "workspace:*",
+    "@ai-tool-cms/i18n": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

@@ -138,6 +138,23 @@ export type PlatformQueuePayloadMap = {
   [PLATFORM_QUEUE_NAMES.EMAIL_SEND]: EmailSendJobPayload;
 };
 
+export const I18N_QUEUE_NAMES = {
+  TRANSLATION_WORKFLOW: "i18n-translation-workflow",
+} as const;
+
+export type I18nQueueName = (typeof I18N_QUEUE_NAMES)[keyof typeof I18N_QUEUE_NAMES];
+
+export type TranslationWorkflowJobPayload = {
+  translationJobId: string;
+  toolId: string;
+  targetLocale: string;
+  sourceLocale: string;
+};
+
+export type I18nQueuePayloadMap = {
+  [I18N_QUEUE_NAMES.TRANSLATION_WORKFLOW]: TranslationWorkflowJobPayload;
+};
+
 export function queueNameForJobType(jobType: CrawlQueueJobType): CrawlQueueName {
   switch (jobType) {
     case "CRAWL_CATEGORY":

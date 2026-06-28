@@ -59,6 +59,8 @@ export class SearchApiService {
     const sections = await buildHomeSections(this.prisma.client, {
       viewedToolIds,
       categorySlug: query.category,
+      locale: query.locale,
+      region: query.region,
       limit: query.limit ?? 6,
     });
     return { sections };

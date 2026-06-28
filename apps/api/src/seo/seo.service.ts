@@ -4,7 +4,7 @@ import {
   buildJsonFeed,
   buildPublicApiFeed,
   buildRssFeed,
-  buildSitemapIndex,
+  buildSitemapIndexXml,
   chunkToXml,
   scoreSeoHealth,
   pingSearchEngines,
@@ -16,6 +16,7 @@ import {
   type SitemapEntry,
   getSiteConfig,
 } from "@ai-tool-cms/seo";
+import { isSupportedLocale } from "@ai-tool-cms/i18n";
 import { PromptStatus, ToolStatus } from "@ai-tool-cms/database";
 import { PrismaService } from "../prisma/prisma.service";
 import { activeOnly } from "../common/prisma.util";
@@ -25,12 +26,29 @@ export class SeoService {
   constructor(private readonly prisma: PrismaService) {}
 
   async getSitemapIndexXml(): Promise<string> {
-    return buildSitemapIndex();
+    const config = getSiteConfig();
+    const localeChunks = config.locales.map((locale) => ({
+      loc: `${config.siteUrl}/sitemaps/${locale}.xml`,
+      lastmod: new Date(),
+    }));
+    const contentChunks = SITEMAP_CHUNK_IDS.map((id: SitemapChunkId) => ({
+      loc: `${config.siteUrl}/sitemaps/${id}.xml`,
+      lastmod: new Date(),
+    }));
+    return buildSitemapIndexXml([...localeChunks, ...contentChunks]);
   }
 
-  async getSitemapChunkXml(chunkId: SitemapChunkId): Promise<string> {
-    const entries = await this.loadSitemapEntries(chunkId);
-    return chunkToXml({ id: chunkId, entries, lastModified: new Date() });
+  async getSitemapChunkXml(chunkId: string): Promise<string> {
+    const normalized = chunkId.replace(/\.xml$/, "");
+    if (isSupportedLocale(normalized)) {
+      const entries = await this.loadLocaleSitemapEntries(normalized);
+      return chunkToXml({ id: normalized as SitemapChunkId, entries, lastModified: new Date() });
+    }
+    return chunkToXml({
+      id: normalized as SitemapChunkId,
+      entries: await this.loadSitemapEntries(normalized as SitemapChunkId),
+      lastModified: new Date(),
+    });
   }
 
   async pingSitemaps(): Promise<unknown> {
@@ -166,8 +184,37 @@ export class SeoService {
     };
   }
 
+  private async loadLocaleSitemapEntries(locale: string): Promise<SitemapEntry[]> {
+    const tools = await this.prisma.client.tool.findMany({
+      where: { status: ToolStatus.PUBLISHED, ...activeOnly },
+      select: { slug: true, updatedAt: true },
+    });
+    const categories = await this.prisma.client.category.findMany({
+      where: activeOnly,
+      select: { slug: true, updatedAt: true },
+    });
+
+    const entries: SitemapEntry[] = [
+      { url: `/${locale}`, lastModified: new Date(), changeFrequency: "daily", priority: 1 },
+      ...tools.map((t) => ({
+        url: `/${locale}/tools/${t.slug}`,
+        lastModified: t.updatedAt,
+        changeFrequency: "weekly" as const,
+        priority: 0.8,
+      })),
+      ...categories.map((c) => ({
+        url: `/${locale}/category/${c.slug}`,
+        lastModified: c.updatedAt,
+        changeFrequency: "weekly" as const,
+        priority: 0.7,
+      })),
+    ];
+    return entries;
+  }
+
   private async loadSitemapEntries(chunkId: SitemapChunkId): Promise<SitemapEntry[]> {
-    const locale = "en";
+    const config = getSiteConfig();
+    const locales = config.locales.length ? config.locales : ["en"];
 
     switch (chunkId) {
       case "tool": {
@@ -175,48 +222,56 @@ export class SeoService {
           where: { status: ToolStatus.PUBLISHED, ...activeOnly },
           select: { slug: true, updatedAt: true },
         });
-        return tools.map((t) => ({
-          url: `/${locale}/tools/${t.slug}`,
-          lastModified: t.updatedAt,
-          changeFrequency: "weekly",
-          priority: 0.8,
-        }));
+        return tools.flatMap((t) =>
+          locales.map((locale) => ({
+            url: `/${locale}/tools/${t.slug}`,
+            lastModified: t.updatedAt,
+            changeFrequency: "weekly" as const,
+            priority: 0.8,
+          })),
+        );
       }
       case "category": {
         const categories = await this.prisma.client.category.findMany({
           where: activeOnly,
           select: { slug: true, updatedAt: true },
         });
-        return categories.map((c) => ({
-          url: `/${locale}/category/${c.slug}`,
-          lastModified: c.updatedAt,
-          changeFrequency: "weekly",
-          priority: 0.7,
-        }));
+        return categories.flatMap((c) =>
+          locales.map((locale) => ({
+            url: `/${locale}/category/${c.slug}`,
+            lastModified: c.updatedAt,
+            changeFrequency: "weekly" as const,
+            priority: 0.7,
+          })),
+        );
       }
       case "tag": {
         const tags = await this.prisma.client.tag.findMany({
           where: activeOnly,
           select: { slug: true, updatedAt: true },
         });
-        return tags.map((t) => ({
-          url: `/${locale}/tag/${t.slug}`,
-          lastModified: t.updatedAt,
-          changeFrequency: "weekly",
-          priority: 0.6,
-        }));
+        return tags.flatMap((t) =>
+          locales.map((locale) => ({
+            url: `/${locale}/tag/${t.slug}`,
+            lastModified: t.updatedAt,
+            changeFrequency: "weekly" as const,
+            priority: 0.6,
+          })),
+        );
       }
       case "compare": {
         const pages = await this.prisma.client.seoComparePage.findMany({
           where: { status: ToolStatus.PUBLISHED, ...activeOnly },
           select: { slug: true, updatedAt: true },
         });
-        return pages.map((p) => ({
-          url: `/${locale}/compare/${p.slug}`,
-          lastModified: p.updatedAt,
-          changeFrequency: "weekly",
-          priority: 0.75,
-        }));
+        return pages.flatMap((p) =>
+          locales.map((locale) => ({
+            url: `/${locale}/compare/${p.slug}`,
+            lastModified: p.updatedAt,
+            changeFrequency: "weekly" as const,
+            priority: 0.65,
+          })),
+        );
       }
       case "prompt": {
         const prompts = await this.prisma.client.prompt.findMany({
@@ -224,12 +279,14 @@ export class SeoService {
           select: { slug: true, updatedAt: true },
           take: 500,
         });
-        return prompts.map((p) => ({
-          url: `/${locale}/prompts/${p.slug}`,
-          lastModified: p.updatedAt,
-          changeFrequency: "monthly",
-          priority: 0.5,
-        }));
+        return prompts.flatMap((p) =>
+          locales.map((locale) => ({
+            url: `/${locale}/prompts/${p.slug}`,
+            lastModified: p.updatedAt,
+            changeFrequency: "monthly" as const,
+            priority: 0.5,
+          })),
+        );
       }
       case "rss":
         return [

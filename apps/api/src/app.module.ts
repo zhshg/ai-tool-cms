@@ -19,6 +19,7 @@ import { AnalyticsModule } from "./analytics/analytics.module";
 import { SeoModule } from "./seo/seo.module";
 import { SearchModule } from "./search/search.module";
 import { CommercialModule } from "./commercial/commercial.module";
+import { I18nModule } from "./i18n/i18n.module";
 
 @Module({
   imports: [
@@ -45,6 +46,7 @@ import { CommercialModule } from "./commercial/commercial.module";
     SearchModule,
     AnalyticsModule,
     CommercialModule,
+    I18nModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },
