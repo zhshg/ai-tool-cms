@@ -593,6 +593,7 @@ Enterprise Features
 | [UserStories.md](./UserStories.md) | BDD user stories (90) |
 | [FeatureCatalog.md](./FeatureCatalog.md) | **Enterprise feature matrix** — master index (88 features) |
 | [TechStack.md](./TechStack.md) | Technology choices |
+| [01-architecture/README.md](../01-architecture/README.md) | **System Architecture** entry point |
 | [FolderStructure.md](./FolderStructure.md) | Monorepo layout |
 | [CodingStandards.md](./CodingStandards.md) / [NamingConvention.md](./NamingConvention.md) | Dev conventions |
 | [GitWorkflow.md](./GitWorkflow.md) / [ReleaseStrategy.md](./ReleaseStrategy.md) | Process |
@@ -602,6 +603,11 @@ Enterprise Features
 01-architecture
 
 系统架构
+
+| Document | Description |
+|---|---|
+| [README.md](../01-architecture/README.md) | **System Architecture** — entry point, vision, layers, principles |
+| Architecture.md, Monorepo.md, DDD.md, … | Specialized architecture docs (planned) |
 
 ---
 
