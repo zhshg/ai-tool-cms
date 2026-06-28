@@ -1,4 +1,11 @@
 {
+  "home": {
+    "title": "AI 工具目录",
+    "description": "发现、对比和探索最佳 AI 工具 —— 由 AI Tool CMS 驱动。",
+    "trending": "热门工具",
+    "categories": "按分类浏览",
+    "latest": "最新收录"
+  },
   "scaffold": {
     "title": "AI Tool CMS Web",
     "description": "框架脚手架 — 尚未包含业务页面。"

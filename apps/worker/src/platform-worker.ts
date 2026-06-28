@@ -1,6 +1,7 @@
 import type { Job, Worker } from "bullmq";
 import { Worker as BullWorker } from "bullmq";
 import { deliverWebhook } from "@ai-tool-cms/api-platform";
+import { withSpan, recordMetric } from "@ai-tool-cms/observability";
 import { prisma } from "@ai-tool-cms/database";
 import {
   buildNewsletterContent,
@@ -21,8 +22,16 @@ const log = createLogger({ service: "platform-worker" });
 const workerConnection = () => createRedisConnection() as never;
 
 async function handleWebhookDeliver(job: Job<WebhookDeliverJobPayload>) {
-  const result = await deliverWebhook(prisma, job.data.deliveryId);
+  const result = await withSpan(
+    "webhook.deliver",
+    { service: "worker", deliveryId: job.data.deliveryId },
+    () => deliverWebhook(prisma, job.data.deliveryId),
+  );
+  recordMetric("webhook.deliver", result.ok ? 1 : 0, { deliveryId: job.data.deliveryId });
   log.info("Webhook delivered", { deliveryId: job.data.deliveryId, ...result });
+  if (!result.ok) {
+    throw new Error(`Webhook delivery failed: ${job.data.deliveryId}`);
+  }
 }
 
 async function handleNewsletterSend(job: Job<NewsletterSendJobPayload>) {

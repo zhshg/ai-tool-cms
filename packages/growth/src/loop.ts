@@ -3,6 +3,8 @@ import type { PrismaClient } from "@ai-tool-cms/database";
 import { pingSitemapsAfterPublish, syncComparePages, syncInternalLinks } from "@ai-tool-cms/seo";
 import { enqueueSearchIndex } from "@ai-tool-cms/search";
 import { emitWebhookEvent } from "@ai-tool-cms/api-platform";
+import { runPluginLifecycle } from "@ai-tool-cms/plugins";
+import { completeToolPublishWorkflow } from "@ai-tool-cms/workflow";
 import { enqueueAllLocaleTranslations, parseEnabledLocales } from "@ai-tool-cms/i18n";
 import { getEnv } from "@ai-tool-cms/config";
 import { persistGeoDocumentForTool } from "./geo-persist";
@@ -46,6 +48,12 @@ export async function runSiteGrowthLoop(
   }
 
   const metadata = (tool.metadata ?? {}) as Record<string, unknown>;
+
+  steps.beforePublish = await runPluginLifecycle(prisma, "beforePublish", {
+    toolId,
+    slug: tool.slug,
+    metadata,
+  });
   const crawlTags = (metadata.crawlTags as string[] | undefined) ?? [];
   const crawlCategories = (metadata.crawlCategories as string[] | undefined) ?? [];
 
@@ -62,7 +70,17 @@ export async function runSiteGrowthLoop(
   steps.geo = await persistGeoDocumentForTool(prisma, toolId);
   steps.internalLinks = await syncInternalLinks(prisma, toolId);
   steps.comparePages = await syncComparePages(prisma);
+  steps.beforeSEO = await runPluginLifecycle(prisma, "beforeSEO", {
+    toolId,
+    slug: tool.slug,
+    metadata,
+  });
   steps.taxonomySeo = await refreshTaxonomySeoMetadata(prisma, toolId, actorId);
+  steps.seoWebhook = await emitWebhookEvent(prisma, "SEO_UPDATED", {
+    toolId,
+    slug: tool.slug,
+    reason,
+  });
   steps.sitemapPing = await pingSitemapsAfterPublish();
   steps.searchIndex = await enqueueSearchIndex(toolId, "publish");
   steps.webhook = await emitWebhookEvent(prisma, "TOOL_ADDED", {
@@ -70,6 +88,15 @@ export async function runSiteGrowthLoop(
     slug: tool.slug,
     name: tool.name,
     reason,
+  });
+  steps.afterPublish = await runPluginLifecycle(prisma, "afterPublish", {
+    toolId,
+    slug: tool.slug,
+    metadata,
+  });
+  steps.workflow = await completeToolPublishWorkflow(prisma, toolId, {
+    reason,
+    finishedAt: new Date().toISOString(),
   });
 
   try {

@@ -2,6 +2,7 @@ import type { Job } from "bullmq";
 import { Worker } from "bullmq";
 import { prisma } from "@ai-tool-cms/database";
 import { runSiteGrowthLoop } from "@ai-tool-cms/growth";
+import { withSpan } from "@ai-tool-cms/observability";
 import { createLogger } from "@ai-tool-cms/logger";
 import {
   createRedisConnection,
@@ -19,7 +20,9 @@ export function startGrowthWorker(): Worker<GrowthJobPayload> {
       const { toolId, reason, actorId } = job.data;
       log.info("site growth loop started", { toolId, reason, jobId: job.id });
 
-      const result = await runSiteGrowthLoop(prisma, toolId, reason, actorId);
+      const result = await withSpan("growth.loop", { service: "worker", toolId, reason }, () =>
+        runSiteGrowthLoop(prisma, toolId, reason, actorId),
+      );
 
       log.info("site growth loop finished", {
         toolId,

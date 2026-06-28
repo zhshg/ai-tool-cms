@@ -30,6 +30,7 @@ import {
 import { enqueueAiJob, type AiQueueName } from "@ai-tool-cms/queue";
 import { startAiPipeline, type EnqueueFn } from "@ai-tool-cms/ai";
 import { persistCrawlCategories } from "@ai-tool-cms/growth";
+import { startToolPublishWorkflow } from "@ai-tool-cms/workflow";
 
 const log = createLogger({ service: "crawl-worker" });
 const workerConnection = () => createRedisConnection() as never;
@@ -192,8 +193,17 @@ export function startNormalizeWorker(): Worker<NormalizeJobPayload> {
         : { created: 0, updated: 0 };
 
       if (ingested?.toolId) {
+        const workflowRunId = await startToolPublishWorkflow(
+          prisma,
+          ingested.toolId,
+          "crawl-normalize",
+        );
         await startAiPipeline(ingested.toolId, enqueueAiPipelineJob);
-        log.info("AI pipeline enqueued after normalize", { toolId: ingested.toolId, crawlJobId });
+        log.info("AI pipeline enqueued after normalize", {
+          toolId: ingested.toolId,
+          crawlJobId,
+          workflowRunId,
+        });
       }
 
       const crawlJobRecord = await prisma.crawlJob.findUnique({ where: { id: crawlJobId } });

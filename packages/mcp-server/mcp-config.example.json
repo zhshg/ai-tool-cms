@@ -1,8 +1,9 @@
 {
   "mcpServers": {
     "ai-tool-cms": {
-      "command": "node",
-      "args": ["../../packages/mcp-server/dist/main.js"],
+      "command": "pnpm",
+      "args": ["mcp"],
+      "cwd": "${workspaceFolder}",
       "env": {
         "DATABASE_URL": "${DATABASE_URL}",
         "MEILI_URL": "${MEILI_URL}",

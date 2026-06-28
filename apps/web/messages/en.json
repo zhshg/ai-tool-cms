@@ -1,4 +1,11 @@
 {
+  "home": {
+    "title": "AI Tool Directory",
+    "description": "Discover, compare, and explore the best AI tools — powered by AI Tool CMS.",
+    "trending": "Trending tools",
+    "categories": "Browse by category",
+    "latest": "Latest additions"
+  },
   "scaffold": {
     "title": "AI Tool CMS Web",
     "description": "Framework scaffold — no business pages yet."

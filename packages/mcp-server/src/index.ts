@@ -1,4 +1,4 @@
-export { createMcpServer } from "./server";
+export { createMcpServer } from "./server.js";
 export {
   mcpSearchTools,
   mcpGetToolDetails,
@@ -6,4 +6,4 @@ export {
   mcpCategorySearch,
   mcpPricingQuery,
   mcpLatestAiTools,
-} from "./handlers";
+} from "./handlers.js";

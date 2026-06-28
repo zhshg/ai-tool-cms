@@ -81,6 +81,44 @@ function buildTagFaqs(tagName: string): CatalogFaq[] {
   ];
 }
 
+export async function getHomePageData(locale: string): Promise<{
+  categories: { slug: string; name: string; toolCount: number }[];
+  latestTools: CatalogTool[];
+  trendingTools: CatalogTool[];
+}> {
+  const categories = await prisma.category.findMany({
+    where: activeOnly,
+    orderBy: { name: "asc" },
+    take: 12,
+    include: {
+      _count: {
+        select: {
+          tools: {
+            where: { deletedAt: null, tool: { status: ToolStatus.PUBLISHED, deletedAt: null } },
+          },
+        },
+      },
+    },
+  });
+
+  const [latestTools, trendingTools] = await Promise.all([
+    fetchPublishedTools(8),
+    fetchPublishedTools(6),
+  ]);
+
+  void locale;
+
+  return {
+    categories: categories.map((c) => ({
+      slug: c.slug,
+      name: c.name,
+      toolCount: c._count.tools,
+    })),
+    latestTools,
+    trendingTools,
+  };
+}
+
 export async function getCategoryLanding(
   slug: string,
   locale: string,
