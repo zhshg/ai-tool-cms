@@ -3,7 +3,7 @@ import { StructuredSiteAdapter } from "../StructuredSiteAdapter";
 import type { CrawlCategoryDTO, CrawlToolListItemDTO, ToolDTO } from "../ToolDTO";
 import type { CrawlCursor } from "../types";
 
-/** Futurepedia adapter (Commit 025). */
+/** Futurepedia adapter — scaffold for future production use (not registered by default). */
 export class FuturepediaAdapter extends StructuredSiteAdapter {
   readonly sourceId = "futurepedia";
   readonly displayName = "Futurepedia";

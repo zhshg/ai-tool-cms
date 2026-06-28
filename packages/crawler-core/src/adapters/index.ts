@@ -1,23 +1,29 @@
-import { ToolifyAdapter } from "./toolify.adapter";
-import { FuturepediaAdapter } from "./futurepedia.adapter";
-import { TaaftAdapter } from "./taaft.adapter";
 import { globalAdapterRegistry } from "../Adapter";
 import type { StructuredSiteAdapter } from "../StructuredSiteAdapter";
+import { MockStructuredAdapter } from "./mock-structured.adapter";
 
-export const SITE_ADAPTERS: StructuredSiteAdapter[] = [
-  new ToolifyAdapter(),
-  new FuturepediaAdapter(),
-  new TaaftAdapter(),
-];
+/** Adapters registered by default — framework validation only. */
+export const FRAMEWORK_ADAPTERS: StructuredSiteAdapter[] = [new MockStructuredAdapter()];
 
-export function registerSiteAdapters(): void {
-  for (const adapter of SITE_ADAPTERS) {
+export function registerFrameworkAdapters(): void {
+  for (const adapter of FRAMEWORK_ADAPTERS) {
     globalAdapterRegistry.register(adapter);
   }
 }
 
-registerSiteAdapters();
+registerFrameworkAdapters();
 
-export { ToolifyAdapter } from "./toolify.adapter";
-export { FuturepediaAdapter } from "./futurepedia.adapter";
-export { TaaftAdapter } from "./taaft.adapter";
+export { MockStructuredAdapter } from "./mock-structured.adapter";
+export {
+  PRODUCTION_SITE_ADAPTERS,
+  registerProductionSiteAdapters,
+  ToolifyAdapter,
+  FuturepediaAdapter,
+  TaaftAdapter,
+} from "./production";
+
+/** @deprecated Use registerFrameworkAdapters() — production adapters are opt-in. */
+export const registerSiteAdapters = registerFrameworkAdapters;
+
+/** @deprecated Use FRAMEWORK_ADAPTERS */
+export const SITE_ADAPTERS = FRAMEWORK_ADAPTERS;

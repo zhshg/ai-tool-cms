@@ -12,7 +12,11 @@ import {
 import { createRedisConnection } from "@ai-tool-cms/queue";
 import { prisma } from "@ai-tool-cms/database";
 import { createLogger } from "@ai-tool-cms/logger";
-import { registerSiteAdapters } from "@ai-tool-cms/crawler-core";
+import {
+  registerFrameworkAdapters,
+  registerProductionSiteAdapters,
+} from "@ai-tool-cms/crawler-core";
+import { getEnv } from "@ai-tool-cms/config";
 import {
   createWorkerContext,
   ingestDetails,
@@ -27,7 +31,11 @@ import {
 const log = createLogger({ service: "crawl-worker" });
 const workerConnection = () => createRedisConnection() as never;
 
-registerSiteAdapters();
+registerFrameworkAdapters();
+if (getEnv().CRAWLER_ENABLE_PRODUCTION_ADAPTERS) {
+  registerProductionSiteAdapters();
+  log.info("Production site adapters enabled");
+}
 
 export function startCrawlToolWorker(): Worker<CrawlToolJobPayload> {
   return new Worker<CrawlToolJobPayload>(

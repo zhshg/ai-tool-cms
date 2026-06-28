@@ -49,16 +49,16 @@ export default function CrawlerPage() {
         </div>
 
         <div className="mt-6 rounded-lg border bg-card p-6 text-card-foreground shadow-sm">
-          <h2 className="text-sm font-medium">Source Registry</h2>
+          <h2 className="text-sm font-medium">Framework 验证</h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            通过 API <code className="text-xs">/v1/crawler/sources</code>{" "}
-            管理采集源：启用、禁用、暂停与调整频率。 立即采集：
-            <code className="text-xs">POST /v1/crawler/jobs</code>
+            Sprint 3 策略：先用 Mock Adapter（本地 fixtures）验证采集 → 规范化 → 去重 → 入库全链路。
+            真实数据源在框架稳定后通过{" "}
+            <code className="text-xs">registerProductionSiteAdapters()</code> 按需启用。
           </p>
           <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
             <div>
-              <dt className="text-muted-foreground">预设适配器</dt>
-              <dd className="font-medium">Toolify · Futurepedia · TAAFT</dd>
+              <dt className="text-muted-foreground">默认适配器</dt>
+              <dd className="font-medium">mock（本地 fixtures）</dd>
             </div>
             <div>
               <dt className="text-muted-foreground">队列</dt>

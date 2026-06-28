@@ -4,7 +4,8 @@ import type { CrawlCategoryDTO, CrawlToolListItemDTO } from "../ToolDTO";
 import type { CrawlCursor } from "../types";
 
 /**
- * Toolify adapter — config-driven JSON API, no DOM selectors (Commit 024).
+ * Toolify adapter — scaffold for future production use (not registered by default).
+ * Enable via registerProductionSiteAdapters() when ready.
  */
 export class ToolifyAdapter extends StructuredSiteAdapter {
   readonly sourceId = "toolify";

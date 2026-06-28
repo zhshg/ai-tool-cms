@@ -2,10 +2,12 @@ import { describe, expect, it } from "vitest";
 import { normalizeToolRecord } from "./Normalizer";
 import { computeBackoffDelay, retry, DEFAULT_RETRY_CONFIG } from "./Retry";
 import { DelayRateLimiter } from "./RateLimiter";
-import { MockCrawler } from "./adapters/mock.adapter";
-import { DuplicateDetector } from "./DuplicateDetector";
+import { MockCrawler, createMockFetcher, createCrawlerContext } from "./index";
+import { DuplicateDetector, defaultDuplicateDetector } from "./DuplicateDetector";
 import { unifiedToolNormalizer } from "./UnifiedNormalizer";
 import { computeNextRunAt } from "./schedule";
+import { MockStructuredAdapter } from "./adapters/mock-structured.adapter";
+import { MOCK_SOURCE_FIXTURES } from "./fixtures/mock-source.fixtures";
 
 describe("ToolDraftNormalizer", () => {
   it("normalizes valid extracted items", () => {
@@ -121,6 +123,39 @@ describe("UnifiedToolNormalizer", () => {
 describe("computeNextRunAt", () => {
   it("returns null for manual schedule", () => {
     expect(computeNextRunAt("MANUAL", 60)).toBeNull();
+  });
+});
+
+describe("MockStructuredAdapter pipeline", () => {
+  it("runs categories → tools → detail → normalize without network", async () => {
+    const adapter = new MockStructuredAdapter();
+    const ctx = createCrawlerContext({ fetch: createMockFetcher() });
+
+    const categories = await adapter.getCategories(ctx);
+    expect(categories.length).toBeGreaterThanOrEqual(1);
+
+    const { items } = await adapter.getTools(ctx, categories[0]);
+    expect(items.length).toBeGreaterThanOrEqual(1);
+
+    const detail = await adapter.getDetail(ctx, items[0]!);
+    const dto = adapter.normalize(detail!);
+
+    expect(dto).toMatchObject({
+      name: items[0]!.name,
+      sourceId: "mock",
+      website: items[0]!.website,
+    });
+  });
+
+  it("deduplicates fixture tools by website", () => {
+    const adapter = new MockStructuredAdapter();
+    const normalized = MOCK_SOURCE_FIXTURES.details
+      .map((detail) => adapter.normalize({ ...detail, raw: {} }))
+      .filter((dto): dto is NonNullable<typeof dto> => Boolean(dto));
+
+    const { unique, duplicates } = defaultDuplicateDetector.filterUnique(normalized, []);
+    expect(unique.length).toBe(2);
+    expect(duplicates.length).toBe(1);
   });
 });
 

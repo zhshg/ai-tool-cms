@@ -3,7 +3,7 @@ import { StructuredSiteAdapter } from "../StructuredSiteAdapter";
 import type { CrawlCategoryDTO, CrawlToolListItemDTO } from "../ToolDTO";
 import type { CrawlCursor } from "../types";
 
-/** There's An AI For That adapter (Commit 026). */
+/** TAAFT adapter — scaffold for future production use (not registered by default). */
 export class TaaftAdapter extends StructuredSiteAdapter {
   readonly sourceId = "taaft";
   readonly displayName = "There's An AI For That";

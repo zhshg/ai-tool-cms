@@ -54,7 +54,21 @@ export type {
   RetryConfig,
 } from "./types";
 
-// Built-in adapters
+// Framework adapter (Sprint 3 — validate pipeline with local fixtures)
+export {
+  registerFrameworkAdapters,
+  FRAMEWORK_ADAPTERS,
+  MockStructuredAdapter,
+  registerProductionSiteAdapters,
+  PRODUCTION_SITE_ADAPTERS,
+  ToolifyAdapter,
+  FuturepediaAdapter,
+  TaaftAdapter,
+} from "./adapters";
+export { MOCK_SOURCE_FIXTURES } from "./fixtures/mock-source.fixtures";
+export type { MockSourceFixtures } from "./fixtures/mock-source.fixtures";
+
+// Legacy mock (SDK unit tests)
 export {
   createMockFetcher,
   MockAdapter,
@@ -64,14 +78,8 @@ export {
 export type { MockFixture } from "./adapters/mock.adapter";
 export { ExampleSiteAdapter, ExampleSiteCrawler } from "./adapters/example-site.adapter";
 
-// Site adapters (Commit 024–026)
-export {
-  registerSiteAdapters,
-  SITE_ADAPTERS,
-  ToolifyAdapter,
-  FuturepediaAdapter,
-  TaaftAdapter,
-} from "./adapters";
+/** @deprecated Use registerFrameworkAdapters */
+export { registerSiteAdapters, SITE_ADAPTERS } from "./adapters";
 
 // Unified DTO & normalization (Commit 027)
 export type {

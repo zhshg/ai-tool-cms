@@ -57,6 +57,7 @@ export function parseEnv(source?: EnvSource): Env {
     SMTP_USER: resolved.SMTP_USER,
     SMTP_PASSWORD: resolved.SMTP_PASSWORD,
     MAILPIT_URL: resolved.MAILPIT_URL,
+    CRAWLER_ENABLE_PRODUCTION_ADAPTERS: resolved.CRAWLER_ENABLE_PRODUCTION_ADAPTERS,
   };
 
   return envSchema.parse(raw);

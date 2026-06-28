@@ -26,7 +26,7 @@ async function main(): Promise<void> {
   if (profile === "demo" || profile === "all") {
     await seedDemoTools(adminUserId, categoryIds, tagIds);
     await seedCrawlSources(adminUserId);
-    console.info("[seed] 10 demo tools + crawl sources seeded");
+    console.info("[seed] mock crawl source seeded (framework validation)");
   }
 
   if (profile === "bulk" || profile === "all") {
