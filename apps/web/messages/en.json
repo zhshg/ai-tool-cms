@@ -9,5 +9,205 @@
   "scaffold": {
     "title": "AI Tool CMS Web",
     "description": "Framework scaffold — no business pages yet."
+  },
+  "landing": {
+    "nav": {
+      "docs": "Docs",
+      "pricing": "Pricing",
+      "showcase": "Showcase",
+      "blog": "Blog",
+      "changelog": "Changelog",
+      "getStarted": "Get Started"
+    },
+    "hero": {
+      "badge": "v1.0.0 GA — Open Source",
+      "title": "The AI-Native CMS for Tool Directories",
+      "subtitle": "Crawl, enrich with AI, optimize for SEO, and ship — with REST API, MCP Server, and full observability.",
+      "ctaPrimary": "Start in 30 minutes",
+      "ctaSecondary": "View on GitHub",
+      "stats": "Production · 24×7 · Documented · Observable"
+    },
+    "features": {
+      "title": "Everything you need to launch",
+      "subtitle": "From crawler to publish — one platform.",
+      "items": {
+        "ai": {
+          "title": "AI Pipeline",
+          "desc": "Multi-provider generation, review workflow, and quality scoring."
+        },
+        "search": {
+          "title": "Hybrid Search",
+          "desc": "Meilisearch + semantic embeddings for instant discovery."
+        },
+        "seo": {
+          "title": "SEO Engine",
+          "desc": "Sitemaps, JSON-LD, compare pages, and internal links."
+        },
+        "i18n": {
+          "title": "10+ Locales",
+          "desc": "hreflang, regional SEO, and translation workflows."
+        },
+        "workflow": {
+          "title": "Workflow Engine",
+          "desc": "Configurable publish pipelines with plugin hooks."
+        },
+        "security": {
+          "title": "Production Security",
+          "desc": "RBAC, API keys, security headers, and CI scanning."
+        }
+      }
+    },
+    "architecture": {
+      "title": "Open Platform Architecture",
+      "subtitle": "Monorepo built for scale and extensibility.",
+      "layers": {
+        "web": { "title": "Web + Admin", "desc": "Next.js 15" },
+        "api": { "title": "API", "desc": "NestJS REST" },
+        "worker": { "title": "Worker", "desc": "BullMQ async" },
+        "open": { "title": "Open API", "desc": "SDK · MCP · Webhooks" }
+      }
+    },
+    "demo": {
+      "title": "Live Demo",
+      "subtitle": "Explore published tools from your catalog.",
+      "empty": "Seed the database to see live tools here.",
+      "browseAll": "Browse all tools"
+    },
+    "screenshots": {
+      "title": "Built for operators",
+      "subtitle": "Admin dashboards for SEO, growth, and automation.",
+      "items": {
+        "admin": "Admin Dashboard",
+        "seo": "SEO Monitoring",
+        "api": "API & Platform"
+      }
+    },
+    "sponsors": {
+      "title": "Powered by",
+      "cta": "Interested in sponsoring? Open a Discussion on GitHub."
+    },
+    "github": {
+      "title": "Open Source on GitHub",
+      "subtitle": "MIT licensed. Self-host or extend with plugins.",
+      "license": "License",
+      "packages": "Packages",
+      "sprints": "Sprints shipped",
+      "cta": "Star on GitHub"
+    },
+    "docs": {
+      "title": "Developer Documentation",
+      "subtitle": "Deploy locally in 30 minutes. Full API reference included.",
+      "gettingStarted": "Getting Started",
+      "api": "API Reference",
+      "deployment": "Deployment Guide",
+      "cta": "Read the docs"
+    },
+    "roadmap": {
+      "title": "What's next",
+      "subtitle": "v1.0 GA today. v1.1 and v2.0 on the horizon.",
+      "v11": {
+        "agent": "AI Agent Dashboard",
+        "prompts": "Prompt Library",
+        "marketplace": "Plugin Marketplace",
+        "analytics": "Advanced Analytics"
+      },
+      "v20": {
+        "mcp": "MCP Server GA",
+        "workflow": "Workflow Builder UI",
+        "enterprise": "Enterprise Edition",
+        "saas": "SaaS Cloud"
+      },
+      "changelogLink": "View full changelog →"
+    },
+    "cta": {
+      "title": "Ready to launch your AI tool directory?",
+      "subtitle": "Clone, deploy, and go live with v1.0.0 today.",
+      "primary": "Get Started",
+      "secondary": "View Pricing"
+    },
+    "footer": {
+      "tagline": "Open-source AI tool content management system.",
+      "product": "Product",
+      "pricing": "Pricing",
+      "showcase": "Showcase",
+      "changelog": "Changelog",
+      "resources": "Resources",
+      "docs": "Documentation",
+      "blog": "Blog",
+      "community": "Community"
+    }
+  },
+  "pages": {
+    "docs": {
+      "title": "Documentation",
+      "subtitle": "Guides for developers and operators.",
+      "githubHint": "Full documentation is maintained in the repository:",
+      "sections": {
+        "gettingStarted": "Getting Started — 30 min deploy",
+        "api": "API Reference — REST, SDK, MCP",
+        "deployment": "Deployment — Docker & K8s",
+        "architecture": "Architecture Overview"
+      },
+      "back": "Back to home"
+    },
+    "pricing": {
+      "title": "Pricing",
+      "subtitle": "Open source at the core. Scale on your terms.",
+      "cta": "Get Started",
+      "tiers": {
+        "oss": {
+          "name": "Open Source",
+          "price": "Free",
+          "desc": "Self-host the full platform.",
+          "features": ["MIT License", "All core features", "Community support"]
+        },
+        "selfHosted": {
+          "name": "Self-Hosted Pro",
+          "price": "Your infra",
+          "desc": "Production deployment on your cloud.",
+          "features": ["Docker images", "Ops runbooks", "Backup scripts", "CI/CD templates"]
+        },
+        "enterprise": {
+          "name": "Enterprise",
+          "price": "Contact",
+          "desc": "Team workspace & SLA (v2.0 roadmap).",
+          "features": ["SSO", "Dedicated support", "Custom SLA", "Multi-tenant SaaS"]
+        }
+      }
+    },
+    "blog": {
+      "title": "Blog",
+      "subtitle": "Release notes and engineering updates.",
+      "back": "Back to home",
+      "posts": {
+        "v1-ga-launch": {
+          "title": "AI Tool CMS v1.0.0 GA",
+          "excerpt": "General Availability — production-ready, documented, and open source."
+        },
+        "open-ecosystem": {
+          "title": "Open Ecosystem: API, MCP, SDK",
+          "excerpt": "Sprint 10 delivered the developer platform for AI-native integrations."
+        },
+        "production-ready": {
+          "title": "Production Readiness Sprint",
+          "excerpt": "Monitoring, backups, CI/CD, and zero-downtime deployment patterns."
+        }
+      }
+    },
+    "changelog": {
+      "title": "Changelog",
+      "subtitle": "Release history for AI Tool CMS.",
+      "releases": {
+        "1_0_0": "Sprint 12 — v1.0.0 GA: Launch, docs, community, marketing.",
+        "1_0_0-prod_1": "Sprint 11 — Production readiness: monitoring, backup, CI/CD.",
+        "1_0_0-rc_1": "Sprint 10 — Open ecosystem: Public API, MCP, SDK, Webhooks."
+      }
+    },
+    "showcase": {
+      "title": "Showcase",
+      "subtitle": "Featured tools and categories from your catalog.",
+      "trending": "Trending",
+      "categories": "Categories"
+    }
   }
 }
