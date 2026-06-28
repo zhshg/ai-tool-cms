@@ -1,6 +1,6 @@
 {
   "name": "ai-tool-cms",
-  "version": "1.0.0-prod.1",
+  "version": "1.0.0",
   "private": true,
   "description": "AI 工具内容管理系统 Monorepo",
   "scripts": {

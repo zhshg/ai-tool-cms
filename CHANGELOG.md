@@ -2,6 +2,29 @@
 
 All notable changes to AI Tool CMS are documented in this file.
 
+## [1.0.0] — 2026-06-27
+
+Sprint 12: Launch & Growth — General Availability (Commits 111–120)
+
+### Added
+
+- **Release Review** — `docs/12-release/*` (ReleaseReview, GoLiveReport, KnownLimitations, RiskLog)
+- **Developer Handbook** — `docs/GettingStarted.md`, `Installation.md`, `Architecture.md`, `API.md`, `PluginGuide.md`, `WorkflowGuide.md`, `Deployment.md`, `Contributing.md`, `FAQ.md`
+- **Examples** — `examples/starter`, `docker`, `plugin`, `api`
+- **Operations Manual** — `docs/operations/*` (Runbook, Backup, Restore, Incident, Monitoring, Upgrade, Rollback)
+- **Official Website** — Full landing page (Hero → Features → Architecture → Demo → CTA), Pricing, Docs, Blog, Changelog, Showcase
+- **SEO Dashboard** — Admin wired to `/v1/seo/dashboard` and Search Console APIs
+- **Community** — `.github/ISSUE_TEMPLATE`, `PULL_REQUEST_TEMPLATE`, `SECURITY.md`, `CODE_OF_CONDUCT.md`, `CONTRIBUTING.md`, `SUPPORT.md`
+- **Marketing Assets** — `media/logo`, `banner`, `screenshots`, `demo`
+- **Roadmap** — `ROADMAP_v1.1.md`, `ROADMAP_v2.0.md`, `VISION_2027.md`
+- **Release artifacts** — `VERSION`, `RELEASE.md`, `NOTICE`, Docker `ghcr.io/zhshg/ai-tool-cms:1.0.0`
+
+### Changed
+
+- Monorepo version → `1.0.0`
+- README updated for GA
+- `@ai-tool-cms/config/client` adds `NEXT_PUBLIC_API_URL`
+
 ## [1.0.0-prod.1] — 2026-06-27
 
 Sprint 11: Production Readiness — Zero Downtime Release (Commits 101–110)

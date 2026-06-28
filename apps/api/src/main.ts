@@ -38,7 +38,7 @@ async function bootstrap() {
   const swaggerConfig = new DocumentBuilder()
     .setTitle("AI Tool CMS API")
     .setDescription("AI Tool CMS REST API — Admin + Public API v1 (OpenAPI 3.1)")
-    .setVersion("1.0.0-rc.1")
+    .setVersion("1.0.0")
     .addBearerAuth()
     .addApiKey({ type: "apiKey", name: "X-Api-Key", in: "header" }, "apiKey")
     .addTag("Public API v1", "Developer API — requires API key (atcms_...)")
