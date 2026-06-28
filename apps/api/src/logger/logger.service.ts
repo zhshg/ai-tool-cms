@@ -8,7 +8,7 @@ export class AppLoggerService implements LoggerService {
 
   constructor(private readonly configService: ConfigService) {
     this.logger = pino({
-      level: this.configService.get<string>("logLevel", "info"),
+      level: this.configService.get<string>("log.level", "info"),
       base: { service: "api" },
     });
   }

@@ -29,7 +29,7 @@ async function bootstrap() {
   SwaggerModule.setup("docs", app, document);
 
   const configService = app.get(ConfigService);
-  const port = configService.get<number>("port", 4000);
+  const port = configService.get<number>("api.port", 4000);
 
   await app.listen(port, "0.0.0.0");
   logger.log(`API listening on http://0.0.0.0:${port}`, "Bootstrap");

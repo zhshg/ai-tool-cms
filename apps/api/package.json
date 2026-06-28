@@ -3,9 +3,9 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "predev": "pnpm --dir ../.. db:generate && pnpm --filter @ai-tool-cms/database build",
+    "predev": "pnpm --filter @ai-tool-cms/config build && pnpm --dir ../.. db:generate && pnpm --filter @ai-tool-cms/database build",
     "dev": "nest start --watch",
-    "prebuild": "pnpm --dir ../.. db:generate && pnpm --filter @ai-tool-cms/database build",
+    "prebuild": "pnpm --filter @ai-tool-cms/config build && pnpm --dir ../.. db:generate && pnpm --filter @ai-tool-cms/database build",
     "build": "nest build",
     "start": "node dist/main.js",
     "start:prod": "node dist/main.js",
@@ -14,6 +14,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@ai-tool-cms/config": "workspace:*",
     "@ai-tool-cms/database": "workspace:*",
     "@nestjs/common": "^11.0.0",
     "@nestjs/config": "^4.0.0",
