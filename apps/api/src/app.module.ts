@@ -23,6 +23,8 @@ import { I18nModule } from "./i18n/i18n.module";
 import { AutomationModule } from "./automation/automation.module";
 import { PublicApiModule } from "./public-api/public-api.module";
 import { WebhookHubModule } from "./webhook-hub/webhook-hub.module";
+import { WorkflowModule } from "./workflow/workflow.module";
+import { PluginsModule } from "./plugins/plugins.module";
 import { PlatformBootstrapService } from "./platform-bootstrap.service";
 
 @Module({
@@ -54,6 +56,8 @@ import { PlatformBootstrapService } from "./platform-bootstrap.service";
     AutomationModule,
     PublicApiModule,
     WebhookHubModule,
+    WorkflowModule,
+    PluginsModule,
   ],
   providers: [
     PlatformBootstrapService,

@@ -30,6 +30,7 @@
     "@ai-tool-cms/observability": "workspace:*",
     "@ai-tool-cms/plugins": "workspace:*",
     "@ai-tool-cms/queue": "workspace:*",
+    "@ai-tool-cms/workflow": "workspace:*",
     "@ai-tool-cms/ranking": "workspace:*",
     "@ai-tool-cms/search": "workspace:*",
     "@ai-tool-cms/seo": "workspace:*",

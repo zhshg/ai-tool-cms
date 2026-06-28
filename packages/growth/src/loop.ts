@@ -4,6 +4,7 @@ import { pingSitemapsAfterPublish, syncComparePages, syncInternalLinks } from "@
 import { enqueueSearchIndex } from "@ai-tool-cms/search";
 import { emitWebhookEvent } from "@ai-tool-cms/api-platform";
 import { runPluginLifecycle } from "@ai-tool-cms/plugins";
+import { completeToolPublishWorkflow } from "@ai-tool-cms/workflow";
 import { enqueueAllLocaleTranslations, parseEnabledLocales } from "@ai-tool-cms/i18n";
 import { getEnv } from "@ai-tool-cms/config";
 import { persistGeoDocumentForTool } from "./geo-persist";
@@ -92,6 +93,10 @@ export async function runSiteGrowthLoop(
     toolId,
     slug: tool.slug,
     metadata,
+  });
+  steps.workflow = await completeToolPublishWorkflow(prisma, toolId, {
+    reason,
+    finishedAt: new Date().toISOString(),
   });
 
   try {

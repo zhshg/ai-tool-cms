@@ -69,6 +69,8 @@ docker compose -f docker-compose.yml up -d
 ## Known Limitations (rc.1)
 
 - GraphQL deferred to Sprint 11
-- Workflow drag-and-drop UI not included (definitions via DB/API)
+- Workflow drag-and-drop UI not included (definitions via REST API / DB)
 - Rate limit is in-memory (use Redis in production)
 - Public API path is `/v1/api/v1/*` — configure gateway rewrite to `/api/v1/*`
+
+See [SPRINT10-COMPLETION.md](./SPRINT10-COMPLETION.md) for the full completion checklist.

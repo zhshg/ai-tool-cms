@@ -28,4 +28,4 @@ COPY --from=builder --chown=appuser:nodejs /app/package.json ./package.json
 ARG APP_NAME=api
 ENV APP_NAME=${APP_NAME}
 EXPOSE 4000
-CMD ["sh", "-c", "node apps/${APP_NAME}/dist/index.js"]
+CMD ["sh", "-c", "node apps/${APP_NAME}/dist/main.js"]

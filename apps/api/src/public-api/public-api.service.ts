@@ -1,4 +1,5 @@
 import { Injectable } from "@nestjs/common";
+import { withSpan } from "@ai-tool-cms/observability";
 import {
   publicCompareTools,
   publicGetAlternatives,
@@ -21,12 +22,16 @@ export class PublicApiService {
     return this.prisma.client;
   }
 
+  private trace<T>(operation: string, fn: () => Promise<T>): Promise<T> {
+    return withSpan(`public_api.${operation}`, { service: "api" }, fn);
+  }
+
   listTools(limit?: number, cursor?: string) {
-    return publicListTools(this.db, { limit, cursor });
+    return this.trace("list_tools", () => publicListTools(this.db, { limit, cursor }));
   }
 
   getTool(slug: string, locale?: string) {
-    return publicGetTool(this.db, slug, locale ?? "en");
+    return this.trace("get_tool", () => publicGetTool(this.db, slug, locale ?? "en"));
   }
 
   search(query: {
@@ -41,20 +46,22 @@ export class PublicApiService {
     pageSize?: number;
     semantic?: boolean;
   }) {
-    return publicSearchTools(this.db, {
-      keyword: query.keyword,
-      filters: {
-        category: query.category,
-        tag: query.tag,
-        pricing: query.pricing,
-        platform: query.platform,
-        language: query.language,
-      },
-      sort: query.sort,
-      page: query.page,
-      pageSize: query.pageSize,
-      semantic: query.semantic,
-    });
+    return this.trace("search", () =>
+      publicSearchTools(this.db, {
+        keyword: query.keyword,
+        filters: {
+          category: query.category,
+          tag: query.tag,
+          pricing: query.pricing,
+          platform: query.platform,
+          language: query.language,
+        },
+        sort: query.sort,
+        page: query.page,
+        pageSize: query.pageSize,
+        semantic: query.semantic,
+      }),
+    );
   }
 
   listCategories(query?: string, slug?: string, limit?: number) {

@@ -59,16 +59,49 @@ export async function runPluginLifecycle(
 
 /** Built-in plugin stubs for seo/crawler/ai/analytics/billing modules */
 export function registerBuiltinPlugins(): void {
-  for (const module of ["seo", "crawler", "ai", "analytics", "billing"]) {
+  registerWorkspacePlugins();
+
+  for (const module of ["ai", "analytics", "billing"]) {
     registerPlugin({
       slug: `builtin-${module}`,
       module,
       handlers: {
         afterPublish: async (ctx) => {
-          // 插件扩展点：各模块可替换为真实实现
           void ctx;
         },
       },
     });
   }
+}
+
+/** Workspace plugins under plugins/ — register handlers at runtime */
+export function registerWorkspacePlugins(): void {
+  registerPlugin({
+    slug: "builtin-seo",
+    module: "seo",
+    handlers: {
+      beforeSEO: async (ctx) => {
+        if (ctx.metadata) {
+          ctx.metadata.seoPluginRan = true;
+        }
+      },
+      afterPublish: async (ctx) => {
+        if (ctx.metadata) {
+          ctx.metadata.seoPublished = true;
+        }
+      },
+    },
+  });
+
+  registerPlugin({
+    slug: "builtin-crawler",
+    module: "crawler",
+    handlers: {
+      onCrawlerFinished: async (ctx) => {
+        if (ctx.metadata) {
+          ctx.metadata.crawlerPluginAck = true;
+        }
+      },
+    },
+  });
 }
