@@ -13,15 +13,17 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "scripts": {
-    "build": "pnpm --dir ../.. db:generate && tsc -p tsconfig.build.json",
-    "typecheck": "tsc --noEmit",
-    "clean": "echo 'no generated artifacts'"
+    "db:generate": "prisma generate",
+    "build": "pnpm db:generate && tsc -p tsconfig.build.json",
+    "typecheck": "pnpm db:generate && tsc --noEmit",
+    "clean": "rm -rf dist"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
+    "prisma": "^6.19.3",
     "typescript": "^5.7.3"
   }
 }

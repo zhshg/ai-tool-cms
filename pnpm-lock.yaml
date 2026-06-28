@@ -7,14 +7,7 @@ settings:
 importers:
 
   .:
-    dependencies:
-      '@prisma/client':
-        specifier: ^6.19.3
-        version: 6.19.3(prisma@6.19.3(typescript@5.9.3))(typescript@5.9.3)
     devDependencies:
-      prisma:
-        specifier: ^6.19.3
-        version: 6.19.3(typescript@5.9.3)
       turbo:
         specifier: ^2.4.4
         version: 2.10.0
@@ -264,6 +257,9 @@ importers:
       '@types/node':
         specifier: ^22.10.0
         version: 22.20.0
+      prisma:
+        specifier: ^6.19.3
+        version: 6.19.3(typescript@5.9.3)
       typescript:
         specifier: ^5.7.3
         version: 5.9.3
@@ -286,6 +282,16 @@ importers:
       typescript:
         specifier: ^5.7.3
         version: 5.9.3
+
+  prisma:
+    dependencies:
+      '@prisma/client':
+        specifier: ^6.19.3
+        version: 6.19.3(prisma@6.19.3(typescript@5.9.3))(typescript@5.9.3)
+    devDependencies:
+      prisma:
+        specifier: ^6.19.3
+        version: 6.19.3(typescript@5.9.3)
 
 packages:
 

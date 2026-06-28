@@ -1,0 +1,12 @@
+// AI Tool CMS v2 — Prisma schema (scaffold)
+// Business models are added in subsequent commits.
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../packages/database/src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}

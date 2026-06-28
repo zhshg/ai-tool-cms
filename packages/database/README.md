@@ -1,62 +1,56 @@
 # @ai-tool-cms/database
 
-Prisma client singleton and database connection helpers.
+Shared Prisma client singleton for the monorepo.
 
-**Status:** Infrastructure scaffold — no business models yet. Schema lives in root `prisma/schema.prisma`.
+**Status:** Infrastructure only — no business models. Schema lives in root `prisma/schema.prisma`.
 
 ## Usage
 
 ```typescript
 import { prisma } from "@ai-tool-cms/database";
 
-const health = await prisma.$queryRaw`SELECT 1`;
+await prisma.$queryRaw`SELECT 1`;
 ```
 
-Connection lifecycle helpers:
+Do **not** instantiate `PrismaClient` in apps. Import the shared `prisma` singleton from this package.
 
 ```typescript
 import { connectPrisma, disconnectPrisma, prisma } from "@ai-tool-cms/database";
-
-await connectPrisma();
-// ... use prisma
-await disconnectPrisma();
-```
-
-## Consumers
-
-| App / package | Import |
-|---|---|
-| `apps/api` | Nest `PrismaService` wraps `prisma` |
-| `apps/worker` | Job handlers |
-| `apps/crawler` | Persistence adapters |
-| `apps/admin` | Server actions / route handlers (when needed) |
-
-## Scripts
-
-From repository root:
-
-```bash
-pnpm db:generate              # Generate Prisma Client (uses prisma.config.ts)
-pnpm --filter @ai-tool-cms/database build
-```
-
-`apps/api` runs `database` build automatically in `predev` / `prebuild`.
-
-From this package:
-
-```bash
-pnpm build         # db:generate + compile to dist/
-pnpm typecheck
 ```
 
 ## Layout
 
 ```
 packages/database/
-├── src/
-│   ├── client.ts    # PrismaClient factory
-│   ├── prisma.ts    # Singleton + connect/disconnect
-│   └── index.ts     # Public exports
 ├── package.json
-└── tsconfig.json
+├── tsconfig.json
+├── README.md
+├── prisma.config.ts
+└── src/
+    ├── index.ts
+    ├── client.ts
+    └── prisma.ts
 ```
+
+## Scripts
+
+```bash
+pnpm --filter @ai-tool-cms/database db:generate
+pnpm --filter @ai-tool-cms/database build
+```
+
+From repository root:
+
+```bash
+pnpm db:generate
+pnpm build
+```
+
+## Consumers
+
+| App | Pattern |
+|---|---|
+| `apps/api` | `PrismaService` delegates to `prisma` |
+| `apps/worker` | `import { prisma } from "@ai-tool-cms/database"` |
+| `apps/crawler` | `import { prisma } from "@ai-tool-cms/database"` |
+| `apps/admin` | server routes / actions when needed |
