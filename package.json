@@ -8,6 +8,7 @@
     "dev": "turbo run dev",
     "dev:web": "pnpm --filter @ai-tool-cms/web dev",
     "dev:api": "pnpm --filter @ai-tool-cms/api dev",
+    "dev:admin": "pnpm --filter @ai-tool-cms/admin dev",
     "db:generate": "prisma generate --schema prisma/schema.prisma",
     "lint": "turbo run lint",
     "test": "turbo run test",
