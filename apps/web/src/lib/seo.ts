@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
+import { env } from "@ai-tool-cms/config";
 
 /** Default site SEO config (App Router equivalent of next-seo DefaultSeo). */
 export const siteSeo = {
-  siteName: "AI Tool CMS",
-  siteUrl: process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
-  defaultTitle: "AI Tool CMS",
+  siteName: env.SITE_NAME,
+  siteUrl: env.NEXT_PUBLIC_APP_URL,
+  defaultTitle: env.SITE_NAME,
   description: "AI Tool CMS — public web application scaffold.",
   locale: "en_US",
 } as const;

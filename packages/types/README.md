@@ -31,8 +31,9 @@ import type {
 | `Pricing` | Pricing model + optional tiers |
 | `SearchResult` | Meilisearch-style search payload |
 | `User` | Identity user (no secrets) |
+| `Role` | RBAC role with permission bindings |
 
-Summary variants (`ToolSummary`, `CategorySummary`, etc.) are provided for list and search views.
+Summary variants (`ToolSummary`, `CategorySummary`, `RoleSummary`, etc.) are provided for list and search views.
 
 ## Enums
 
@@ -61,6 +62,7 @@ packages/types/src/
 ├── pricing.ts
 ├── search-result.ts
 ├── user.ts
+├── role.ts
 └── index.ts
 ```
 

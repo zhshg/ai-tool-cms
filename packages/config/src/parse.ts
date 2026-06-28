@@ -1,4 +1,5 @@
-import { configSchema, type AppConfig } from "./schema";
+import { envSchema, type Env } from "./schema";
+import { loadRootDotenv } from "./load-dotenv";
 
 type EnvSource = Record<string, string | undefined>;
 
@@ -13,63 +14,53 @@ function readFirst(env: EnvSource, keys: string[]): string | undefined {
   return undefined;
 }
 
-export function parseConfig(env: EnvSource = process.env): AppConfig {
+export function parseEnv(source?: EnvSource): Env {
+  if (source === undefined) {
+    loadRootDotenv();
+  }
+
+  const resolved = source ?? process.env;
+
   const raw = {
-    nodeEnv: env.NODE_ENV,
-    app: {
-      url: env.APP_URL,
-      adminUrl: env.ADMIN_URL,
-      apiUrl: env.API_URL,
-    },
-    api: {
-      port: env.PORT ?? env.API_PORT,
-    },
-    database: {
-      url: env.DATABASE_URL,
-    },
-    redis: {
-      url: env.REDIS_URL,
-    },
-    meili: {
-      url: readFirst(env, ["MEILI_URL", "MEILISEARCH_URL", "MEILISEARCH_HOST"]),
-    },
-    auth: {
-      jwtSecret: env.JWT_SECRET,
-      jwtAccessExpiresIn: env.JWT_ACCESS_EXPIRES_IN,
-      jwtRefreshSecret: env.JWT_REFRESH_SECRET,
-      jwtRefreshExpiresIn: env.JWT_REFRESH_EXPIRES_IN,
-      jwtExpiresIn: env.JWT_EXPIRES_IN,
-    },
-    storage: {
-      endpoint: env.STORAGE_ENDPOINT,
-      bucket: env.STORAGE_BUCKET,
-      accessKey: env.STORAGE_ACCESS_KEY,
-      secretKey: env.STORAGE_SECRET_KEY,
-      region: env.STORAGE_REGION,
-    },
-    ai: {
-      openaiApiKey: readFirst(env, ["OPENAI_API_KEY", "OPENAI_KEY"]),
-      openaiBaseUrl: env.OPENAI_BASE_URL,
-      googleApiKey: env.GOOGLE_API_KEY,
-      defaultModel: env.AI_DEFAULT_MODEL,
-    },
-    crawler: {
-      userAgent: env.CRAWLER_USER_AGENT,
-      concurrency: env.CRAWLER_CONCURRENCY,
-      timeoutMs: env.CRAWLER_TIMEOUT_MS,
-    },
-    queue: {
-      url: env.QUEUE_URL,
-    },
-    log: {
-      level: env.LOG_LEVEL,
-    },
-    site: {
-      name: env.SITE_NAME,
-      description: env.SITE_DESCRIPTION,
-      defaultLocale: env.DEFAULT_LOCALE,
-    },
+    NODE_ENV: resolved.NODE_ENV,
+    DATABASE_URL: resolved.DATABASE_URL,
+    REDIS_URL: resolved.REDIS_URL,
+    MEILI_URL: readFirst(resolved, ["MEILI_URL", "MEILISEARCH_URL", "MEILISEARCH_HOST"]),
+    OPENAI_API_KEY: readFirst(resolved, ["OPENAI_API_KEY", "OPENAI_KEY"]),
+    GEMINI_API_KEY: readFirst(resolved, ["GEMINI_API_KEY", "GOOGLE_API_KEY"]),
+    ANTHROPIC_API_KEY: resolved.ANTHROPIC_API_KEY,
+    JWT_SECRET: resolved.JWT_SECRET,
+    JWT_EXPIRES_IN: resolved.JWT_EXPIRES_IN,
+    JWT_ACCESS_EXPIRES_IN: resolved.JWT_ACCESS_EXPIRES_IN,
+    JWT_REFRESH_SECRET: resolved.JWT_REFRESH_SECRET,
+    JWT_REFRESH_EXPIRES_IN: resolved.JWT_REFRESH_EXPIRES_IN,
+    APP_URL: resolved.APP_URL ?? resolved.NEXT_PUBLIC_APP_URL,
+    ADMIN_URL: resolved.ADMIN_URL,
+    API_URL: resolved.API_URL,
+    PORT: resolved.PORT ?? resolved.API_PORT,
+    LOG_LEVEL: resolved.LOG_LEVEL,
+    QUEUE_URL: resolved.QUEUE_URL,
+    OPENAI_BASE_URL: resolved.OPENAI_BASE_URL,
+    AI_DEFAULT_MODEL: resolved.AI_DEFAULT_MODEL,
+    NEXT_PUBLIC_APP_URL: resolved.NEXT_PUBLIC_APP_URL ?? resolved.APP_URL,
+    NEXT_PUBLIC_ADMIN_MOCK_ROLE: resolved.NEXT_PUBLIC_ADMIN_MOCK_ROLE,
+    SITE_NAME: resolved.SITE_NAME,
+    SITE_DESCRIPTION: resolved.SITE_DESCRIPTION,
+    DEFAULT_LOCALE: resolved.DEFAULT_LOCALE,
+    STORAGE_ENDPOINT: resolved.STORAGE_ENDPOINT,
+    STORAGE_BUCKET: resolved.STORAGE_BUCKET,
+    STORAGE_ACCESS_KEY: resolved.STORAGE_ACCESS_KEY,
+    STORAGE_SECRET_KEY: resolved.STORAGE_SECRET_KEY,
+    STORAGE_REGION: resolved.STORAGE_REGION,
+    SMTP_HOST: resolved.SMTP_HOST,
+    SMTP_PORT: resolved.SMTP_PORT,
+    SMTP_USER: resolved.SMTP_USER,
+    SMTP_PASSWORD: resolved.SMTP_PASSWORD,
+    MAILPIT_URL: resolved.MAILPIT_URL,
   };
 
-  return configSchema.parse(raw);
+  return envSchema.parse(raw);
 }
+
+/** @deprecated Use `parseEnv` instead. */
+export const parseConfig = parseEnv;

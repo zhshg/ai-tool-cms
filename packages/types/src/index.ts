@@ -19,6 +19,7 @@ export type { Category, CategorySummary } from "./category";
 export type { Pricing, PricingTier } from "./pricing";
 export type { Prompt, PromptSummary } from "./prompt";
 export type { Review, ReviewSummary } from "./review";
+export type { Role, RoleSummary } from "./role";
 export type { SearchHighlight, SearchHit, SearchResult } from "./search-result";
 export type { Tool, ToolSummary } from "./tool";
 export type { User, UserSummary } from "./user";

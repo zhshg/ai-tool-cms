@@ -15,10 +15,13 @@
   "scripts": {
     "db:generate": "prisma generate",
     "build": "pnpm db:generate && tsc -p tsconfig.build.json",
+    "lint": "eslint \"src/**/*.ts\" --config ../../eslint.config.mjs",
+    "test": "vitest run --passWithNoTests --config ../../vitest.config.ts",
     "typecheck": "pnpm db:generate && tsc --noEmit",
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@ai-tool-cms/config": "workspace:*",
     "@prisma/client": "^6.19.3"
   },
   "devDependencies": {

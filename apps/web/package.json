@@ -3,14 +3,18 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
+    "predev": "pnpm --filter @ai-tool-cms/config build",
     "dev": "next dev --port 3000 --hostname 0.0.0.0",
+    "prebuild": "pnpm --filter @ai-tool-cms/config build",
     "build": "next build",
     "start": "next start --port 3000",
     "lint": "next lint",
+    "test": "vitest run --passWithNoTests --config ../../vitest.config.ts",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf .next"
   },
   "dependencies": {
+    "@ai-tool-cms/config": "workspace:*",
     "@radix-ui/react-slot": "^1.1.2",
     "@tanstack/react-query": "^5.64.2",
     "class-variance-authority": "^0.7.1",

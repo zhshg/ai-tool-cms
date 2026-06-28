@@ -1,4 +1,6 @@
+export { createApiLogger } from "./api-logger";
 export { createLogger, wrapPinoLogger } from "./create-logger";
+export { logger } from "./logger";
 export {
   createCrawlerLogger,
   logCrawlComplete,
@@ -20,9 +22,4 @@ export {
   logJobStart,
   type WorkerLogContext,
 } from "./worker-logger";
-export {
-  LoggerKind,
-  type Logger,
-  type LoggerOptions,
-  type LogLevel,
-} from "./types";
+export { LoggerKind, type Logger, type LoggerOptions, type LogLevel } from "./types";
