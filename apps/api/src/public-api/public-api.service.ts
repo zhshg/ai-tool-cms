@@ -1,5 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { withSpan } from "@ai-tool-cms/observability";
+import { cacheKey, withCache } from "@ai-tool-cms/cache";
+import { observeHistogram } from "@ai-tool-cms/monitoring";
 import {
   publicCompareTools,
   publicGetAlternatives,
@@ -27,11 +29,29 @@ export class PublicApiService {
   }
 
   listTools(limit?: number, cursor?: string) {
-    return this.trace("list_tools", () => publicListTools(this.db, { limit, cursor }));
+    const key = cacheKey(["public", "tools", String(limit ?? 20), cursor ?? ""]);
+    return this.trace("list_tools", async () => {
+      const start = Date.now();
+      const result = await withCache(key, () => publicListTools(this.db, { limit, cursor }), {
+        ttlSeconds: 60,
+        prefix: "api",
+      });
+      observeHistogram("public_api_duration_ms", Date.now() - start, { operation: "list_tools" });
+      return result;
+    });
   }
 
   getTool(slug: string, locale?: string) {
-    return this.trace("get_tool", () => publicGetTool(this.db, slug, locale ?? "en"));
+    const key = cacheKey(["public", "tool", slug, locale ?? "en"]);
+    return this.trace("get_tool", async () => {
+      const start = Date.now();
+      const result = await withCache(key, () => publicGetTool(this.db, slug, locale ?? "en"), {
+        ttlSeconds: 120,
+        prefix: "api",
+      });
+      observeHistogram("public_api_duration_ms", Date.now() - start, { operation: "get_tool" });
+      return result;
+    });
   }
 
   search(query: {

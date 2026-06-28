@@ -1,15 +1,29 @@
 import { ValidationPipe } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
+import compression from "compression";
 import { env } from "@ai-tool-cms/config";
+import { initObservability } from "@ai-tool-cms/monitoring";
 import { AppModule } from "./app.module";
+import { applySecurityHeaders, getCorsOrigins } from "./common/security";
 import { AppLoggerService } from "./logger/logger.service";
 
 async function bootstrap() {
+  await initObservability("ai-tool-cms-api");
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
 
   const logger = app.get(AppLoggerService);
   app.useLogger(logger);
+
+  app.enableCors({
+    origin: getCorsOrigins(),
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Api-Key"],
+  });
+
+  app.use(compression());
+  applySecurityHeaders(app);
 
   app.setGlobalPrefix("v1");
 

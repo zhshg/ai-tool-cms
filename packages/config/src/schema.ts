@@ -90,6 +90,12 @@ export const envSchema = z.object({
   GOOGLE_INDEXING_SERVICE_ACCOUNT_JSON: optionalString,
   OTEL_EXPORTER_OTLP_ENDPOINT: optionalUrl,
   SENTRY_DSN: optionalString,
+  CORS_ORIGINS: optionalString,
+  TRUST_PROXY: z
+    .string()
+    .optional()
+    .transform((v) => v === "true" || v === "1"),
+  CACHE_DEFAULT_TTL_SECONDS: z.coerce.number().int().positive().default(60),
   WRITE_OPENAPI: z
     .string()
     .optional()
