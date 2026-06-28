@@ -13,6 +13,7 @@ import {
   type AuthUser,
 } from "@/lib/rbac";
 import { navItems, type NavItem } from "@/lib/nav";
+import { env } from "@ai-tool-cms/config";
 
 type AuthContextValue = {
   user: AuthUser;
@@ -24,7 +25,7 @@ type AuthContextValue = {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 function resolveMockUser(): AuthUser {
-  const role = process.env.NEXT_PUBLIC_ADMIN_MOCK_ROLE ?? "admin";
+  const role = env.NEXT_PUBLIC_ADMIN_MOCK_ROLE;
   const permissions = RolePermissions[role] ?? RolePermissions.admin;
 
   return {

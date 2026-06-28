@@ -2,23 +2,7 @@ import pino, { type Logger as PinoLogger } from "pino";
 import type { Logger, LoggerOptions, LogLevel } from "./types";
 
 function resolveLogLevel(level?: LogLevel): LogLevel {
-  const fromEnv = process.env.LOG_LEVEL?.trim();
-  if (level) {
-    return level;
-  }
-
-  if (
-    fromEnv === "fatal" ||
-    fromEnv === "error" ||
-    fromEnv === "warn" ||
-    fromEnv === "info" ||
-    fromEnv === "debug" ||
-    fromEnv === "trace"
-  ) {
-    return fromEnv;
-  }
-
-  return process.env.NODE_ENV === "production" ? "info" : "debug";
+  return level ?? "info";
 }
 
 export function wrapPinoLogger(instance: PinoLogger): Logger {

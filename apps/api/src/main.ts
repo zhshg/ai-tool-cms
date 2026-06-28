@@ -1,7 +1,7 @@
 import { ValidationPipe } from "@nestjs/common";
-import { ConfigService } from "@nestjs/config";
 import { NestFactory } from "@nestjs/core";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
+import { env } from "@ai-tool-cms/config";
 import { AppModule } from "./app.module";
 import { AppLoggerService } from "./logger/logger.service";
 
@@ -28,12 +28,9 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup("docs", app, document);
 
-  const configService = app.get(ConfigService);
-  const port = configService.get<number>("api.port", 4000);
-
-  await app.listen(port, "0.0.0.0");
-  logger.log(`API listening on http://0.0.0.0:${port}`, "Bootstrap");
-  logger.log(`Swagger docs at http://0.0.0.0:${port}/docs`, "Bootstrap");
+  await app.listen(env.PORT, "0.0.0.0");
+  logger.log(`API listening on http://0.0.0.0:${env.PORT}`, "Bootstrap");
+  logger.log(`Swagger docs at http://0.0.0.0:${env.PORT}/docs`, "Bootstrap");
 }
 
 void bootstrap();

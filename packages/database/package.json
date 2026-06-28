@@ -19,6 +19,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@ai-tool-cms/config": "workspace:*",
     "@prisma/client": "^6.19.3"
   },
   "devDependencies": {

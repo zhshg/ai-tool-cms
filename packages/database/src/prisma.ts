@@ -1,4 +1,5 @@
 import type { PrismaClient } from "@prisma/client";
+import { env } from "@ai-tool-cms/config";
 import { createPrismaClient } from "./client";
 
 const globalForPrisma = globalThis as typeof globalThis & {
@@ -7,7 +8,7 @@ const globalForPrisma = globalThis as typeof globalThis & {
 
 export const prisma = globalForPrisma.prisma ?? createPrismaClient();
 
-if (process.env.NODE_ENV !== "production") {
+if (env.NODE_ENV !== "production") {
   globalForPrisma.prisma = prisma;
 }
 

@@ -45,11 +45,7 @@ logRequestComplete(requestLogger, {
 
 ## Log level
 
-Resolved from:
-
-1. `LoggerOptions.level`
-2. `process.env.LOG_LEVEL`
-3. Default: `debug` in development, `info` in production
+由调用方通过 `LoggerOptions.level` 传入（推荐从 `@ai-tool-cms/config` 的 `env.LOG_LEVEL` 读取）。未指定时默认为 `info`。
 
 ## Scripts
 
