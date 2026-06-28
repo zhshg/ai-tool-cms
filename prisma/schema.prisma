@@ -119,6 +119,24 @@ enum AiGenerationTaskStatus {
   CANCELLED
 }
 
+/// AI-generated content review gate (Commit 039).
+enum ContentRevisionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+/// AI enrichment pipeline stages (Commit 040).
+enum AiPipelineStage {
+  SUMMARY
+  FEATURE
+  FAQ
+  SEO
+  GEO
+  QUALITY
+  PUBLISH
+}
+
 enum ReviewVoteValue {
   UP
   DOWN
@@ -385,6 +403,7 @@ model Tool {
   name            String       @db.VarChar(200)
   description     String?      @db.Text
   summary         String?      @db.VarChar(500)
+  longDescription String?      @map("long_description") @db.Text
   website         String       @db.VarChar(2048)
   logoUrl         String?      @map("logo_url") @db.VarChar(2048)
   pricingModel    PricingModel @default(FREE) @map("pricing_model")
@@ -412,6 +431,7 @@ model Tool {
   collectionItems   CollectionItem[]
   seoMetadata       SeoMetadata[]
   aiGenerationTasks AiGenerationTask[]
+  contentRevisions  ContentRevision[]
 
   @@index([slug])
   @@index([status])
@@ -917,6 +937,7 @@ model AiGenerationTask {
 
   tool Tool? @relation(fields: [toolId], references: [id], onDelete: SetNull)
   user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  contentRevisions ContentRevision[]
 
   @@index([toolId])
   @@index([userId])
@@ -928,6 +949,38 @@ model AiGenerationTask {
   @@index([deletedAt])
   @@index([updatedAt])
   @@map("ai_generation_tasks")
+}
+
+/// AI-generated content pending human review before applying to Tool (RFC-0003).
+model ContentRevision {
+  id           String                 @id @default(uuid()) @db.Uuid
+  toolId       String                 @map("tool_id") @db.Uuid
+  stage        AiPipelineStage
+  status       ContentRevisionStatus  @default(PENDING)
+  payload      Json                   @default("{}")
+  qualityScore Int?                   @map("quality_score")
+  reviewNote   String?                @map("review_note") @db.Text
+  aiTaskId     String?                @map("ai_task_id") @db.Uuid
+  createdById  String?                @map("created_by_id") @db.Uuid
+  updatedById  String?                @map("updated_by_id") @db.Uuid
+  reviewedById String?                @map("reviewed_by_id") @db.Uuid
+  reviewedAt   DateTime?              @map("reviewed_at")
+  metadata     Json                   @default("{}")
+  createdAt    DateTime               @default(now()) @map("created_at")
+  updatedAt    DateTime               @updatedAt @map("updated_at")
+  deletedAt    DateTime?              @map("deleted_at")
+
+  tool   Tool              @relation(fields: [toolId], references: [id], onDelete: Cascade)
+  aiTask AiGenerationTask? @relation(fields: [aiTaskId], references: [id], onDelete: SetNull)
+
+  @@index([toolId])
+  @@index([stage])
+  @@index([status])
+  @@index([qualityScore])
+  @@index([aiTaskId])
+  @@index([createdAt])
+  @@index([deletedAt])
+  @@map("content_revisions")
 }
 
 // -----------------------------------------------------------------------------

@@ -14,6 +14,7 @@ import { RbacModule } from "./rbac/rbac.module";
 import { TagsModule } from "./tags/tags.module";
 import { ToolsModule } from "./tools/tools.module";
 import { CrawlerModule } from "./crawler/crawler.module";
+import { AiModule } from "./ai/ai.module";
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { CrawlerModule } from "./crawler/crawler.module";
     TagsModule,
     ToolsModule,
     CrawlerModule,
+    AiModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },

@@ -50,6 +50,35 @@ export type CrawlQueuePayloadMap = {
   [CRAWL_QUEUE_NAMES.NORMALIZE]: NormalizeJobPayload;
 };
 
+export const AI_QUEUE_NAMES = {
+  AI_SUMMARY: "ai-summary",
+  AI_FEATURE: "ai-feature",
+  AI_FAQ: "ai-faq",
+  AI_SEO: "ai-seo",
+  AI_GEO: "ai-geo",
+  AI_QUALITY: "ai-quality",
+  AI_PUBLISH: "ai-publish",
+} as const;
+
+export type AiQueueName = (typeof AI_QUEUE_NAMES)[keyof typeof AI_QUEUE_NAMES];
+
+export type AiPipelineJobPayload = {
+  toolId: string;
+  pipelineRunId: string;
+  actorId?: string;
+  attempt?: number;
+};
+
+export type AiQueuePayloadMap = {
+  [AI_QUEUE_NAMES.AI_SUMMARY]: AiPipelineJobPayload;
+  [AI_QUEUE_NAMES.AI_FEATURE]: AiPipelineJobPayload;
+  [AI_QUEUE_NAMES.AI_FAQ]: AiPipelineJobPayload;
+  [AI_QUEUE_NAMES.AI_SEO]: AiPipelineJobPayload;
+  [AI_QUEUE_NAMES.AI_GEO]: AiPipelineJobPayload;
+  [AI_QUEUE_NAMES.AI_QUALITY]: AiPipelineJobPayload;
+  [AI_QUEUE_NAMES.AI_PUBLISH]: AiPipelineJobPayload;
+};
+
 export function queueNameForJobType(jobType: CrawlQueueJobType): CrawlQueueName {
   switch (jobType) {
     case "CRAWL_CATEGORY":

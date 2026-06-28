@@ -138,6 +138,24 @@ export function createToolPersistence(): ToolPersistence {
   };
 }
 
+export async function ingestDetailReturningToolId(
+  detail: CrawlToolDetailDTO,
+  adapter: StructuredSiteAdapter,
+): Promise<{ toolId: string; created: boolean } | null> {
+  const dto = adapter.normalize(detail);
+  if (!dto) return null;
+
+  const persistence = createToolPersistence();
+  const match = await persistence.findByWebsite(dto.website);
+  if (match) {
+    await persistence.updateTool(match.id, dto);
+    return { toolId: match.id, created: false };
+  }
+
+  const created = await persistence.createTool(dto);
+  return { toolId: created.id, created: true };
+}
+
 export async function ingestDetails(
   details: CrawlToolDetailDTO[],
   adapter: StructuredSiteAdapter,

@@ -7,6 +7,9 @@ export const Permission = {
   CrawlerRead: "crawler:read",
   CrawlerManage: "crawler:manage",
   CrawlerRun: "crawler:run",
+  AiRead: "ai:read",
+  AiManage: "ai:manage",
+  AiReview: "ai:review",
 } as const;
 
 export type PermissionCode = (typeof Permission)[keyof typeof Permission];
@@ -19,6 +22,9 @@ export const RolePermissions: Record<string, PermissionCode[]> = {
     Permission.CrawlerRead,
     Permission.CrawlerManage,
     Permission.CrawlerRun,
+    Permission.AiRead,
+    Permission.AiManage,
+    Permission.AiReview,
     Permission.UsersManage,
     Permission.SettingsRead,
   ],
@@ -28,5 +34,6 @@ export const RolePermissions: Record<string, PermissionCode[]> = {
     Permission.CategoriesRead,
     Permission.CrawlerRead,
     Permission.CrawlerRun,
+    Permission.AiRead,
   ],
 };

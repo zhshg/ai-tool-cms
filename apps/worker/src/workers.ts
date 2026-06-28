@@ -19,7 +19,7 @@ import {
 import { getEnv } from "@ai-tool-cms/config";
 import {
   createWorkerContext,
-  ingestDetails,
+  ingestDetailReturningToolId,
   markJobFailed,
   markJobRunning,
   markJobSucceeded,
@@ -27,6 +27,8 @@ import {
   parseListItem,
   resolveStructuredAdapter,
 } from "./crawl-runtime";
+import { enqueueAiJob, type AiQueueName } from "@ai-tool-cms/queue";
+import { startAiPipeline, type EnqueueFn } from "@ai-tool-cms/ai";
 
 const log = createLogger({ service: "crawl-worker" });
 const workerConnection = () => createRedisConnection() as never;
@@ -36,6 +38,9 @@ if (getEnv().CRAWLER_ENABLE_PRODUCTION_ADAPTERS) {
   registerProductionSiteAdapters();
   log.info("Production site adapters enabled");
 }
+
+const enqueueAiPipelineJob: EnqueueFn = (queueName, jobName, payload) =>
+  enqueueAiJob(queueName as AiQueueName, jobName, payload);
 
 export function startCrawlToolWorker(): Worker<CrawlToolJobPayload> {
   return new Worker<CrawlToolJobPayload>(
@@ -174,7 +179,15 @@ export function startNormalizeWorker(): Worker<NormalizeJobPayload> {
 
       const adapter = await resolveStructuredAdapter(source.adapterType);
       const parsed = parseDetail(detail);
-      const stats = await ingestDetails([parsed], adapter);
+      const ingested = await ingestDetailReturningToolId(parsed, adapter);
+      const stats = ingested
+        ? { created: ingested.created ? 1 : 0, updated: ingested.created ? 0 : 1 }
+        : { created: 0, updated: 0 };
+
+      if (ingested?.toolId) {
+        await startAiPipeline(ingested.toolId, enqueueAiPipelineJob);
+        log.info("AI pipeline enqueued after normalize", { toolId: ingested.toolId, crawlJobId });
+      }
 
       const crawlJobRecord = await prisma.crawlJob.findUnique({ where: { id: crawlJobId } });
       const metadata = (crawlJobRecord?.metadata ?? {}) as Record<string, unknown>;

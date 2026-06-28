@@ -79,3 +79,49 @@ export function createProvidersFromEnv() {
 export { OpenAIProvider as OpenAiProvider } from "./providers/OpenAIProvider";
 /** @deprecated Use MockProvider */
 export { MockProvider as MockAiProvider } from "./providers/MockProvider";
+
+export {
+  PromptEngine,
+  defaultPromptEngine,
+  type PromptTemplateId,
+  type PromptVariables,
+  type ToolPromptContext,
+} from "./prompt-engine/PromptEngine";
+
+export {
+  generateSummary,
+  extractFeatures,
+  generateFaq,
+  generateSeo,
+  generateGeo,
+  scoreQuality,
+  QUALITY_THRESHOLD,
+  type SummaryOutput,
+  type FeatureExtractionOutput,
+  type FaqItem,
+  type SeoOutput,
+  type GeoOutput,
+  type QualityScoreOutput,
+  type GeneratorOptions,
+} from "./generators";
+
+export {
+  AI_PIPELINE_STAGES,
+  AI_QUEUE_NAMES,
+  nextStage,
+  queueForStage,
+  type AiPipelineJobPayload,
+  type AiPipelineStageId,
+  type AiQueueName,
+  type AiQueuePayloadMap,
+} from "./pipeline/types";
+
+export {
+  createPipelineRunId,
+  enqueueNextStage,
+  fullPipelineOrder,
+  startAiPipeline,
+  type EnqueueFn,
+} from "./pipeline/orchestrator";
+
+export { parseJsonFromLlm, clampScore } from "./utils/json";

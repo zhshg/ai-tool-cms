@@ -2,15 +2,21 @@ import { getEnv } from "@ai-tool-cms/config";
 import { disconnectPrisma } from "@ai-tool-cms/database";
 import { closeAllQueues } from "@ai-tool-cms/queue";
 import { createLogger } from "@ai-tool-cms/logger";
+import { startAiPipelineWorkers } from "./ai-pipeline";
 import { startAllWorkers } from "./workers";
 
 const log = createLogger({ service: "worker-main" });
 
 async function main(): Promise<void> {
   getEnv();
-  const workers = startAllWorkers();
+  const crawlWorkers = startAllWorkers();
+  const aiWorkers = startAiPipelineWorkers();
+  const workers = [...crawlWorkers, ...aiWorkers];
 
-  log.info("Crawler workers started", { queues: workers.length });
+  log.info("Workers started", {
+    crawlQueues: crawlWorkers.length,
+    aiQueues: aiWorkers.length,
+  });
 
   const shutdown = async (signal: string) => {
     log.info("Shutting down workers", { signal });

@@ -1,15 +1,24 @@
 export { createRedisConnection, resolveQueueRedisUrl } from "./connection";
 export {
   closeAllQueues,
+  enqueueAiJob,
   enqueueCrawlJob,
+  getAiQueue,
+  getAiQueueStats,
+  getAllAiQueues,
+  getAllAiQueueStats,
   getAllCrawlQueues,
   getAllQueueStats,
   getCrawlQueue,
   getQueueStats,
 } from "./queues";
 export {
+  AI_QUEUE_NAMES,
   CRAWL_QUEUE_NAMES,
   queueNameForJobType,
+  type AiPipelineJobPayload,
+  type AiQueueName,
+  type AiQueuePayloadMap,
   type CrawlCategoryJobPayload,
   type CrawlDetailJobPayload,
   type CrawlImageJobPayload,

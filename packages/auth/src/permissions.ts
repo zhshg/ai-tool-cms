@@ -18,6 +18,9 @@ export const PermissionCode = {
   CrawlerRead: "crawler:read",
   CrawlerManage: "crawler:manage",
   CrawlerRun: "crawler:run",
+  AiRead: "ai:read",
+  AiManage: "ai:manage",
+  AiReview: "ai:review",
 } as const;
 
 export type PermissionCodeValue = (typeof PermissionCode)[keyof typeof PermissionCode];
@@ -137,6 +140,24 @@ export const PERMISSION_DEFINITIONS: PermissionDefinition[] = [
     slug: "crawler-run",
     name: "Run Crawler Jobs",
     module: "crawler",
+  },
+  {
+    code: PermissionCode.AiRead,
+    slug: "ai-read",
+    name: "Read AI Pipeline",
+    module: "ai",
+  },
+  {
+    code: PermissionCode.AiManage,
+    slug: "ai-manage",
+    name: "Manage AI Pipeline",
+    module: "ai",
+  },
+  {
+    code: PermissionCode.AiReview,
+    slug: "ai-review",
+    name: "Review AI Content",
+    module: "ai",
   },
 ];
 

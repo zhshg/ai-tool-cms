@@ -1,5 +1,6 @@
 import {
   Activity,
+  Bot,
   FolderTree,
   LayoutDashboard,
   Settings,
@@ -43,6 +44,12 @@ export const navItems: NavItem[] = [
     permission: Permission.CrawlerRead,
   },
   {
+    title: "AI Review",
+    href: "/ai-review",
+    icon: Bot,
+    permission: Permission.AiRead,
+  },
+  {
     title: "Users",
     href: "/users",
     icon: Users,
@@ -61,6 +68,7 @@ export const breadcrumbLabels: Record<string, string> = {
   tools: "Tools",
   categories: "Categories",
   crawler: "Crawler",
+  "ai-review": "AI Review",
   users: "Users",
   settings: "Settings",
 };

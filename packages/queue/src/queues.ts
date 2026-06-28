@@ -1,6 +1,13 @@
 import { Queue, type JobsOptions, type QueueOptions } from "bullmq";
 import { createRedisConnection } from "./connection";
-import { CRAWL_QUEUE_NAMES, type CrawlQueueName, type CrawlQueuePayloadMap } from "./types";
+import {
+  AI_QUEUE_NAMES,
+  CRAWL_QUEUE_NAMES,
+  type AiQueueName,
+  type AiQueuePayloadMap,
+  type CrawlQueueName,
+  type CrawlQueuePayloadMap,
+} from "./types";
 
 function createQueueOptions(): QueueOptions {
   return {
@@ -14,16 +21,28 @@ function createQueueOptions(): QueueOptions {
   };
 }
 
-const queueCache = new Map<CrawlQueueName, Queue>();
+const crawlQueueCache = new Map<CrawlQueueName, Queue>();
+const aiQueueCache = new Map<AiQueueName, Queue>();
 
 export function getCrawlQueue<T extends CrawlQueueName>(name: T): Queue<CrawlQueuePayloadMap[T]> {
-  const existing = queueCache.get(name);
+  const existing = crawlQueueCache.get(name);
   if (existing) {
     return existing as Queue<CrawlQueuePayloadMap[T]>;
   }
 
   const queue = new Queue<CrawlQueuePayloadMap[T]>(name, createQueueOptions());
-  queueCache.set(name, queue as Queue);
+  crawlQueueCache.set(name, queue as Queue);
+  return queue;
+}
+
+export function getAiQueue<T extends AiQueueName>(name: T): Queue<AiQueuePayloadMap[T]> {
+  const existing = aiQueueCache.get(name);
+  if (existing) {
+    return existing as Queue<AiQueuePayloadMap[T]>;
+  }
+
+  const queue = new Queue<AiQueuePayloadMap[T]>(name, createQueueOptions());
+  aiQueueCache.set(name, queue as Queue);
   return queue;
 }
 
@@ -38,6 +57,16 @@ export async function enqueueCrawlJob<T extends CrawlQueueName>(
   options?: JobsOptions,
 ): Promise<string> {
   const job = await getCrawlQueue(queueName).add(jobName as never, payload as never, options);
+  return job.id ?? jobName;
+}
+
+export async function enqueueAiJob<T extends AiQueueName>(
+  queueName: T,
+  jobName: string,
+  payload: AiQueuePayloadMap[T],
+  options?: JobsOptions,
+): Promise<string> {
+  const job = await getAiQueue(queueName).add(jobName as never, payload as never, options);
   return job.id ?? jobName;
 }
 
@@ -63,7 +92,33 @@ export async function getAllQueueStats() {
   return Object.fromEntries(entries);
 }
 
+export function getAllAiQueues(): Queue[] {
+  return Object.values(AI_QUEUE_NAMES).map((name) => getAiQueue(name));
+}
+
+export async function getAllAiQueueStats() {
+  const entries = await Promise.all(
+    Object.values(AI_QUEUE_NAMES).map(async (name) => [name, await getAiQueueStats(name)] as const),
+  );
+  return Object.fromEntries(entries);
+}
+
+export async function getAiQueueStats(queueName: AiQueueName) {
+  const queue = getAiQueue(queueName);
+  const [waiting, active, completed, failed, delayed] = await Promise.all([
+    queue.getWaitingCount(),
+    queue.getActiveCount(),
+    queue.getCompletedCount(),
+    queue.getFailedCount(),
+    queue.getDelayedCount(),
+  ]);
+
+  return { waiting, active, completed, failed, delayed, total: waiting + active + delayed };
+}
+
 export async function closeAllQueues(): Promise<void> {
-  await Promise.all([...queueCache.values()].map((queue) => queue.close()));
-  queueCache.clear();
+  const all = [...crawlQueueCache.values(), ...aiQueueCache.values()];
+  await Promise.all(all.map((queue) => queue.close()));
+  crawlQueueCache.clear();
+  aiQueueCache.clear();
 }

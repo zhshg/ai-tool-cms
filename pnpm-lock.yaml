@@ -117,6 +117,9 @@ importers:
 
   apps/api:
     dependencies:
+      '@ai-tool-cms/ai':
+        specifier: workspace:*
+        version: link:../../packages/ai
       '@ai-tool-cms/auth':
         specifier: workspace:*
         version: link:../../packages/auth
@@ -306,6 +309,9 @@ importers:
 
   apps/worker:
     dependencies:
+      '@ai-tool-cms/ai':
+        specifier: workspace:*
+        version: link:../../packages/ai
       '@ai-tool-cms/common':
         specifier: workspace:*
         version: link:../../packages/common
