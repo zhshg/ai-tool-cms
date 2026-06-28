@@ -3,6 +3,7 @@ import { disconnectPrisma } from "@ai-tool-cms/database";
 import { closeAllQueues } from "@ai-tool-cms/queue";
 import { createLogger } from "@ai-tool-cms/logger";
 import { startAiPipelineWorkers } from "./ai-pipeline";
+import { startGrowthWorker } from "./growth-worker";
 import { startAllWorkers } from "./workers";
 
 const log = createLogger({ service: "worker-main" });
@@ -11,11 +12,13 @@ async function main(): Promise<void> {
   getEnv();
   const crawlWorkers = startAllWorkers();
   const aiWorkers = startAiPipelineWorkers();
-  const workers = [...crawlWorkers, ...aiWorkers];
+  const growthWorkers = [startGrowthWorker()];
+  const workers = [...crawlWorkers, ...aiWorkers, ...growthWorkers];
 
   log.info("Workers started", {
     crawlQueues: crawlWorkers.length,
     aiQueues: aiWorkers.length,
+    growthQueues: growthWorkers.length,
   });
 
   const shutdown = async (signal: string) => {

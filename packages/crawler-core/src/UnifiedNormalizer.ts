@@ -27,7 +27,7 @@ export class UnifiedToolNormalizer {
       description: input.detail.description?.trim(),
       summary: input.detail.summary?.trim(),
       logoUrl: input.detail.logoUrl?.trim(),
-      categories: [],
+      categories: input.detail.categoryExternalIds ?? [],
       tags: input.detail.tags ?? [],
       features: input.detail.features ?? [],
       platforms: input.detail.platforms ?? [],

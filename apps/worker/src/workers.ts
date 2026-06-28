@@ -29,6 +29,7 @@ import {
 } from "./crawl-runtime";
 import { enqueueAiJob, type AiQueueName } from "@ai-tool-cms/queue";
 import { startAiPipeline, type EnqueueFn } from "@ai-tool-cms/ai";
+import { persistCrawlCategories } from "@ai-tool-cms/growth";
 
 const log = createLogger({ service: "crawl-worker" });
 const workerConnection = () => createRedisConnection() as never;
@@ -116,7 +117,8 @@ export function startCrawlCategoryWorker(): Worker<CrawlCategoryJobPayload> {
       const adapter = await resolveStructuredAdapter(source.adapterType);
       const ctx = createWorkerContext(source.adapterType, crawlJobId);
       const categories = await adapter.getCategories(ctx);
-      log.info("categories fetched", { sourceId, categories: categories.length });
+      await persistCrawlCategories(prisma, categories);
+      log.info("categories fetched and persisted", { sourceId, categories: categories.length });
     },
     { connection: workerConnection(), concurrency: 3 },
   );
@@ -138,10 +140,15 @@ export function startCrawlDetailWorker(): Worker<CrawlDetailJobPayload> {
       const detail = await adapter.getDetail(ctx, listItem);
       if (!detail) return;
 
+      const enrichedDetail = {
+        ...detail,
+        categoryExternalIds: detail.categoryExternalIds ?? listItem.categoryExternalIds,
+      };
+
       await enqueueCrawlJob(CRAWL_QUEUE_NAMES.NORMALIZE, detail.externalId, {
         sourceId,
         crawlJobId,
-        detail: detail as unknown as Record<string, unknown>,
+        detail: enrichedDetail as unknown as Record<string, unknown>,
       });
 
       if (detail.logoUrl) {

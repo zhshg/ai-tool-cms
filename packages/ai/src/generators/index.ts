@@ -29,6 +29,12 @@ export type FeatureExtractionOutput = {
   useCases: string[];
 };
 
+export type ProsConsOutput = {
+  pros: string[];
+  cons: string[];
+  verdict?: string;
+};
+
 export type FaqItem = { question: string; answer: string };
 
 export type SeoOutput = {
@@ -100,6 +106,14 @@ export async function extractFeatures(
   options?: GeneratorOptions,
 ): Promise<FeatureExtractionOutput> {
   return runPromptJson<FeatureExtractionOutput>("feature", ctx, options);
+}
+
+/** Sprint 5 — Pros / cons generator */
+export async function generateProsCons(
+  ctx: ToolPromptContext,
+  options?: GeneratorOptions,
+): Promise<ProsConsOutput> {
+  return runPromptJson<ProsConsOutput>("pros-cons", ctx, options);
 }
 
 /** Commit 035 — FAQ generator (JSON array) */

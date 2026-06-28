@@ -2,6 +2,9 @@ import { ConflictException, Injectable, NotFoundException } from "@nestjs/common
 import type { Prisma } from "@ai-tool-cms/database";
 import { ToolStatus } from "@ai-tool-cms/database";
 import { slugify } from "@ai-tool-cms/common";
+import { startAiPipeline } from "@ai-tool-cms/ai";
+import { enqueueAiJob, type AiQueueName } from "@ai-tool-cms/queue";
+import { GrowthService } from "../growth/growth.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { activeOnly } from "../common/prisma.util";
 import { paginate, type PaginationQueryDto } from "../common/dto/pagination.dto";
@@ -21,7 +24,10 @@ const toolInclude = {
 
 @Injectable()
 export class ToolsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly growth: GrowthService,
+  ) {}
 
   async list(query: PaginationQueryDto) {
     const { skip, take } = paginate(query.page, query.pageSize);
@@ -85,11 +91,23 @@ export class ToolsService {
       await this.syncTags(tool.id, dto.tagIds);
     }
 
+    if ((dto.status ?? ToolStatus.DRAFT) === ToolStatus.DRAFT) {
+      await startAiPipeline(
+        tool.id,
+        (queue, job, payload) => enqueueAiJob(queue as AiQueueName, job, payload),
+        actorId,
+      );
+    }
+
+    if (dto.status === ToolStatus.PUBLISHED) {
+      await this.growth.enqueueToolPublished(tool.id, "cms_publish", actorId);
+    }
+
     return this.findById(tool.id);
   }
 
   async update(id: string, dto: UpdateToolDto, actorId: string) {
-    await this.findById(id);
+    const existing = await this.findById(id);
     if (dto.slug) await this.ensureSlugAvailable(slugify(dto.slug), id);
 
     await this.prisma.client.tool.update({
@@ -112,6 +130,10 @@ export class ToolsService {
 
     if (dto.categoryIds) await this.syncCategories(id, dto.categoryIds);
     if (dto.tagIds) await this.syncTags(id, dto.tagIds);
+
+    if (dto.status === ToolStatus.PUBLISHED && existing.status !== ToolStatus.PUBLISHED) {
+      await this.growth.enqueueToolPublished(id, "manual_publish", actorId);
+    }
 
     return this.findById(id);
   }

@@ -79,6 +79,22 @@ export type AiQueuePayloadMap = {
   [AI_QUEUE_NAMES.AI_PUBLISH]: AiPipelineJobPayload;
 };
 
+export const GROWTH_QUEUE_NAMES = {
+  TOOL_PUBLISHED: "growth-tool-published",
+} as const;
+
+export type GrowthQueueName = (typeof GROWTH_QUEUE_NAMES)[keyof typeof GROWTH_QUEUE_NAMES];
+
+export type GrowthJobPayload = {
+  toolId: string;
+  reason: "ai_pipeline_publish" | "manual_publish" | "cms_publish" | "seed_backfill";
+  actorId?: string;
+};
+
+export type GrowthQueuePayloadMap = {
+  [GROWTH_QUEUE_NAMES.TOOL_PUBLISHED]: GrowthJobPayload;
+};
+
 export function queueNameForJobType(jobType: CrawlQueueJobType): CrawlQueueName {
   switch (jobType) {
     case "CRAWL_CATEGORY":

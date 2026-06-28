@@ -10,6 +10,7 @@ import {
   type ToolPersistence,
 } from "@ai-tool-cms/crawler-core";
 import { slugify } from "@ai-tool-cms/common";
+import { syncToolTaxonomyFromNames } from "@ai-tool-cms/growth";
 import { ToolStatus, type PricingModel } from "@ai-tool-cms/database";
 import { defaultHttpFetcher } from "./fetch";
 
@@ -111,6 +112,8 @@ export function createToolPersistence(): ToolPersistence {
             sourceId: dto.sourceId,
             externalId: dto.externalId,
             crawledAt: new Date().toISOString(),
+            crawlCategories: dto.categories,
+            crawlTags: dto.tags,
             ...(dto.metadata ?? {}),
           },
         },
@@ -130,6 +133,8 @@ export function createToolPersistence(): ToolPersistence {
             sourceId: dto.sourceId,
             externalId: dto.externalId,
             updatedFromCrawlAt: new Date().toISOString(),
+            crawlCategories: dto.categories,
+            crawlTags: dto.tags,
             ...(dto.metadata ?? {}),
           },
         },
@@ -149,10 +154,18 @@ export async function ingestDetailReturningToolId(
   const match = await persistence.findByWebsite(dto.website);
   if (match) {
     await persistence.updateTool(match.id, dto);
+    await syncToolTaxonomyFromNames(prisma, match.id, {
+      categories: dto.categories,
+      tags: dto.tags,
+    });
     return { toolId: match.id, created: false };
   }
 
   const created = await persistence.createTool(dto);
+  await syncToolTaxonomyFromNames(prisma, created.id, {
+    categories: dto.categories,
+    tags: dto.tags,
+  });
   return { toolId: created.id, created: true };
 }
 

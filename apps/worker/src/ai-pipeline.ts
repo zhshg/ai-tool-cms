@@ -20,6 +20,7 @@ import {
   extractFeatures,
   generateFaq,
   generateGeo,
+  generateProsCons,
   generateSeo,
   generateSummary,
   QUALITY_THRESHOLD,
@@ -30,7 +31,7 @@ import {
 } from "@ai-tool-cms/ai";
 import type { AiPipelineStageId } from "@ai-tool-cms/ai";
 import { getEnv } from "@ai-tool-cms/config";
-import { runSeoSyncAfterPublish } from "./seo-sync";
+import { triggerSiteGrowthAfterPublish } from "./growth-trigger";
 
 const log = createLogger({ service: "ai-pipeline-worker" });
 const MAX_QUALITY_RETRIES = 3;
@@ -190,11 +191,16 @@ async function processStage(
         break;
       }
       case "FEATURE": {
-        const result = await extractFeatures(ctx);
+        const [features, prosCons] = await Promise.all([
+          extractFeatures(ctx),
+          generateProsCons(ctx),
+        ]);
+        const result = { ...features, ...prosCons };
         await saveRevision(payload.toolId, AiPipelineStage.FEATURE, result, taskId);
         await updatePipelineMetadata(payload.toolId, payload.pipelineRunId, {
           stage: "FEATURE",
           features: result,
+          prosCons,
         });
         await finishAiTask(taskId, result as never);
         break;
@@ -336,7 +342,11 @@ async function processStage(
             { autoApproved: true },
           );
           await finishAiTask(taskId, { status: "published", autoPublish: true });
-          await runSeoSyncAfterPublish(payload.toolId);
+          await triggerSiteGrowthAfterPublish(
+            payload.toolId,
+            "ai_pipeline_publish",
+            payload.actorId,
+          );
         } else {
           await saveRevision(
             payload.toolId,

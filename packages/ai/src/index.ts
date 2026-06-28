@@ -97,6 +97,7 @@ export {
 export {
   generateSummary,
   extractFeatures,
+  generateProsCons,
   generateFaq,
   generateSeo,
   generateGeo,
@@ -104,6 +105,7 @@ export {
   QUALITY_THRESHOLD,
   type SummaryOutput,
   type FeatureExtractionOutput,
+  type ProsConsOutput,
   type FaqItem,
   type SeoOutput,
   type GeoOutput,
