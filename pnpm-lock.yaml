@@ -117,9 +117,18 @@ importers:
 
   apps/api:
     dependencies:
+      '@ai-tool-cms/ads':
+        specifier: workspace:*
+        version: link:../../packages/ads
+      '@ai-tool-cms/affiliate':
+        specifier: workspace:*
+        version: link:../../packages/affiliate
       '@ai-tool-cms/ai':
         specifier: workspace:*
         version: link:../../packages/ai
+      '@ai-tool-cms/api-platform':
+        specifier: workspace:*
+        version: link:../../packages/api-platform
       '@ai-tool-cms/auth':
         specifier: workspace:*
         version: link:../../packages/auth
@@ -135,6 +144,9 @@ importers:
       '@ai-tool-cms/database':
         specifier: workspace:*
         version: link:../../packages/database
+      '@ai-tool-cms/email':
+        specifier: workspace:*
+        version: link:../../packages/email
       '@ai-tool-cms/geo':
         specifier: workspace:*
         version: link:../../packages/geo
@@ -339,6 +351,9 @@ importers:
       '@ai-tool-cms/ai':
         specifier: workspace:*
         version: link:../../packages/ai
+      '@ai-tool-cms/api-platform':
+        specifier: workspace:*
+        version: link:../../packages/api-platform
       '@ai-tool-cms/common':
         specifier: workspace:*
         version: link:../../packages/common
@@ -351,6 +366,9 @@ importers:
       '@ai-tool-cms/database':
         specifier: workspace:*
         version: link:../../packages/database
+      '@ai-tool-cms/email':
+        specifier: workspace:*
+        version: link:../../packages/email
       '@ai-tool-cms/growth':
         specifier: workspace:*
         version: link:../../packages/growth
@@ -383,6 +401,32 @@ importers:
         specifier: ^5.7.3
         version: 5.9.3
 
+  packages/ads:
+    dependencies:
+      '@ai-tool-cms/database':
+        specifier: workspace:*
+        version: link:../database
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.0
+        version: 22.20.0
+      typescript:
+        specifier: ^5.7.3
+        version: 5.9.3
+
+  packages/affiliate:
+    dependencies:
+      '@ai-tool-cms/database':
+        specifier: workspace:*
+        version: link:../database
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.0
+        version: 22.20.0
+      typescript:
+        specifier: ^5.7.3
+        version: 5.9.3
+
   packages/ai:
     dependencies:
       '@ai-tool-cms/config':
@@ -397,6 +441,22 @@ importers:
       yaml:
         specifier: ^2.9.0
         version: 2.9.0
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.0
+        version: 22.20.0
+      typescript:
+        specifier: ^5.7.3
+        version: 5.9.3
+
+  packages/api-platform:
+    dependencies:
+      '@ai-tool-cms/database':
+        specifier: workspace:*
+        version: link:../database
+      '@ai-tool-cms/queue':
+        specifier: workspace:*
+        version: link:../queue
     devDependencies:
       '@types/node':
         specifier: ^22.10.0
@@ -500,6 +560,28 @@ importers:
         specifier: ^5.7.3
         version: 5.9.3
 
+  packages/email:
+    dependencies:
+      '@ai-tool-cms/config':
+        specifier: workspace:*
+        version: link:../config
+      '@ai-tool-cms/database':
+        specifier: workspace:*
+        version: link:../database
+      nodemailer:
+        specifier: ^6.9.16
+        version: 6.10.1
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.0
+        version: 22.20.0
+      '@types/nodemailer':
+        specifier: ^6.4.17
+        version: 6.4.24
+      typescript:
+        specifier: ^5.7.3
+        version: 5.9.3
+
   packages/geo:
     dependencies:
       '@ai-tool-cms/ai':
@@ -515,6 +597,9 @@ importers:
 
   packages/growth:
     dependencies:
+      '@ai-tool-cms/api-platform':
+        specifier: workspace:*
+        version: link:../api-platform
       '@ai-tool-cms/common':
         specifier: workspace:*
         version: link:../common
@@ -2073,6 +2158,9 @@ packages:
 
   '@types/node@22.20.0':
     resolution: {integrity: sha512-QWlFW2wf3nTjC13/DqRnBpR4ZO36VJH/JVBkA/vcnmbTBNQIlnObqyqZE1tUR7+Ni23Lda8R1BxMfbXRpCUx5g==}
+
+  '@types/nodemailer@6.4.24':
+    resolution: {integrity: sha512-Ww4u0rT9wQNXh4JiQaIwx3QWdcOFXzOjQA2zc+jtFYNmQiT4mIUqcDin51bDFdkzKubFnQCZNK7FIHlPKQ/q9w==}
 
   '@types/passport-jwt@4.0.1':
     resolution: {integrity: sha512-Y0Ykz6nWP4jpxgEUYq8NoVZeCQPo1ZndJLfapI249g1jHChvRfZRO/LS3tqu26YgAS/laI1qx98sYGz0IalRXQ==}
@@ -3947,6 +4035,10 @@ packages:
   node-releases@2.0.50:
     resolution: {integrity: sha512-J6l92tKHX6w8Jy5nO1Vuc01NoIiRGi/d6qBKVxh+IQ8Cr3b6HbVNfKiF8ZpFKufTwpwxMmce2W3iQZ861ZRyTg==}
     engines: {node: '>=18'}
+
+  nodemailer@6.10.1:
+    resolution: {integrity: sha512-Z+iLaBGVaSjbIzQ4pX6XV41HrooLsQ10ZWPUehGmuantvzWoDVBnmsdUcOIDM1t+yPor5pDhVlDESgOMEGxhHA==}
+    engines: {node: '>=6.0.0'}
 
   normalize-path@3.0.0:
     resolution: {integrity: sha512-6eZs5Ls3WtCisHWp9S2GUy8dqkpGi4BVSz3GaqiE6ezub0512ESztXUwUB6C6IKbQkY2Pnb/mD4WYojCRwcwLA==}
@@ -6333,6 +6425,10 @@ snapshots:
     dependencies:
       undici-types: 6.21.0
 
+  '@types/nodemailer@6.4.24':
+    dependencies:
+      '@types/node': 22.20.0
+
   '@types/passport-jwt@4.0.1':
     dependencies:
       '@types/jsonwebtoken': 9.0.10
@@ -8652,6 +8748,8 @@ snapshots:
     optional: true
 
   node-releases@2.0.50: {}
+
+  nodemailer@6.10.1: {}
 
   normalize-path@3.0.0: {}
 

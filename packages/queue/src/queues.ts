@@ -4,6 +4,7 @@ import {
   AI_QUEUE_NAMES,
   CRAWL_QUEUE_NAMES,
   GROWTH_QUEUE_NAMES,
+  PLATFORM_QUEUE_NAMES,
   SEARCH_QUEUE_NAMES,
   type AiQueueName,
   type AiQueuePayloadMap,
@@ -11,6 +12,8 @@ import {
   type CrawlQueuePayloadMap,
   type GrowthQueueName,
   type GrowthQueuePayloadMap,
+  type PlatformQueueName,
+  type PlatformQueuePayloadMap,
   type SearchQueueName,
   type SearchQueuePayloadMap,
 } from "./types";
@@ -31,6 +34,7 @@ const crawlQueueCache = new Map<CrawlQueueName, Queue>();
 const aiQueueCache = new Map<AiQueueName, Queue>();
 const growthQueueCache = new Map<GrowthQueueName, Queue>();
 const searchQueueCache = new Map<SearchQueueName, Queue>();
+const platformQueueCache = new Map<PlatformQueueName, Queue>();
 
 export function getCrawlQueue<T extends CrawlQueueName>(name: T): Queue<CrawlQueuePayloadMap[T]> {
   const existing = crawlQueueCache.get(name);
@@ -176,6 +180,55 @@ export async function getAllSearchQueueStats() {
   return Object.fromEntries(entries);
 }
 
+export function getPlatformQueue<T extends PlatformQueueName>(
+  name: T,
+): Queue<PlatformQueuePayloadMap[T]> {
+  const existing = platformQueueCache.get(name);
+  if (existing) {
+    return existing as Queue<PlatformQueuePayloadMap[T]>;
+  }
+
+  const queue = new Queue<PlatformQueuePayloadMap[T]>(name, createQueueOptions());
+  platformQueueCache.set(name, queue as Queue);
+  return queue;
+}
+
+export function getAllPlatformQueues(): Queue[] {
+  return Object.values(PLATFORM_QUEUE_NAMES).map((name) => getPlatformQueue(name));
+}
+
+export async function enqueuePlatformJob<T extends PlatformQueueName>(
+  queueName: T,
+  jobName: string,
+  payload: PlatformQueuePayloadMap[T],
+  options?: JobsOptions,
+): Promise<string> {
+  const job = await getPlatformQueue(queueName).add(jobName as never, payload as never, options);
+  return job.id ?? jobName;
+}
+
+export async function getPlatformQueueStats(queueName: PlatformQueueName) {
+  const queue = getPlatformQueue(queueName);
+  const [waiting, active, completed, failed, delayed] = await Promise.all([
+    queue.getWaitingCount(),
+    queue.getActiveCount(),
+    queue.getCompletedCount(),
+    queue.getFailedCount(),
+    queue.getDelayedCount(),
+  ]);
+
+  return { waiting, active, completed, failed, delayed, total: waiting + active + delayed };
+}
+
+export async function getAllPlatformQueueStats() {
+  const entries = await Promise.all(
+    Object.values(PLATFORM_QUEUE_NAMES).map(
+      async (name) => [name, await getPlatformQueueStats(name)] as const,
+    ),
+  );
+  return Object.fromEntries(entries);
+}
+
 export async function getQueueStats(queueName: CrawlQueueName) {
   const queue = getCrawlQueue(queueName);
   const [waiting, active, completed, failed, delayed] = await Promise.all([
@@ -228,10 +281,12 @@ export async function closeAllQueues(): Promise<void> {
     ...aiQueueCache.values(),
     ...growthQueueCache.values(),
     ...searchQueueCache.values(),
+    ...platformQueueCache.values(),
   ];
   await Promise.all(all.map((queue) => queue.close()));
   crawlQueueCache.clear();
   aiQueueCache.clear();
   growthQueueCache.clear();
   searchQueueCache.clear();
+  platformQueueCache.clear();
 }

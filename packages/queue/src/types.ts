@@ -110,6 +110,34 @@ export type SearchQueuePayloadMap = {
   [SEARCH_QUEUE_NAMES.TOOL_INDEX]: SearchIndexJobPayload;
 };
 
+export const PLATFORM_QUEUE_NAMES = {
+  WEBHOOK_DELIVER: "platform-webhook-deliver",
+  NEWSLETTER_SEND: "platform-newsletter-send",
+  EMAIL_SEND: "platform-email-send",
+} as const;
+
+export type PlatformQueueName = (typeof PLATFORM_QUEUE_NAMES)[keyof typeof PLATFORM_QUEUE_NAMES];
+
+export type WebhookDeliverJobPayload = {
+  deliveryId: string;
+};
+
+export type NewsletterSendJobPayload = {
+  campaignId: string;
+};
+
+export type EmailSendJobPayload = {
+  templateType: string;
+  to: string;
+  variables?: Record<string, string>;
+};
+
+export type PlatformQueuePayloadMap = {
+  [PLATFORM_QUEUE_NAMES.WEBHOOK_DELIVER]: WebhookDeliverJobPayload;
+  [PLATFORM_QUEUE_NAMES.NEWSLETTER_SEND]: NewsletterSendJobPayload;
+  [PLATFORM_QUEUE_NAMES.EMAIL_SEND]: EmailSendJobPayload;
+};
+
 export function queueNameForJobType(jobType: CrawlQueueJobType): CrawlQueueName {
   switch (jobType) {
     case "CRAWL_CATEGORY":

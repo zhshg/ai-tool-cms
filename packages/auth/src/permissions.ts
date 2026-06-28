@@ -25,6 +25,13 @@ export const PermissionCode = {
   SeoManage: "seo:manage",
   SearchRead: "search:read",
   AnalyticsRead: "analytics:read",
+  MonetizationRead: "monetization:read",
+  MonetizationManage: "monetization:manage",
+  PlatformRead: "platform:read",
+  PlatformManage: "platform:manage",
+  RevenueRead: "revenue:read",
+  PartnerRead: "partner:read",
+  GrowthRead: "growth:read",
 } as const;
 
 export type PermissionCodeValue = (typeof PermissionCode)[keyof typeof PermissionCode];
@@ -186,6 +193,48 @@ export const PERMISSION_DEFINITIONS: PermissionDefinition[] = [
     slug: "analytics-read",
     name: "Read Analytics",
     module: "analytics",
+  },
+  {
+    code: PermissionCode.MonetizationRead,
+    slug: "monetization-read",
+    name: "Read Monetization",
+    module: "monetization",
+  },
+  {
+    code: PermissionCode.MonetizationManage,
+    slug: "monetization-manage",
+    name: "Manage Monetization",
+    module: "monetization",
+  },
+  {
+    code: PermissionCode.PlatformRead,
+    slug: "platform-read",
+    name: "Read API Platform",
+    module: "platform",
+  },
+  {
+    code: PermissionCode.PlatformManage,
+    slug: "platform-manage",
+    name: "Manage API Platform",
+    module: "platform",
+  },
+  {
+    code: PermissionCode.RevenueRead,
+    slug: "revenue-read",
+    name: "Read Revenue Dashboard",
+    module: "revenue",
+  },
+  {
+    code: PermissionCode.PartnerRead,
+    slug: "partner-read",
+    name: "Read Partner Dashboard",
+    module: "partner",
+  },
+  {
+    code: PermissionCode.GrowthRead,
+    slug: "growth-read",
+    name: "Read Growth Center",
+    module: "growth",
   },
 ];
 

@@ -21,6 +21,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@ai-tool-cms/api-platform": "workspace:*",
     "@ai-tool-cms/common": "workspace:*",
     "@ai-tool-cms/config": "workspace:*",
     "@ai-tool-cms/database": "workspace:*",
