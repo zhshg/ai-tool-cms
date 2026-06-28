@@ -4,8 +4,8 @@
     "rootDir": "./src",
     "outDir": "./dist",
     "noEmit": true,
-    "module": "ESNext",
-    "moduleResolution": "Bundler",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
     "verbatimModuleSyntax": false
   },
   "include": ["src/**/*"],

@@ -18,5 +18,5 @@ export {
   mcpLatestAiTools,
   mcpPricingQuery,
   mcpSearchTools,
-} from "./handlers";
-export type { CursorPage, CursorPayload } from "./handlers";
+} from "./handlers.js";
+export type { CursorPage, CursorPayload } from "./handlers.js";

@@ -16,7 +16,7 @@
     "db:migrate:deploy": "pnpm --filter @ai-tool-cms/database db:migrate:deploy",
     "db:studio": "pnpm --filter @ai-tool-cms/database db:studio",
     "db:seed": "pnpm --filter @ai-tool-cms/database db:seed",
-    "mcp": "pnpm --filter @ai-tool-cms/mcp-server start",
+    "mcp": "pnpm --filter @ai-tool-cms/mcp-server build && pnpm --filter @ai-tool-cms/mcp-server start",
     "mcp:dev": "pnpm --filter @ai-tool-cms/mcp-server dev",
     "setup:env": "node scripts/setup-env.mjs",
     "docker:up": "docker compose up -d --wait",

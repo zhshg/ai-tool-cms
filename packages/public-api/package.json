@@ -2,6 +2,7 @@
   "name": "@ai-tool-cms/public-api",
   "version": "1.0.0-rc.1",
   "private": true,
+  "type": "module",
   "description": "Public API v1 data layer — tools, search, compare, categories (Commit 091)",
   "exports": {
     ".": {
