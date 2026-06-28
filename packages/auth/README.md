@@ -1,7 +1,23 @@
-# auth
+# @ai-tool-cms/auth
 
-Authentication and RBAC helpers. Scaffold only.
+认证与 RBAC 工具包。
 
-**Status:** Scaffold (Commit-0002) — no business implementation yet.
+## 功能
 
-See [FolderStructure.md](../../docs/00-project/FolderStructure.md) for full layout.
+- `hashPassword` / `verifyPassword`（bcrypt，12 rounds）
+- JWT Access / Refresh Token 签发与校验
+- `PermissionCode` 常量与 seed 定义
+- `hasPermission` / `hasRole` / `flattenPermissions`
+
+## 使用
+
+```typescript
+import {
+  hashPassword,
+  signAccessToken,
+  PermissionCode,
+  hasPermission,
+} from "@ai-tool-cms/auth";
+```
+
+NestJS API 通过 `JwtAuthGuard` + `@RequirePermission("tool:create")` 集成。

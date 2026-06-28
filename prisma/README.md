@@ -52,3 +52,13 @@ pnpm db:studio
 ```
 
 `DATABASE_URL` 由 `@ai-tool-cms/config` 从根目录 `.env` 加载。
+
+## Seed（Commit 012 / 020）
+
+```bash
+pnpm db:seed                    # demo：Admin + 5 Category + 8 Tag + 10 Tool
+SEED_PROFILE=bulk pnpm db:seed  # 100 Category / 500 Tag / 100 Tool / 50 Prompt / 20 FAQ
+SEED_PROFILE=all pnpm db:seed     # demo + bulk
+```
+
+默认管理员：`admin@ai-tool-cms.local` / `Admin123!`（可通过 `SEED_ADMIN_*` 覆盖）。

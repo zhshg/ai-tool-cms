@@ -1,6 +1,7 @@
 import { Controller, Get } from "@nestjs/common";
 import { ApiOkResponse, ApiOperation, ApiTags } from "@nestjs/swagger";
 import { env } from "@ai-tool-cms/config";
+import { Public } from "../common/decorators";
 import { PrismaService } from "../prisma/prisma.service";
 import { HealthResponseDto } from "./health-response.dto";
 
@@ -13,6 +14,7 @@ function serviceStatus(url?: string): string {
 export class HealthController {
   constructor(private readonly prisma: PrismaService) {}
 
+  @Public()
   @Get()
   @ApiOperation({ summary: "Service health check" })
   @ApiOkResponse({ type: HealthResponseDto })

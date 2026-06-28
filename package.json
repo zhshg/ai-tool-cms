@@ -15,6 +15,7 @@
     "db:migrate": "pnpm --filter @ai-tool-cms/database db:migrate",
     "db:migrate:deploy": "pnpm --filter @ai-tool-cms/database db:migrate:deploy",
     "db:studio": "pnpm --filter @ai-tool-cms/database db:studio",
+    "db:seed": "pnpm --filter @ai-tool-cms/database db:seed",
     "setup:env": "node scripts/setup-env.mjs",
     "docker:up": "docker compose up -d --wait",
     "docker:down": "docker compose down",
