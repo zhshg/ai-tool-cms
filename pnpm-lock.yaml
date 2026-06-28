@@ -338,6 +338,22 @@ importers:
         specifier: ^5.7.3
         version: 5.9.3
 
+  packages/ai:
+    dependencies:
+      '@ai-tool-cms/config':
+        specifier: workspace:*
+        version: link:../config
+      '@ai-tool-cms/logger':
+        specifier: workspace:*
+        version: link:../logger
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.0
+        version: 22.20.0
+      typescript:
+        specifier: ^5.7.3
+        version: 5.9.3
+
   packages/auth:
     dependencies:
       bcryptjs:
