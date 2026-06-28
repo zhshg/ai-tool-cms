@@ -1,6 +1,6 @@
 "use client";
 
-import { BarChart3, Globe, Link2, RefreshCw, Search, Sitemap } from "lucide-react";
+import { BarChart3, Globe, Link2, Map, RefreshCw, Search } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { RequirePermission } from "@/components/rbac/require-permission";
 import { Permission } from "@/lib/permissions";
@@ -12,7 +12,7 @@ const metrics = [
   { key: "brokenLinks", label: "Broken Links", icon: Link2 },
   { key: "duplicateTitles", label: "Duplicate Titles", icon: RefreshCw },
   { key: "missingMeta", label: "Missing Meta", icon: Search },
-  { key: "missingSchema", label: "Missing Schema", icon: Sitemap },
+  { key: "missingSchema", label: "Missing Schema", icon: Map },
   { key: "aiQualityLow", label: "AI Quality", icon: BarChart3 },
 ] as const;
 

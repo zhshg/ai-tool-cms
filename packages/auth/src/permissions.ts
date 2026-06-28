@@ -35,6 +35,8 @@ export const PermissionCode = {
   I18nRead: "i18n:read",
   I18nManage: "i18n:manage",
   GlobalRead: "global:read",
+  AutomationRead: "automation:read",
+  AutomationManage: "automation:manage",
 } as const;
 
 export type PermissionCodeValue = (typeof PermissionCode)[keyof typeof PermissionCode];
@@ -256,6 +258,18 @@ export const PERMISSION_DEFINITIONS: PermissionDefinition[] = [
     slug: "global-read",
     name: "Read Global Dashboard",
     module: "global",
+  },
+  {
+    code: PermissionCode.AutomationRead,
+    slug: "automation-read",
+    name: "Read Automation Center",
+    module: "automation",
+  },
+  {
+    code: PermissionCode.AutomationManage,
+    slug: "automation-manage",
+    name: "Manage Automation",
+    module: "automation",
   },
 ];
 

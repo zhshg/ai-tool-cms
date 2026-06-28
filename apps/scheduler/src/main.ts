@@ -1,11 +1,15 @@
 import { getEnv } from "@ai-tool-cms/config";
 import { computeNextRunAt } from "@ai-tool-cms/crawler-core";
+import { runDailyAutomationPoll, runWeeklyAutomationPoll } from "@ai-tool-cms/automation";
 import { disconnectPrisma, prisma } from "@ai-tool-cms/database";
 import { createLogger } from "@ai-tool-cms/logger";
 import { CRAWL_QUEUE_NAMES, enqueueCrawlJob } from "@ai-tool-cms/queue";
 
 const log = createLogger({ service: "scheduler" });
 const POLL_INTERVAL_MS = 60_000;
+const DAY_MS = 24 * 60 * 60 * 1000;
+let lastDailyAutomationAt = 0;
+let lastWeeklyAutomationAt = 0;
 
 export async function pollDueSources(): Promise<number> {
   const now = new Date();
@@ -62,6 +66,26 @@ export async function pollDueSources(): Promise<number> {
   return enqueued;
 }
 
+export async function pollAutomationSchedules(): Promise<Record<string, unknown>> {
+  const now = Date.now();
+  const result: Record<string, unknown> = {};
+
+  if (now - lastDailyAutomationAt >= DAY_MS) {
+    result.daily = await runDailyAutomationPoll(prisma);
+    lastDailyAutomationAt = now;
+    log.info("daily automation poll complete", { daily: result.daily });
+  }
+
+  const day = new Date().getDay();
+  if (day === 1 && now - lastWeeklyAutomationAt >= DAY_MS) {
+    result.weekly = await runWeeklyAutomationPoll(prisma);
+    lastWeeklyAutomationAt = now;
+    log.info("weekly automation poll complete", { weekly: result.weekly });
+  }
+
+  return result;
+}
+
 async function main(): Promise<void> {
   getEnv();
   log.info("Crawler scheduler started", { intervalMs: POLL_INTERVAL_MS });
@@ -69,8 +93,9 @@ async function main(): Promise<void> {
   const tick = async () => {
     try {
       const count = await pollDueSources();
+      const automation = await pollAutomationSchedules();
       if (count > 0) {
-        log.info("scheduler tick complete", { count });
+        log.info("scheduler tick complete", { crawl: count, automation });
       }
     } catch (error) {
       log.error("scheduler tick failed", { error });

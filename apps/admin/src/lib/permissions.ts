@@ -24,6 +24,8 @@ export const Permission = {
   I18nRead: "i18n:read",
   I18nManage: "i18n:manage",
   GlobalRead: "global:read",
+  AutomationRead: "automation:read",
+  AutomationManage: "automation:manage",
 } as const;
 
 export type PermissionCode = (typeof Permission)[keyof typeof Permission];
@@ -53,6 +55,8 @@ export const RolePermissions: Record<string, PermissionCode[]> = {
     Permission.I18nRead,
     Permission.I18nManage,
     Permission.GlobalRead,
+    Permission.AutomationRead,
+    Permission.AutomationManage,
     Permission.UsersManage,
     Permission.SettingsRead,
   ],

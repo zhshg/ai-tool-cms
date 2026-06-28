@@ -2,6 +2,7 @@ import {
   Activity,
   BarChart3,
   Bot,
+  Cog,
   DollarSign,
   FolderTree,
   Globe,
@@ -118,6 +119,12 @@ export const navItems: NavItem[] = [
     permission: Permission.PartnerRead,
   },
   {
+    title: "Automation",
+    href: "/automation",
+    icon: Cog,
+    permission: Permission.AutomationRead,
+  },
+  {
     title: "Users",
     href: "/users",
     icon: Users,
@@ -145,6 +152,7 @@ export const breadcrumbLabels: Record<string, string> = {
   growth: "Growth Center",
   global: "Global",
   localization: "Localization",
+  automation: "Automation Center",
   platform: "Platform",
   partners: "Partners",
   users: "Users",

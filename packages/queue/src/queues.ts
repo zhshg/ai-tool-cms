@@ -2,6 +2,7 @@ import { Queue, type JobsOptions, type QueueOptions } from "bullmq";
 import { createRedisConnection } from "./connection";
 import {
   AI_QUEUE_NAMES,
+  AUTOMATION_QUEUE_NAMES,
   CRAWL_QUEUE_NAMES,
   GROWTH_QUEUE_NAMES,
   I18N_QUEUE_NAMES,
@@ -9,6 +10,8 @@ import {
   SEARCH_QUEUE_NAMES,
   type AiQueueName,
   type AiQueuePayloadMap,
+  type AutomationQueueName,
+  type AutomationQueuePayloadMap,
   type CrawlQueueName,
   type CrawlQueuePayloadMap,
   type GrowthQueueName,
@@ -39,6 +42,7 @@ const growthQueueCache = new Map<GrowthQueueName, Queue>();
 const searchQueueCache = new Map<SearchQueueName, Queue>();
 const platformQueueCache = new Map<PlatformQueueName, Queue>();
 const i18nQueueCache = new Map<I18nQueueName, Queue>();
+const automationQueueCache = new Map<AutomationQueueName, Queue>();
 
 export function getCrawlQueue<T extends CrawlQueueName>(name: T): Queue<CrawlQueuePayloadMap[T]> {
   const existing = crawlQueueCache.get(name);
@@ -258,6 +262,55 @@ export function getAllI18nQueues(): Queue[] {
   return Object.values(I18N_QUEUE_NAMES).map((name) => getI18nQueue(name));
 }
 
+export function getAutomationQueue<T extends AutomationQueueName>(
+  name: T,
+): Queue<AutomationQueuePayloadMap[T]> {
+  const existing = automationQueueCache.get(name);
+  if (existing) {
+    return existing as Queue<AutomationQueuePayloadMap[T]>;
+  }
+
+  const queue = new Queue<AutomationQueuePayloadMap[T]>(name, createQueueOptions());
+  automationQueueCache.set(name, queue as Queue);
+  return queue;
+}
+
+export function getAllAutomationQueues(): Queue[] {
+  return Object.values(AUTOMATION_QUEUE_NAMES).map((name) => getAutomationQueue(name));
+}
+
+export async function enqueueAutomationJob<T extends AutomationQueueName>(
+  queueName: T,
+  jobName: string,
+  payload: AutomationQueuePayloadMap[T],
+  options?: JobsOptions,
+): Promise<string> {
+  const job = await getAutomationQueue(queueName).add(jobName as never, payload as never, options);
+  return job.id ?? jobName;
+}
+
+export async function getAutomationQueueStats(queueName: AutomationQueueName) {
+  const queue = getAutomationQueue(queueName);
+  const [waiting, active, completed, failed, delayed] = await Promise.all([
+    queue.getWaitingCount(),
+    queue.getActiveCount(),
+    queue.getCompletedCount(),
+    queue.getFailedCount(),
+    queue.getDelayedCount(),
+  ]);
+
+  return { waiting, active, completed, failed, delayed, total: waiting + active + delayed };
+}
+
+export async function getAllAutomationQueueStats() {
+  const entries = await Promise.all(
+    Object.values(AUTOMATION_QUEUE_NAMES).map(
+      async (name) => [name, await getAutomationQueueStats(name)] as const,
+    ),
+  );
+  return Object.fromEntries(entries);
+}
+
 export async function getQueueStats(queueName: CrawlQueueName) {
   const queue = getCrawlQueue(queueName);
   const [waiting, active, completed, failed, delayed] = await Promise.all([
@@ -312,6 +365,7 @@ export async function closeAllQueues(): Promise<void> {
     ...searchQueueCache.values(),
     ...platformQueueCache.values(),
     ...i18nQueueCache.values(),
+    ...automationQueueCache.values(),
   ];
   await Promise.all(all.map((queue) => queue.close()));
   crawlQueueCache.clear();
@@ -320,4 +374,5 @@ export async function closeAllQueues(): Promise<void> {
   searchQueueCache.clear();
   platformQueueCache.clear();
   i18nQueueCache.clear();
+  automationQueueCache.clear();
 }
