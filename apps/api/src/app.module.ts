@@ -21,6 +21,9 @@ import { SearchModule } from "./search/search.module";
 import { CommercialModule } from "./commercial/commercial.module";
 import { I18nModule } from "./i18n/i18n.module";
 import { AutomationModule } from "./automation/automation.module";
+import { PublicApiModule } from "./public-api/public-api.module";
+import { WebhookHubModule } from "./webhook-hub/webhook-hub.module";
+import { PlatformBootstrapService } from "./platform-bootstrap.service";
 
 @Module({
   imports: [
@@ -49,8 +52,11 @@ import { AutomationModule } from "./automation/automation.module";
     CommercialModule,
     I18nModule,
     AutomationModule,
+    PublicApiModule,
+    WebhookHubModule,
   ],
   providers: [
+    PlatformBootstrapService,
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: PermissionsGuard },
   ],

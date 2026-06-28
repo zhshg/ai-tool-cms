@@ -27,6 +27,8 @@
     "@ai-tool-cms/database": "workspace:*",
     "@ai-tool-cms/growth": "workspace:*",
     "@ai-tool-cms/logger": "workspace:*",
+    "@ai-tool-cms/observability": "workspace:*",
+    "@ai-tool-cms/plugins": "workspace:*",
     "@ai-tool-cms/queue": "workspace:*",
     "@ai-tool-cms/ranking": "workspace:*",
     "@ai-tool-cms/search": "workspace:*",

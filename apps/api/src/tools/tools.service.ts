@@ -3,6 +3,8 @@ import type { Prisma } from "@ai-tool-cms/database";
 import { ToolStatus } from "@ai-tool-cms/database";
 import { slugify } from "@ai-tool-cms/common";
 import { startAiPipeline } from "@ai-tool-cms/ai";
+import { emitWebhookEvent } from "@ai-tool-cms/api-platform";
+import { runPluginLifecycle } from "@ai-tool-cms/plugins";
 import { enqueueAiJob, type AiQueueName } from "@ai-tool-cms/queue";
 import { enqueueSearchIndex } from "@ai-tool-cms/search";
 import { GrowthService } from "../growth/growth.service";
@@ -104,6 +106,12 @@ export class ToolsService {
       await this.growth.enqueueToolPublished(tool.id, "cms_publish", actorId);
     }
 
+    await runPluginLifecycle(this.prisma.client, "onToolCreated", {
+      toolId: tool.id,
+      slug: tool.slug,
+      metadata: (tool.metadata ?? {}) as Record<string, unknown>,
+    });
+
     return this.findById(tool.id);
   }
 
@@ -138,15 +146,39 @@ export class ToolsService {
       await enqueueSearchIndex(id, "tool_update");
     }
 
-    return this.findById(id);
+    const updated = await this.findById(id);
+
+    await emitWebhookEvent(this.prisma.client, "TOOL_UPDATED", {
+      toolId: id,
+      slug: updated.slug,
+      name: updated.name,
+      status: updated.status,
+      actorId,
+    });
+    await runPluginLifecycle(this.prisma.client, "onToolUpdated", {
+      toolId: id,
+      slug: updated.slug,
+      metadata: (updated.metadata ?? {}) as Record<string, unknown>,
+    });
+
+    return updated;
   }
 
   async remove(id: string, actorId: string) {
-    await this.findById(id);
-    return this.prisma.client.tool.update({
+    const existing = await this.findById(id);
+    const result = await this.prisma.client.tool.update({
       where: { id },
       data: { deletedAt: new Date(), deletedById: actorId },
     });
+
+    await emitWebhookEvent(this.prisma.client, "TOOL_DELETED", {
+      toolId: id,
+      slug: existing.slug,
+      name: existing.name,
+      actorId,
+    });
+
+    return result;
   }
 
   private async syncCategories(toolId: string, categoryIds: string[]) {

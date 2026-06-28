@@ -1,4 +1,6 @@
 import { getEnv } from "@ai-tool-cms/config";
+import { initObservability } from "@ai-tool-cms/observability";
+import { registerBuiltinPlugins } from "@ai-tool-cms/plugins";
 import { disconnectPrisma } from "@ai-tool-cms/database";
 import { closeAllQueues } from "@ai-tool-cms/queue";
 import { createLogger } from "@ai-tool-cms/logger";
@@ -14,6 +16,8 @@ const log = createLogger({ service: "worker-main" });
 
 async function main(): Promise<void> {
   getEnv();
+  registerBuiltinPlugins();
+  await initObservability("ai-tool-cms-worker");
   const crawlWorkers = startAllWorkers();
   const aiWorkers = startAiPipelineWorkers();
   const growthWorkers = [startGrowthWorker()];

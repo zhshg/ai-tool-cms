@@ -28,6 +28,7 @@
   "dependencies": {
     "@ai-tool-cms/config": "workspace:*",
     "@ai-tool-cms/database": "workspace:*",
+    "@ai-tool-cms/public-api": "workspace:*",
     "@ai-tool-cms/ranking": "workspace:*",
     "@ai-tool-cms/recommendation": "workspace:*",
     "@ai-tool-cms/search": "workspace:*",

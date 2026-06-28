@@ -22,6 +22,7 @@
   },
   "dependencies": {
     "@ai-tool-cms/api-platform": "workspace:*",
+    "@ai-tool-cms/plugins": "workspace:*",
     "@ai-tool-cms/i18n": "workspace:*",
     "@ai-tool-cms/common": "workspace:*",
     "@ai-tool-cms/config": "workspace:*",

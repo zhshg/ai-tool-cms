@@ -1,0 +1,33 @@
+{
+  "name": "@ai-tool-cms/observability",
+  "version": "1.0.0-rc.1",
+  "private": true,
+  "description": "OpenTelemetry + metrics hooks (Commit 099)",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "lint": "eslint \"src/**/*.ts\" --config ../../eslint.config.mjs",
+    "test": "vitest run --config ../../vitest.config.ts",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@ai-tool-cms/config": "workspace:*",
+    "@ai-tool-cms/logger": "workspace:*"
+  },
+  "optionalDependencies": {
+    "@opentelemetry/api": "^1.9.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.3"
+  }
+}

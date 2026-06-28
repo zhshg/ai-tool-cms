@@ -88,7 +88,12 @@ export const envSchema = z.object({
   AUTOMATION_AI_REFRESH_DAYS: z.coerce.number().int().positive().default(30),
   BING_INDEXNOW_KEY: optionalString,
   GOOGLE_INDEXING_SERVICE_ACCOUNT_JSON: optionalString,
-  SCREENSHOT_STORAGE_DIR: optionalString,
+  OTEL_EXPORTER_OTLP_ENDPOINT: optionalUrl,
+  SENTRY_DSN: optionalString,
+  WRITE_OPENAPI: z
+    .string()
+    .optional()
+    .transform((v) => v === "true" || v === "1"),
 });
 
 export type Env = z.infer<typeof envSchema>;

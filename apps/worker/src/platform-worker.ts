@@ -23,6 +23,9 @@ const workerConnection = () => createRedisConnection() as never;
 async function handleWebhookDeliver(job: Job<WebhookDeliverJobPayload>) {
   const result = await deliverWebhook(prisma, job.data.deliveryId);
   log.info("Webhook delivered", { deliveryId: job.data.deliveryId, ...result });
+  if (!result.ok) {
+    throw new Error(`Webhook delivery failed: ${job.data.deliveryId}`);
+  }
 }
 
 async function handleNewsletterSend(job: Job<NewsletterSendJobPayload>) {

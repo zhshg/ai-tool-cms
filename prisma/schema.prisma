@@ -266,10 +266,11 @@ enum EmailTemplateType {
   CUSTOM
 }
 
-/// Webhook events (Commit 067).
+/// Webhook events (Commit 067, expanded Sprint 10).
 enum WebhookEvent {
   TOOL_ADDED
   TOOL_UPDATED
+  TOOL_DELETED
   AI_GENERATED
   CRAWLER_FINISHED
   SEO_UPDATED
@@ -2211,6 +2212,109 @@ model AutomationRun {
   @@index([referenceId])
   @@index([createdAt])
   @@map("automation_runs")
+}
+
+// -----------------------------------------------------------------------------
+// Open Ecosystem — Platform (Commits 091–100)
+// -----------------------------------------------------------------------------
+
+enum WorkflowRunStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum PluginStatus {
+  REGISTERED
+  ACTIVE
+  DISABLED
+  ERROR
+}
+
+/// Configurable workflow definition (Commit 097).
+model WorkflowDefinition {
+  id          String    @id @default(uuid()) @db.Uuid
+  slug        String    @unique @db.VarChar(120)
+  name        String    @db.VarChar(200)
+  description String?   @db.Text
+  steps       Json      @default("[]")
+  isEnabled   Boolean   @default(true) @map("is_enabled")
+  metadata    Json      @default("{}")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  runs WorkflowRun[]
+
+  @@index([isEnabled])
+  @@index([deletedAt])
+  @@map("workflow_definitions")
+}
+
+model WorkflowRun {
+  id           String            @id @default(uuid()) @db.Uuid
+  definitionId String            @map("definition_id") @db.Uuid
+  status       WorkflowRunStatus @default(PENDING)
+  context      Json              @default("{}")
+  currentStep  Int               @default(0) @map("current_step")
+  result       Json              @default("{}")
+  errorMessage String?           @map("error_message") @db.Text
+  startedAt    DateTime?         @map("started_at")
+  finishedAt   DateTime?         @map("finished_at")
+  metadata     Json              @default("{}")
+  createdAt    DateTime          @default(now()) @map("created_at")
+  updatedAt    DateTime          @updatedAt @map("updated_at")
+
+  definition WorkflowDefinition @relation(fields: [definitionId], references: [id], onDelete: Cascade)
+
+  @@index([definitionId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("workflow_runs")
+}
+
+/// Plugin registration (Commit 096).
+model PluginRegistration {
+  id        String       @id @default(uuid()) @db.Uuid
+  slug      String       @unique @db.VarChar(120)
+  name      String       @db.VarChar(200)
+  module    String       @db.VarChar(64)
+  version   String       @default("1.0.0") @db.VarChar(32)
+  status    PluginStatus @default(REGISTERED)
+  config    Json         @default("{}")
+  metadata  Json         @default("{}")
+  createdAt DateTime     @default(now()) @map("created_at")
+  updatedAt DateTime     @updatedAt @map("updated_at")
+  deletedAt DateTime?    @map("deleted_at")
+
+  @@index([module])
+  @@index([status])
+  @@index([deletedAt])
+  @@map("plugin_registrations")
+}
+
+/// Feature flag (Commit 098).
+model FeatureFlag {
+  id          String    @id @default(uuid()) @db.Uuid
+  key         String    @unique @db.VarChar(128)
+  name        String    @db.VarChar(200)
+  description String?   @db.Text
+  enabled     Boolean   @default(false)
+  rollout     Int       @default(100)
+  locales     String[]  @default([])
+  regions     String[]  @default([])
+  segments    String[]  @default([])
+  variants    Json      @default("{}")
+  metadata    Json      @default("{}")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  @@index([enabled])
+  @@index([deletedAt])
+  @@map("feature_flags")
 }
 
 // -----------------------------------------------------------------------------

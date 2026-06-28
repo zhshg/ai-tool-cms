@@ -12,6 +12,7 @@ import { seedDemoTools } from "./seeds/demo-tools";
 import { seedCrawlSources } from "./seeds/crawl-sources";
 import { seedRolesAndPermissions } from "./seeds/rbac";
 import { seedDefaultTaxonomy } from "./seeds/taxonomy";
+import { seedPlatform } from "./seeds/platform";
 
 async function main(): Promise<void> {
   const profile = process.env.SEED_PROFILE ?? "demo";
@@ -22,6 +23,9 @@ async function main(): Promise<void> {
 
   const { categoryIds, tagIds } = await seedDefaultTaxonomy(adminUserId);
   console.info(`[seed] default taxonomy: ${categoryIds.length} categories, ${tagIds.length} tags`);
+
+  await seedPlatform(prisma);
+  console.info("[seed] platform: workflows, plugins, feature flags");
 
   if (profile === "demo" || profile === "all") {
     await seedDemoTools(adminUserId, categoryIds, tagIds);

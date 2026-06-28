@@ -31,6 +31,7 @@ import {
 } from "@ai-tool-cms/ai";
 import type { AiPipelineStageId } from "@ai-tool-cms/ai";
 import { getEnv } from "@ai-tool-cms/config";
+import { emitWebhookEvent } from "@ai-tool-cms/api-platform";
 import { triggerSiteGrowthAfterPublish } from "./growth-trigger";
 
 const log = createLogger({ service: "ai-pipeline-worker" });
@@ -224,6 +225,11 @@ async function processStage(
           seo: result,
         });
         await finishAiTask(taskId, result as never);
+        await emitWebhookEvent(prisma, "AI_GENERATED", {
+          toolId: payload.toolId,
+          pipelineRunId: payload.pipelineRunId,
+          stage: "SEO",
+        });
         break;
       }
       case "GEO": {

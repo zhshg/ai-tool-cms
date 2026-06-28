@@ -13,7 +13,7 @@ import {
 export function createMcpServer(prisma: PrismaClient): McpServer {
   const server = new McpServer({
     name: "ai-tool-cms",
-    version: "1.0.0",
+    version: "1.0.0-rc.1",
   });
 
   server.registerTool(
@@ -178,6 +178,106 @@ export function createMcpServer(prisma: PrismaClient): McpServer {
       return {
         content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
       };
+    },
+  );
+
+  // Sprint 10 规范工具名（Commit 093）
+  server.registerTool(
+    "search_tools",
+    {
+      title: "Search Tools",
+      description: "Search AI tools (canonical Sprint 10 name)",
+      inputSchema: {
+        keyword: z.string(),
+        category: z.string().optional(),
+        tag: z.string().optional(),
+        pricing: z.string().optional(),
+        limit: z.number().int().positive().max(50).optional(),
+      },
+    },
+    async (args) => {
+      const result = await mcpSearchTools(prisma, {
+        keyword: args.keyword,
+        filters: { category: args.category, tag: args.tag, pricing: args.pricing },
+        pageSize: args.limit,
+      });
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  server.registerTool(
+    "get_tool",
+    {
+      title: "Get Tool",
+      description: "Get tool details by slug",
+      inputSchema: { slug: z.string(), locale: z.string().optional() },
+    },
+    async (args) => {
+      const result = await mcpGetToolDetails(prisma, args.slug, args.locale ?? "en");
+      return {
+        content: [
+          { type: "text", text: JSON.stringify(result ?? { error: "not_found" }, null, 2) },
+        ],
+      };
+    },
+  );
+
+  server.registerTool(
+    "list_categories",
+    {
+      title: "List Categories",
+      description: "List categories or tools in a category",
+      inputSchema: {
+        query: z.string().optional(),
+        slug: z.string().optional(),
+        limit: z.number().optional(),
+      },
+    },
+    async (args) => {
+      const result = await mcpCategorySearch(prisma, args);
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  server.registerTool(
+    "list_trending",
+    {
+      title: "List Trending",
+      description: "Trending AI tools",
+      inputSchema: {
+        period: z.enum(["weekly", "monthly", "yearly"]).optional(),
+        limit: z.number().optional(),
+      },
+    },
+    async (args) => {
+      const result = await mcpLatestAiTools(prisma, { mode: "trending", ...args });
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  server.registerTool(
+    "get_pricing",
+    {
+      title: "Get Pricing",
+      description: "Query tool pricing",
+      inputSchema: { slug: z.string().optional(), pricingModel: z.string().optional() },
+    },
+    async (args) => {
+      const result = await mcpPricingQuery(prisma, args);
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  server.registerTool(
+    "latest_tools",
+    {
+      title: "Latest Tools",
+      description: "Newly published AI tools",
+      inputSchema: { limit: z.number().optional() },
+    },
+    async (args) => {
+      const result = await mcpLatestAiTools(prisma, { mode: "new", limit: args.limit });
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
   );
 

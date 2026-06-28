@@ -1,4 +1,6 @@
 import { prisma } from "@ai-tool-cms/database";
+import { emitWebhookEvent } from "@ai-tool-cms/api-platform";
+import { runPluginLifecycle } from "@ai-tool-cms/plugins";
 import {
   createCrawlerContext,
   globalAdapterRegistry,
@@ -61,6 +63,18 @@ export async function markJobSucceeded(
       data: { lastRunAt: finishedAt },
     }),
   ]);
+
+  await runPluginLifecycle(prisma, "onCrawlerFinished", {
+    metadata: { crawlJobId, sourceId, ...stats },
+  });
+  await emitWebhookEvent(prisma, "CRAWLER_FINISHED", {
+    crawlJobId,
+    sourceId,
+    itemsFound: stats.itemsFound ?? 0,
+    itemsCreated: stats.itemsCreated ?? 0,
+    itemsUpdated: stats.itemsUpdated ?? 0,
+    finishedAt: finishedAt.toISOString(),
+  });
 }
 
 export async function markJobFailed(crawlJobId: string, message: string): Promise<void> {
