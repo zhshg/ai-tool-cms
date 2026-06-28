@@ -1,5 +1,7 @@
-// AI Tool CMS v2 — Prisma schema (scaffold)
-// Business models are added in subsequent commits.
+// =============================================================================
+// AI Tool CMS — Prisma Schema v1 (Commit 011)
+// Production-grade data model. Avoid breaking migrations after this baseline.
+// =============================================================================
 
 generator client {
   provider = "prisma-client-js"
@@ -8,4 +10,769 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+// -----------------------------------------------------------------------------
+// Enums
+// -----------------------------------------------------------------------------
+
+/// Tool editorial lifecycle (RFC-0001).
+enum ToolStatus {
+  DRAFT
+  IN_REVIEW
+  APPROVED
+  SCHEDULED
+  PUBLISHED
+  ARCHIVED
+}
+
+/// High-level pricing classification on a tool.
+enum PricingModel {
+  FREE
+  FREEMIUM
+  PAID
+  CONTACT
+}
+
+enum BillingPeriod {
+  MONTHLY
+  YEARLY
+  ONE_TIME
+  CUSTOM
+}
+
+enum ReviewStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  PUBLISHED
+}
+
+enum PromptStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum ApiKeyStatus {
+  ACTIVE
+  REVOKED
+  EXPIRED
+}
+
+enum CrawlJobStatus {
+  PENDING
+  RUNNING
+  SUCCEEDED
+  FAILED
+  CANCELLED
+}
+
+enum AiGenerationTaskStatus {
+  PENDING
+  RUNNING
+  SUCCEEDED
+  FAILED
+  CANCELLED
+}
+
+enum ReviewVoteValue {
+  UP
+  DOWN
+}
+
+enum SeoEntityType {
+  TOOL
+  CATEGORY
+  TAG
+  PROMPT
+  COLLECTION
+  PAGE
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  PUBLISH
+  ARCHIVE
+  LOGIN
+  LOGOUT
+  OTHER
+}
+
+// -----------------------------------------------------------------------------
+// RBAC & Identity
+// -----------------------------------------------------------------------------
+
+/// Platform user account.
+model User {
+  id              String     @id @default(uuid()) @db.Uuid
+  email           String     @unique @db.VarChar(320)
+  passwordHash    String     @map("password_hash") @db.VarChar(255)
+  displayName     String?    @map("display_name") @db.VarChar(120)
+  avatarUrl       String?    @map("avatar_url") @db.VarChar(2048)
+  status          UserStatus @default(ACTIVE)
+  emailVerifiedAt DateTime?  @map("email_verified_at")
+  lastLoginAt     DateTime?  @map("last_login_at")
+  metadata        Json       @default("{}")
+  createdAt       DateTime   @default(now()) @map("created_at")
+  updatedAt       DateTime   @updatedAt @map("updated_at")
+  deletedAt       DateTime?  @map("deleted_at")
+
+  roles            UserRole[]
+  apiKeys          ApiKey[]
+  reviews          Review[]
+  reviewVotes      ReviewVote[]
+  favorites        Favorite[]
+  collections      Collection[]
+  auditLogs        AuditLog[]        @relation("AuditActor")
+  aiGenerationTasks AiGenerationTask[]
+
+  @@index([status])
+  @@index([deletedAt])
+  @@index([createdAt])
+  @@map("users")
+}
+
+/// RBAC role (admin, editor, viewer, ...).
+model Role {
+  id          String   @id @default(uuid()) @db.Uuid
+  code        String   @unique @db.VarChar(64)
+  name        String   @db.VarChar(120)
+  description String?  @db.Text
+  isSystem    Boolean  @default(false) @map("is_system")
+  metadata    Json     @default("{}")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  users       UserRole[]
+  permissions RolePermission[]
+
+  @@index([deletedAt])
+  @@map("roles")
+}
+
+/// Atomic permission code (e.g. tools:read).
+model Permission {
+  id          String   @id @default(uuid()) @db.Uuid
+  code        String   @unique @db.VarChar(128)
+  name        String   @db.VarChar(120)
+  description String?  @db.Text
+  module      String   @db.VarChar(64)
+  metadata    Json     @default("{}")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  roles RolePermission[]
+
+  @@index([module])
+  @@index([deletedAt])
+  @@map("permissions")
+}
+
+/// User ↔ Role assignment.
+model UserRole {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  roleId    String   @map("role_id") @db.Uuid
+  metadata  Json     @default("{}")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+  @@index([userId])
+  @@index([roleId])
+  @@index([deletedAt])
+  @@map("user_roles")
+}
+
+/// Role ↔ Permission assignment.
+model RolePermission {
+  id           String   @id @default(uuid()) @db.Uuid
+  roleId       String   @map("role_id") @db.Uuid
+  permissionId String   @map("permission_id") @db.Uuid
+  metadata     Json     @default("{}")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+  deletedAt    DateTime? @map("deleted_at")
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+  @@index([roleId])
+  @@index([permissionId])
+  @@index([deletedAt])
+  @@map("role_permissions")
+}
+
+/// Programmatic API access key for a user.
+model ApiKey {
+  id         String       @id @default(uuid()) @db.Uuid
+  userId     String       @map("user_id") @db.Uuid
+  name       String       @db.VarChar(120)
+  keyPrefix  String       @map("key_prefix") @db.VarChar(16)
+  keyHash    String       @map("key_hash") @db.VarChar(255)
+  status     ApiKeyStatus @default(ACTIVE)
+  scopes     String[]     @default([])
+  expiresAt  DateTime?    @map("expires_at")
+  lastUsedAt DateTime?    @map("last_used_at")
+  metadata   Json         @default("{}")
+  createdAt  DateTime     @default(now()) @map("created_at")
+  updatedAt  DateTime     @updatedAt @map("updated_at")
+  deletedAt  DateTime?    @map("deleted_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([keyPrefix])
+  @@index([status])
+  @@index([deletedAt])
+  @@map("api_keys")
+}
+
+// -----------------------------------------------------------------------------
+// Taxonomy
+// -----------------------------------------------------------------------------
+
+/// Hierarchical tool category.
+model Category {
+  id          String   @id @default(uuid()) @db.Uuid
+  slug        String   @unique @db.VarChar(120)
+  name        String   @db.VarChar(160)
+  description String?  @db.Text
+  parentId    String?  @map("parent_id") @db.Uuid
+  sortOrder   Int      @default(0) @map("sort_order")
+  iconUrl     String?  @map("icon_url") @db.VarChar(2048)
+  metaTitle       String? @map("meta_title") @db.VarChar(160)
+  metaDescription String? @map("meta_description") @db.VarChar(320)
+  metadata    Json     @default("{}")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  parent   Category?      @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children Category[]     @relation("CategoryHierarchy")
+  tools    ToolCategory[]
+
+  @@index([parentId])
+  @@index([sortOrder])
+  @@index([deletedAt])
+  @@map("categories")
+}
+
+/// Flat tag for discovery and filtering.
+model Tag {
+  id          String   @id @default(uuid()) @db.Uuid
+  slug        String   @unique @db.VarChar(120)
+  name        String   @db.VarChar(120)
+  description String?  @db.Text
+  metadata    Json     @default("{}")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  tools ToolTag[]
+
+  @@index([deletedAt])
+  @@map("tags")
+}
+
+// -----------------------------------------------------------------------------
+// Tool aggregate (catalog core)
+// -----------------------------------------------------------------------------
+
+/// Canonical AI tool catalog entry (RFC-0001).
+model Tool {
+  id              String       @id @default(uuid()) @db.Uuid
+  slug            String       @unique @db.VarChar(120)
+  name            String       @db.VarChar(200)
+  description     String?      @db.Text
+  summary         String?      @db.VarChar(500)
+  website         String       @db.VarChar(2048)
+  logoUrl         String?      @map("logo_url") @db.VarChar(2048)
+  pricingModel    PricingModel @default(FREE) @map("pricing_model")
+  status          ToolStatus   @default(DRAFT)
+  metaTitle       String?      @map("meta_title") @db.VarChar(160)
+  metaDescription String?      @map("meta_description") @db.VarChar(320)
+  publishedAt     DateTime?    @map("published_at")
+  scheduledAt     DateTime?    @map("scheduled_at")
+  metadata        Json         @default("{}")
+  createdAt       DateTime     @default(now()) @map("created_at")
+  updatedAt       DateTime     @updatedAt @map("updated_at")
+  deletedAt       DateTime?    @map("deleted_at")
+
+  categories      ToolCategory[]
+  tags            ToolTag[]
+  pricingPlans    PricingPlan[]
+  versions        ToolVersion[]
+  reviews         Review[]
+  faqs            Faq[]
+  prompts         Prompt[]
+  favorites       Favorite[]
+  collectionItems CollectionItem[]
+  seoMetadata     SeoMetadata[]
+  aiGenerationTasks AiGenerationTask[]
+
+  @@index([status])
+  @@index([pricingModel])
+  @@index([publishedAt])
+  @@index([website])
+  @@index([deletedAt])
+  @@index([createdAt])
+  @@map("tools")
+}
+
+/// Tool ↔ Category (M:N).
+model ToolCategory {
+  id         String   @id @default(uuid()) @db.Uuid
+  toolId     String   @map("tool_id") @db.Uuid
+  categoryId String   @map("category_id") @db.Uuid
+  isPrimary  Boolean  @default(false) @map("is_primary")
+  metadata   Json     @default("{}")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+  deletedAt  DateTime? @map("deleted_at")
+
+  tool     Tool     @relation(fields: [toolId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([toolId, categoryId])
+  @@index([toolId])
+  @@index([categoryId])
+  @@index([deletedAt])
+  @@map("tool_categories")
+}
+
+/// Tool ↔ Tag (M:N).
+model ToolTag {
+  id        String   @id @default(uuid()) @db.Uuid
+  toolId    String   @map("tool_id") @db.Uuid
+  tagId     String   @map("tag_id") @db.Uuid
+  metadata  Json     @default("{}")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  tool Tool @relation(fields: [toolId], references: [id], onDelete: Cascade)
+  tag  Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([toolId, tagId])
+  @@index([toolId])
+  @@index([tagId])
+  @@index([deletedAt])
+  @@map("tool_tags")
+}
+
+/// Structured pricing tier for a tool.
+model PricingPlan {
+  id             String        @id @default(uuid()) @db.Uuid
+  toolId         String        @map("tool_id") @db.Uuid
+  name           String        @db.VarChar(120)
+  pricingModel   PricingModel  @map("pricing_model")
+  currency       String        @default("USD") @db.VarChar(3)
+  amount         Decimal?      @db.Decimal(12, 2)
+  billingPeriod  BillingPeriod? @map("billing_period")
+  description    String?       @db.Text
+  isFeatured     Boolean       @default(false) @map("is_featured")
+  sortOrder      Int           @default(0) @map("sort_order")
+  metadata       Json          @default("{}")
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+  deletedAt      DateTime?     @map("deleted_at")
+
+  tool Tool @relation(fields: [toolId], references: [id], onDelete: Cascade)
+
+  @@index([toolId])
+  @@index([pricingModel])
+  @@index([deletedAt])
+  @@map("pricing_plans")
+}
+
+/// Immutable-style content snapshot for a tool.
+model ToolVersion {
+  id            String     @id @default(uuid()) @db.Uuid
+  toolId        String     @map("tool_id") @db.Uuid
+  versionNumber Int        @map("version_number")
+  status        ToolStatus
+  changelog     String?    @db.Text
+  snapshot      Json       @default("{}")
+  publishedAt   DateTime?  @map("published_at")
+  metadata      Json       @default("{}")
+  createdAt     DateTime   @default(now()) @map("created_at")
+  updatedAt     DateTime   @updatedAt @map("updated_at")
+  deletedAt     DateTime?  @map("deleted_at")
+
+  tool Tool @relation(fields: [toolId], references: [id], onDelete: Cascade)
+
+  @@unique([toolId, versionNumber])
+  @@index([toolId])
+  @@index([status])
+  @@index([deletedAt])
+  @@map("tool_versions")
+}
+
+// -----------------------------------------------------------------------------
+// Reviews & engagement
+// -----------------------------------------------------------------------------
+
+/// User or editorial review for a tool.
+model Review {
+  id        String       @id @default(uuid()) @db.Uuid
+  toolId    String       @map("tool_id") @db.Uuid
+  userId    String?      @map("user_id") @db.Uuid
+  authorName  String?    @map("author_name") @db.VarChar(120)
+  rating    Int
+  title     String?      @db.VarChar(200)
+  content   String       @db.Text
+  status    ReviewStatus @default(PENDING)
+  metadata  Json         @default("{}")
+  createdAt DateTime     @default(now()) @map("created_at")
+  updatedAt DateTime     @updatedAt @map("updated_at")
+  deletedAt DateTime?    @map("deleted_at")
+
+  tool  Tool          @relation(fields: [toolId], references: [id], onDelete: Cascade)
+  user  User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  votes ReviewVote[]
+
+  @@index([toolId])
+  @@index([userId])
+  @@index([status])
+  @@index([rating])
+  @@index([deletedAt])
+  @@map("reviews")
+}
+
+/// Up/down vote on a review.
+model ReviewVote {
+  id        String          @id @default(uuid()) @db.Uuid
+  reviewId  String          @map("review_id") @db.Uuid
+  userId    String          @map("user_id") @db.Uuid
+  value     ReviewVoteValue
+  metadata  Json            @default("{}")
+  createdAt DateTime        @default(now()) @map("created_at")
+  updatedAt DateTime        @updatedAt @map("updated_at")
+  deletedAt DateTime?       @map("deleted_at")
+
+  review Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([reviewId, userId])
+  @@index([reviewId])
+  @@index([userId])
+  @@index([deletedAt])
+  @@map("review_votes")
+}
+
+/// Tool-specific FAQ entry.
+model Faq {
+  id        String   @id @default(uuid()) @db.Uuid
+  toolId    String   @map("tool_id") @db.Uuid
+  question  String   @db.VarChar(500)
+  answer    String   @db.Text
+  sortOrder Int      @default(0) @map("sort_order")
+  metadata  Json     @default("{}")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  tool Tool @relation(fields: [toolId], references: [id], onDelete: Cascade)
+
+  @@index([toolId])
+  @@index([sortOrder])
+  @@index([deletedAt])
+  @@map("faqs")
+}
+
+// -----------------------------------------------------------------------------
+// Prompts library
+// -----------------------------------------------------------------------------
+
+/// Taxonomy for prompt templates.
+model PromptCategory {
+  id          String   @id @default(uuid()) @db.Uuid
+  slug        String   @unique @db.VarChar(120)
+  name        String   @db.VarChar(160)
+  description String?  @db.Text
+  parentId    String?  @map("parent_id") @db.Uuid
+  sortOrder   Int      @default(0) @map("sort_order")
+  metadata    Json     @default("{}")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  parent   PromptCategory?  @relation("PromptCategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children PromptCategory[] @relation("PromptCategoryHierarchy")
+  prompts  Prompt[]
+
+  @@index([parentId])
+  @@index([deletedAt])
+  @@map("prompt_categories")
+}
+
+/// Reusable prompt template, optionally linked to a tool.
+model Prompt {
+  id               String       @id @default(uuid()) @db.Uuid
+  slug             String       @unique @db.VarChar(120)
+  title            String       @db.VarChar(200)
+  content          String       @db.Text
+  status           PromptStatus @default(DRAFT)
+  toolId           String?      @map("tool_id") @db.Uuid
+  promptCategoryId String?      @map("prompt_category_id") @db.Uuid
+  modelHint        String?      @map("model_hint") @db.VarChar(120)
+  variables        Json         @default("[]")
+  metadata         Json         @default("{}")
+  createdAt        DateTime     @default(now()) @map("created_at")
+  updatedAt        DateTime     @updatedAt @map("updated_at")
+  deletedAt        DateTime?    @map("deleted_at")
+
+  tool           Tool?           @relation(fields: [toolId], references: [id], onDelete: SetNull)
+  promptCategory PromptCategory? @relation(fields: [promptCategoryId], references: [id], onDelete: SetNull)
+
+  @@index([toolId])
+  @@index([promptCategoryId])
+  @@index([status])
+  @@index([deletedAt])
+  @@map("prompts")
+}
+
+// -----------------------------------------------------------------------------
+// Collections & favorites
+// -----------------------------------------------------------------------------
+
+/// Curated list of tools created by a user.
+model Collection {
+  id          String   @id @default(uuid()) @db.Uuid
+  slug        String   @unique @db.VarChar(120)
+  name        String   @db.VarChar(160)
+  description String?  @db.Text
+  userId      String   @map("user_id") @db.Uuid
+  isPublic    Boolean  @default(false) @map("is_public")
+  metadata    Json     @default("{}")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  user  User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items CollectionItem[]
+
+  @@index([userId])
+  @@index([isPublic])
+  @@index([deletedAt])
+  @@map("collections")
+}
+
+/// Tool membership inside a collection.
+model CollectionItem {
+  id           String   @id @default(uuid()) @db.Uuid
+  collectionId String   @map("collection_id") @db.Uuid
+  toolId       String   @map("tool_id") @db.Uuid
+  sortOrder    Int      @default(0) @map("sort_order")
+  note         String?  @db.VarChar(500)
+  metadata     Json     @default("{}")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+  deletedAt    DateTime? @map("deleted_at")
+
+  collection Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  tool       Tool       @relation(fields: [toolId], references: [id], onDelete: Cascade)
+
+  @@unique([collectionId, toolId])
+  @@index([collectionId])
+  @@index([toolId])
+  @@index([deletedAt])
+  @@map("collection_items")
+}
+
+/// User bookmark for a tool.
+model Favorite {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  toolId    String   @map("tool_id") @db.Uuid
+  metadata  Json     @default("{}")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tool Tool @relation(fields: [toolId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, toolId])
+  @@index([userId])
+  @@index([toolId])
+  @@index([deletedAt])
+  @@map("favorites")
+}
+
+// -----------------------------------------------------------------------------
+// SEO
+// -----------------------------------------------------------------------------
+
+/// Polymorphic SEO metadata overlay for public entities.
+model SeoMetadata {
+  id              String        @id @default(uuid()) @db.Uuid
+  entityType      SeoEntityType @map("entity_type")
+  entityId        String        @map("entity_id") @db.Uuid
+  toolId          String?       @map("tool_id") @db.Uuid
+  metaTitle       String?       @map("meta_title") @db.VarChar(160)
+  metaDescription String?       @map("meta_description") @db.VarChar(320)
+  canonicalUrl    String?       @map("canonical_url") @db.VarChar(2048)
+  ogImageUrl      String?       @map("og_image_url") @db.VarChar(2048)
+  robots          String?       @db.VarChar(120)
+  schemaJson      Json          @default("{}") @map("schema_json")
+  metadata        Json          @default("{}")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+  deletedAt       DateTime?     @map("deleted_at")
+
+  tool Tool? @relation(fields: [toolId], references: [id], onDelete: Cascade)
+
+  @@unique([entityType, entityId])
+  @@index([toolId])
+  @@index([entityType])
+  @@index([deletedAt])
+  @@map("seo_metadata")
+}
+
+// -----------------------------------------------------------------------------
+// Crawler
+// -----------------------------------------------------------------------------
+
+/// Registered external source for crawler ingestion.
+model CrawlSource {
+  id          String   @id @default(uuid()) @db.Uuid
+  slug        String   @unique @db.VarChar(120)
+  name        String   @db.VarChar(160)
+  baseUrl     String   @map("base_url") @db.VarChar(2048)
+  adapterType String   @map("adapter_type") @db.VarChar(64)
+  isEnabled   Boolean  @default(true) @map("is_enabled")
+  config      Json     @default("{}")
+  metadata    Json     @default("{}")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  jobs CrawlJob[]
+
+  @@index([isEnabled])
+  @@index([deletedAt])
+  @@map("crawl_sources")
+}
+
+/// Single crawl execution against a source.
+model CrawlJob {
+  id           String         @id @default(uuid()) @db.Uuid
+  sourceId     String         @map("source_id") @db.Uuid
+  status       CrawlJobStatus @default(PENDING)
+  startedAt    DateTime?      @map("started_at")
+  finishedAt   DateTime?      @map("finished_at")
+  itemsFound   Int            @default(0) @map("items_found")
+  itemsCreated Int            @default(0) @map("items_created")
+  itemsUpdated Int            @default(0) @map("items_updated")
+  errorMessage String?        @map("error_message") @db.Text
+  result       Json           @default("{}")
+  metadata     Json           @default("{}")
+  createdAt    DateTime       @default(now()) @map("created_at")
+  updatedAt    DateTime       @updatedAt @map("updated_at")
+  deletedAt    DateTime?      @map("deleted_at")
+
+  source CrawlSource @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+
+  @@index([sourceId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([deletedAt])
+  @@map("crawl_jobs")
+}
+
+// -----------------------------------------------------------------------------
+// AI pipeline
+// -----------------------------------------------------------------------------
+
+/// Async AI enrichment / generation job.
+model AiGenerationTask {
+  id           String                 @id @default(uuid()) @db.Uuid
+  taskType     String                 @map("task_type") @db.VarChar(64)
+  status       AiGenerationTaskStatus @default(PENDING)
+  toolId       String?                @map("tool_id") @db.Uuid
+  userId       String?                @map("user_id") @db.Uuid
+  model        String?                @db.VarChar(120)
+  input        Json                   @default("{}")
+  output       Json                   @default("{}")
+  errorMessage String?                @map("error_message") @db.Text
+  startedAt    DateTime?              @map("started_at")
+  finishedAt   DateTime?              @map("finished_at")
+  metadata     Json                   @default("{}")
+  createdAt    DateTime               @default(now()) @map("created_at")
+  updatedAt    DateTime               @updatedAt @map("updated_at")
+  deletedAt    DateTime?              @map("deleted_at")
+
+  tool Tool? @relation(fields: [toolId], references: [id], onDelete: SetNull)
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([toolId])
+  @@index([userId])
+  @@index([status])
+  @@index([taskType])
+  @@index([deletedAt])
+  @@map("ai_generation_tasks")
+}
+
+// -----------------------------------------------------------------------------
+// Audit & settings
+// -----------------------------------------------------------------------------
+
+/// Immutable audit trail for sensitive actions.
+model AuditLog {
+  id         String      @id @default(uuid()) @db.Uuid
+  actorId    String?     @map("actor_id") @db.Uuid
+  action     AuditAction
+  entityType String      @map("entity_type") @db.VarChar(64)
+  entityId   String?     @map("entity_id") @db.Uuid
+  ipAddress  String?     @map("ip_address") @db.VarChar(64)
+  userAgent  String?     @map("user_agent") @db.VarChar(512)
+  before     Json?
+  after      Json?
+  metadata   Json        @default("{}")
+  createdAt  DateTime    @default(now()) @map("created_at")
+
+  actor User? @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([actorId])
+  @@index([entityType, entityId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+/// Key-value application settings (site config, feature flags).
+model Setting {
+  id          String   @id @default(uuid()) @db.Uuid
+  key         String   @unique @db.VarChar(128)
+  value       Json
+  group       String   @default("general") @db.VarChar(64)
+  description String?  @db.Text
+  isPublic    Boolean  @default(false) @map("is_public")
+  metadata    Json     @default("{}")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  @@index([group])
+  @@index([isPublic])
+  @@index([deletedAt])
+  @@map("settings")
 }

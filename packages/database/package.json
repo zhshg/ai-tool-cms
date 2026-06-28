@@ -14,6 +14,10 @@
   "types": "./dist/index.d.ts",
   "scripts": {
     "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:migrate:deploy": "prisma migrate deploy",
+    "db:studio": "prisma studio",
+    "db:push": "prisma db push",
     "build": "pnpm db:generate && tsc -p tsconfig.build.json",
     "lint": "eslint \"src/**/*.ts\" --config ../../eslint.config.mjs",
     "test": "vitest run --passWithNoTests --config ../../vitest.config.ts",
