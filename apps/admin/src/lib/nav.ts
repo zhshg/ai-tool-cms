@@ -1,5 +1,6 @@
 import {
   Activity,
+  BarChart3,
   Bot,
   FolderTree,
   LayoutDashboard,
@@ -50,6 +51,12 @@ export const navItems: NavItem[] = [
     permission: Permission.AiRead,
   },
   {
+    title: "SEO",
+    href: "/seo",
+    icon: BarChart3,
+    permission: Permission.SeoRead,
+  },
+  {
     title: "Users",
     href: "/users",
     icon: Users,
@@ -69,6 +76,7 @@ export const breadcrumbLabels: Record<string, string> = {
   categories: "Categories",
   crawler: "Crawler",
   "ai-review": "AI Review",
+  seo: "SEO",
   users: "Users",
   settings: "Settings",
 };

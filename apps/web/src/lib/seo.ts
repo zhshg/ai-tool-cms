@@ -1,43 +1,27 @@
 import type { Metadata } from "next";
-import { env } from "@ai-tool-cms/config";
+import { buildMetadata as buildSeoMetadata, getSiteConfig } from "@ai-tool-cms/seo";
 
-/** Default site SEO config (App Router equivalent of next-seo DefaultSeo). */
-export const siteSeo = {
-  siteName: env.SITE_NAME,
-  siteUrl: env.NEXT_PUBLIC_APP_URL,
-  defaultTitle: env.SITE_NAME,
-  description: "AI Tool CMS — public web application scaffold.",
-  locale: "en_US",
-} as const;
-
+/** All pages must use @ai-tool-cms/seo — do not hand-roll meta tags. */
 export function createRootMetadata(locale = "en"): Metadata {
+  const config = getSiteConfig();
   const isZh = locale === "zh";
 
-  return {
-    metadataBase: new URL(siteSeo.siteUrl),
-    title: {
-      default: siteSeo.defaultTitle,
-      template: `%s | ${siteSeo.siteName}`,
+  return buildSeoMetadata(
+    {
+      title: config.siteName,
+      description: isZh
+        ? "AI Tool CMS — 发现、比较与评测 AI 工具。"
+        : config.siteDescription || "Discover, compare, and review AI tools.",
+      path: `/${locale}`,
+      hreflang: config.locales.map((loc) => ({ locale: loc, path: `/${loc}` })),
     },
-    description: isZh
-      ? "AI Tool CMS — 公共 Web 应用脚手架。"
-      : siteSeo.description,
-    openGraph: {
-      type: "website",
-      locale: isZh ? "zh_CN" : siteSeo.locale,
-      siteName: siteSeo.siteName,
-      title: siteSeo.defaultTitle,
-      description: siteSeo.description,
-      url: siteSeo.siteUrl,
-    },
-    twitter: {
-      card: "summary_large_image",
-      title: siteSeo.defaultTitle,
-      description: siteSeo.description,
-    },
-    robots: {
-      index: true,
-      follow: true,
-    },
-  };
+    config,
+  ) as Metadata;
 }
+
+export {
+  buildMetadata,
+  buildToolMetadata,
+  buildToolPageJsonLd,
+  serializeJsonLd,
+} from "@ai-tool-cms/seo";

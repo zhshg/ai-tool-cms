@@ -151,6 +151,25 @@ enum SeoEntityType {
   PAGE
 }
 
+/// Compare / alternatives / top-list SEO pages (Commit 046).
+enum SeoComparePageType {
+  TOOL_VS
+  ALTERNATIVES
+  TOP_LIST
+}
+
+/// Internal link types for tool pages (Commit 044).
+enum InternalLinkType {
+  ALTERNATIVE
+  COMPARE
+  CATEGORY
+  TAG
+  PROMPT
+  FAQ
+  RELATED
+  TRENDING
+}
+
 enum AuditAction {
   CREATE
   UPDATE
@@ -355,6 +374,7 @@ model Category {
   parent   Category?      @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
   children Category[]     @relation("CategoryHierarchy")
   tools    ToolCategory[]
+  seoComparePages SeoComparePage[]
 
   @@index([slug])
   @@index([parentId])
@@ -382,6 +402,7 @@ model Tag {
   deletedAt   DateTime? @map("deleted_at")
 
   tools ToolTag[]
+  seoComparePages SeoComparePage[]
 
   @@index([slug])
   @@index([createdById])
@@ -432,6 +453,9 @@ model Tool {
   seoMetadata       SeoMetadata[]
   aiGenerationTasks AiGenerationTask[]
   contentRevisions  ContentRevision[]
+  internalLinks     InternalLink[]     @relation("InternalLinkSource")
+  seoComparePages   SeoComparePage[]   @relation("SeoComparePrimaryTool")
+  seoComparePagesB  SeoComparePage[]   @relation("SeoCompareSecondaryTool")
 
   @@index([slug])
   @@index([status])
@@ -981,6 +1005,76 @@ model ContentRevision {
   @@index([createdAt])
   @@index([deletedAt])
   @@map("content_revisions")
+}
+
+// -----------------------------------------------------------------------------
+// SEO platform (Commits 041–050)
+// -----------------------------------------------------------------------------
+
+/// Programmatic compare / alternatives / list pages.
+model SeoComparePage {
+  id          String             @id @default(uuid()) @db.Uuid
+  slug        String             @db.VarChar(160)
+  type        SeoComparePageType
+  title       String             @db.VarChar(200)
+  toolId      String?            @map("tool_id") @db.Uuid
+  toolBId     String?            @map("tool_b_id") @db.Uuid
+  categoryId  String?            @map("category_id") @db.Uuid
+  tagId       String?            @map("tag_id") @db.Uuid
+  status      ToolStatus         @default(DRAFT)
+  metadata    Json               @default("{}")
+  publishedAt DateTime?          @map("published_at")
+  createdAt   DateTime           @default(now()) @map("created_at")
+  updatedAt   DateTime           @updatedAt @map("updated_at")
+  deletedAt   DateTime?          @map("deleted_at")
+
+  tool   Tool?     @relation("SeoComparePrimaryTool", fields: [toolId], references: [id], onDelete: SetNull)
+  toolB  Tool?     @relation("SeoCompareSecondaryTool", fields: [toolBId], references: [id], onDelete: SetNull)
+  category Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  tag    Tag?      @relation(fields: [tagId], references: [id], onDelete: SetNull)
+
+  @@unique([slug])
+  @@index([type])
+  @@index([status])
+  @@index([toolId])
+  @@index([categoryId])
+  @@index([deletedAt])
+  @@map("seo_compare_pages")
+}
+
+/// Internal links for tool detail pages (min 20 per tool).
+model InternalLink {
+  id           String           @id @default(uuid()) @db.Uuid
+  sourceToolId String           @map("source_tool_id") @db.Uuid
+  targetSlug   String           @map("target_slug") @db.VarChar(160)
+  targetKind   String           @map("target_kind") @db.VarChar(32)
+  linkType     InternalLinkType @map("link_type")
+  anchorText   String           @map("anchor_text") @db.VarChar(200)
+  href         String           @db.VarChar(2048)
+  sortOrder    Int              @default(0) @map("sort_order")
+  metadata     Json             @default("{}")
+  createdAt    DateTime         @default(now()) @map("created_at")
+  updatedAt    DateTime         @updatedAt @map("updated_at")
+  deletedAt    DateTime?        @map("deleted_at")
+
+  sourceTool Tool @relation("InternalLinkSource", fields: [sourceToolId], references: [id], onDelete: Cascade)
+
+  @@index([sourceToolId])
+  @@index([linkType])
+  @@index([targetSlug])
+  @@index([deletedAt])
+  @@map("internal_links")
+}
+
+/// Cached SEO health / search console snapshot for dashboard.
+model SeoHealthSnapshot {
+  id        String   @id @default(uuid()) @db.Uuid
+  score     Int
+  payload   Json     @default("{}")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([createdAt])
+  @@map("seo_health_snapshots")
 }
 
 // -----------------------------------------------------------------------------

@@ -4,6 +4,8 @@ export type * from "@prisma/client";
 export {
   ContentRevisionStatus,
   AiPipelineStage,
+  InternalLinkType,
+  SeoComparePageType,
   AiGenerationTaskStatus,
   ApiKeyStatus,
   AuditAction,

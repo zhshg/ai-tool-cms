@@ -30,6 +30,7 @@ import {
 } from "@ai-tool-cms/ai";
 import type { AiPipelineStageId } from "@ai-tool-cms/ai";
 import { getEnv } from "@ai-tool-cms/config";
+import { runSeoSyncAfterPublish } from "./seo-sync";
 
 const log = createLogger({ service: "ai-pipeline-worker" });
 const MAX_QUALITY_RETRIES = 3;
@@ -335,6 +336,7 @@ async function processStage(
             { autoApproved: true },
           );
           await finishAiTask(taskId, { status: "published", autoPublish: true });
+          await runSeoSyncAfterPublish(payload.toolId);
         } else {
           await saveRevision(
             payload.toolId,

@@ -10,6 +10,8 @@ export const Permission = {
   AiRead: "ai:read",
   AiManage: "ai:manage",
   AiReview: "ai:review",
+  SeoRead: "seo:read",
+  SeoManage: "seo:manage",
 } as const;
 
 export type PermissionCode = (typeof Permission)[keyof typeof Permission];
@@ -25,6 +27,8 @@ export const RolePermissions: Record<string, PermissionCode[]> = {
     Permission.AiRead,
     Permission.AiManage,
     Permission.AiReview,
+    Permission.SeoRead,
+    Permission.SeoManage,
     Permission.UsersManage,
     Permission.SettingsRead,
   ],

@@ -135,12 +135,18 @@ importers:
       '@ai-tool-cms/database':
         specifier: workspace:*
         version: link:../../packages/database
+      '@ai-tool-cms/geo':
+        specifier: workspace:*
+        version: link:../../packages/geo
       '@ai-tool-cms/logger':
         specifier: workspace:*
         version: link:../../packages/logger
       '@ai-tool-cms/queue':
         specifier: workspace:*
         version: link:../../packages/queue
+      '@ai-tool-cms/seo':
+        specifier: workspace:*
+        version: link:../../packages/seo
       '@nestjs/common':
         specifier: ^11.0.0
         version: 11.1.27(class-transformer@0.5.1)(class-validator@0.14.4)(reflect-metadata@0.2.2)(rxjs@7.8.2)
@@ -242,6 +248,12 @@ importers:
       '@ai-tool-cms/config':
         specifier: workspace:*
         version: link:../../packages/config
+      '@ai-tool-cms/database':
+        specifier: workspace:*
+        version: link:../../packages/database
+      '@ai-tool-cms/seo':
+        specifier: workspace:*
+        version: link:../../packages/seo
       '@radix-ui/react-slot':
         specifier: ^1.1.2
         version: 1.3.0(@types/react@19.2.17)(react@19.2.7)
@@ -330,6 +342,9 @@ importers:
       '@ai-tool-cms/queue':
         specifier: workspace:*
         version: link:../../packages/queue
+      '@ai-tool-cms/seo':
+        specifier: workspace:*
+        version: link:../../packages/seo
       bullmq:
         specifier: ^5.34.10
         version: 5.79.2
@@ -461,6 +476,19 @@ importers:
         specifier: ^5.7.3
         version: 5.9.3
 
+  packages/geo:
+    dependencies:
+      '@ai-tool-cms/ai':
+        specifier: workspace:*
+        version: link:../ai
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.0
+        version: 22.20.0
+      typescript:
+        specifier: ^5.7.3
+        version: 5.9.3
+
   packages/logger:
     dependencies:
       pino:
@@ -485,6 +513,22 @@ importers:
       ioredis:
         specifier: ^5.11.1
         version: 5.11.1
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.0
+        version: 22.20.0
+      typescript:
+        specifier: ^5.7.3
+        version: 5.9.3
+
+  packages/seo:
+    dependencies:
+      '@ai-tool-cms/config':
+        specifier: workspace:*
+        version: link:../config
+      '@ai-tool-cms/database':
+        specifier: workspace:*
+        version: link:../database
     devDependencies:
       '@types/node':
         specifier: ^22.10.0
