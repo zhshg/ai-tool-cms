@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none">
+  <rect width="200" height="200" rx="40" fill="#0a0a0a"/>
+  <text x="100" y="115" text-anchor="middle" fill="#fafafa" font-family="system-ui,sans-serif" font-size="48" font-weight="700">AI</text>
+  <text x="100" y="155" text-anchor="middle" fill="#a3a3a3" font-family="system-ui,sans-serif" font-size="18">CMS</text>
+</svg>

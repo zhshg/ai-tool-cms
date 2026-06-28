@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 640" fill="none">
+  <rect width="1280" height="640" fill="#0a0a0a"/>
+  <text x="640" y="280" text-anchor="middle" fill="#fafafa" font-family="system-ui,sans-serif" font-size="72" font-weight="700">AI Tool CMS</text>
+  <text x="640" y="360" text-anchor="middle" fill="#a3a3a3" font-family="system-ui,sans-serif" font-size="32">v1.0.0 GA  Open Source AI Tool Directory Platform</text>
+  <text x="640" y="420" text-anchor="middle" fill="#737373" font-family="system-ui,sans-serif" font-size="24">Production · Documented · Observable</text>
+</svg>
