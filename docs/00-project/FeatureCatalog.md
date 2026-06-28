@@ -772,10 +772,16 @@ Prisma entities and primary Feature ownership. Detailed ERD in `docs/02-database
 | `User` | `users` | FE-AUTH-002, FE-DB-011 | roles (M:N) |
 | `Role` | `roles` | FE-AUTH-003, FE-DB-012 | permissions (M:N) |
 | `Permission` | `permissions` | FE-AUTH-003, FE-DB-012 | roles (M:N) |
+| `RefreshToken` | `refresh_tokens` | FE-AUTH-001 | user |
+| `ApiKey` | `api_keys` | FE-AUTH-004 | user |
+| `CrawlJob` | `crawl_jobs` | FE-CRW-001 | crawl_source |
+| `CrawlSource` | `crawl_sources` | FE-CRW-002 | — |
+| `Webhook` | `webhooks` | FE-API-011 | — |
+| `WebhookDelivery` | `webhook_deliveries` | FE-WRK-003 | webhook |
+| `AuditEvent` | `audit_events` | FE-DB-010, FE-ENT-002 | user (actor) |
 | `AnalyticsEvent` | `analytics_events` | FE-ANL-001, FE-DB-013 | tool (optional) |
 | `Subscriber` | `subscribers` | FE-WRK-004 | — |
 | `ContentReport` | `content_reports` | FE-WEB-021 | — |
-| `ContentRevision` | `content_revisions` | FE-ADM-005 | tool |
 | `Tenant` | `tenants` | FE-ENT-004 | — (Enterprise) |
 
 ---
