@@ -15,6 +15,8 @@
   "scripts": {
     "db:generate": "prisma generate",
     "build": "pnpm db:generate && tsc -p tsconfig.build.json",
+    "lint": "eslint \"src/**/*.ts\" --config ../../eslint.config.mjs",
+    "test": "vitest run --passWithNoTests --config ../../vitest.config.ts",
     "typecheck": "pnpm db:generate && tsc --noEmit",
     "clean": "rm -rf dist"
   },

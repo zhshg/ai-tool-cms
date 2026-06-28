@@ -9,6 +9,7 @@
     "build": "next build",
     "start": "next start --port 3000",
     "lint": "next lint",
+    "test": "vitest run --passWithNoTests --config ../../vitest.config.ts",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf .next"
   },

@@ -10,14 +10,26 @@
     "dev:api": "pnpm --filter @ai-tool-cms/api dev",
     "dev:admin": "pnpm --filter @ai-tool-cms/admin dev",
     "db:generate": "pnpm --filter @ai-tool-cms/database db:generate",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "lint": "turbo run lint",
     "test": "turbo run test",
     "typecheck": "turbo run typecheck",
-    "clean": "turbo run clean"
+    "clean": "turbo run clean",
+    "prepare": "husky"
   },
   "devDependencies": {
+    "@eslint/js": "^9.17.0",
+    "eslint": "^9.17.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.4.3",
+    "prettier": "^3.4.2",
     "turbo": "^2.4.4",
-    "typescript": "^5.7.3"
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.18.0",
+    "vitest": "^3.0.5"
   },
   "packageManager": "pnpm@9.15.4",
   "engines": {
