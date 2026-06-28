@@ -9,7 +9,7 @@
     "dev:web": "pnpm --filter @ai-tool-cms/web dev",
     "dev:api": "pnpm --filter @ai-tool-cms/api dev",
     "dev:admin": "pnpm --filter @ai-tool-cms/admin dev",
-    "db:generate": "prisma generate --schema prisma/schema.prisma",
+    "db:generate": "prisma generate",
     "lint": "turbo run lint",
     "test": "turbo run test",
     "typecheck": "turbo run typecheck",

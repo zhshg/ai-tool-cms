@@ -4,19 +4,25 @@ import {
   OnModuleDestroy,
   OnModuleInit,
 } from "@nestjs/common";
-import { PrismaClient } from "@prisma/client";
+import {
+  connectPrisma,
+  disconnectPrisma,
+  prisma,
+  type PrismaClient,
+} from "@ai-tool-cms/database";
 
 @Injectable()
-export class PrismaService
-  extends PrismaClient
-  implements OnModuleInit, OnModuleDestroy
-{
+export class PrismaService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(PrismaService.name);
   private connected = false;
 
+  get client(): PrismaClient {
+    return prisma;
+  }
+
   async onModuleInit(): Promise<void> {
     try {
-      await this.$connect();
+      await connectPrisma();
       this.connected = true;
       this.logger.log("Database connected");
     } catch {
@@ -31,7 +37,7 @@ export class PrismaService
       return;
     }
 
-    await this.$disconnect();
+    await disconnectPrisma();
   }
 
   isConnected(): boolean {

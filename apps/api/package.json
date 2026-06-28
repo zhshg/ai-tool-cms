@@ -3,9 +3,9 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "predev": "pnpm --dir ../.. db:generate",
+    "predev": "pnpm --dir ../.. db:generate && pnpm --filter @ai-tool-cms/database build",
     "dev": "nest start --watch",
-    "prebuild": "pnpm --dir ../.. db:generate",
+    "prebuild": "pnpm --dir ../.. db:generate && pnpm --filter @ai-tool-cms/database build",
     "build": "nest build",
     "start": "node dist/main.js",
     "start:prod": "node dist/main.js",
@@ -14,12 +14,12 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@ai-tool-cms/database": "workspace:*",
     "@nestjs/common": "^11.0.0",
     "@nestjs/config": "^4.0.0",
     "@nestjs/core": "^11.0.0",
     "@nestjs/platform-express": "^11.0.0",
     "@nestjs/swagger": "^11.0.0",
-    "@prisma/client": "^6.19.3",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
     "pino": "^9.6.0",
