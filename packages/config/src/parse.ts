@@ -29,6 +29,8 @@ export function parseEnv(source?: EnvSource): Env {
     OPENAI_API_KEY: readFirst(resolved, ["OPENAI_API_KEY", "OPENAI_KEY"]),
     GEMINI_API_KEY: readFirst(resolved, ["GEMINI_API_KEY", "GOOGLE_API_KEY"]),
     ANTHROPIC_API_KEY: resolved.ANTHROPIC_API_KEY,
+    DEEPSEEK_API_KEY: resolved.DEEPSEEK_API_KEY,
+    DEEPSEEK_BASE_URL: resolved.DEEPSEEK_BASE_URL,
     JWT_SECRET: resolved.JWT_SECRET,
     JWT_EXPIRES_IN: resolved.JWT_EXPIRES_IN,
     JWT_ACCESS_EXPIRES_IN: resolved.JWT_ACCESS_EXPIRES_IN,

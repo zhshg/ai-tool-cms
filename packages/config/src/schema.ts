@@ -23,6 +23,8 @@ export const envSchema = z.object({
   OPENAI_API_KEY: optionalString,
   GEMINI_API_KEY: optionalString,
   ANTHROPIC_API_KEY: optionalString,
+  DEEPSEEK_API_KEY: optionalString,
+  DEEPSEEK_BASE_URL: optionalUrl,
   JWT_SECRET: optionalString,
   JWT_EXPIRES_IN: z.string().default("7d"),
   JWT_ACCESS_EXPIRES_IN: z.string().default("15m"),

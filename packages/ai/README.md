@@ -1,40 +1,61 @@
 # @ai-tool-cms/ai
 
-LLM provider abstraction for the AI Pipeline (Commit 031, RFC-0003).
+Unified AI Provider layer (Commit 031, RFC-0003). **Business code must not call OpenAI or other vendor APIs directly.**
 
-## Features
+## Interface
 
-- **Provider interface** — `AiProvider` with `OpenAiProvider` + `MockAiProvider`
-- **Router** — default provider, fallback chain, disabled kill-switch, `maxTokensPerJob`
-- **Safety** — PII scrubbing, max output length
-- **Token tracking** — `promptTokens`, `completionTokens`, `estimatedCostUsd`
+```ts
+interface AIProvider {
+  chat(input: ChatRequest): Promise<ChatResponse>;
+  embedding(input: string, model?: string): Promise<number[]>;
+  image?(input: ImageRequest): Promise<ImageResponse>;
+  moderation?(input: ModerationRequest): Promise<ModerationResponse>;
+}
+```
 
-## Usage
+## Providers
+
+| File | Id | Notes |
+|------|-----|-------|
+| `OpenAIProvider.ts` | `openai` | Chat, embedding, image, moderation |
+| `GeminiProvider.ts` | `gemini` | Chat, embedding |
+| `ClaudeProvider.ts` | `claude` | Chat only |
+| `DeepSeekProvider.ts` | `deepseek` | OpenAI-compatible chat + embedding |
+| `MockProvider.ts` | `mock` | Local dev / tests |
+
+## Switch provider without changing business code
+
+```ts
+import { AIFactory } from "@ai-tool-cms/ai";
+
+const openai = AIFactory.create("openai");
+const gemini = AIFactory.create("gemini");
+
+const result = await openai.chat({
+  messages: [{ role: "user", content: "Write a tool summary" }],
+});
+```
+
+## Router (failover)
 
 ```ts
 import { createAiRouterFromEnv } from "@ai-tool-cms/ai";
 
 const router = createAiRouterFromEnv();
-
-const result = await router.generate({
-  messages: [
-    { role: "system", content: "You write concise tool descriptions." },
-    { role: "user", content: "Tool: ChatGPT. Website: https://chat.openai.com" },
-  ],
-  options: { maxTokens: 800, maxOutputChars: 2000 },
-});
-
-console.log(result.content, result.usage);
+const result = await router.generate({ messages: [...] });
 ```
 
-Without `OPENAI_API_KEY`, the router defaults to `mock` for local development.
+## Environment
+
+| Variable | Provider |
+|----------|----------|
+| `OPENAI_API_KEY` | openai |
+| `GEMINI_API_KEY` | gemini |
+| `ANTHROPIC_API_KEY` | claude |
+| `DEEPSEEK_API_KEY` | deepseek |
+
+Without keys, `AIFactory.createDefault()` uses `mock`.
 
 ## Architecture rule
 
-> LLM output must not auto-publish. Workers write to `ContentRevision` (PENDING) — see RFC-0003.
-
-## Next (Commit 032+)
-
-- `ai-generation` BullMQ queue
-- Worker handler for `GENERATE_DESCRIPTION`
-- Admin review UI
+LLM output must not auto-publish. Commit 032+ wires queue + human review gate.
