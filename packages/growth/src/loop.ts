@@ -1,6 +1,7 @@
 import type { Prisma } from "@ai-tool-cms/database";
 import type { PrismaClient } from "@ai-tool-cms/database";
 import { pingSitemapsAfterPublish, syncComparePages, syncInternalLinks } from "@ai-tool-cms/seo";
+import { enqueueSearchIndex } from "@ai-tool-cms/search";
 import { persistGeoDocumentForTool } from "./geo-persist";
 import {
   ensureDefaultCategory,
@@ -60,6 +61,7 @@ export async function runSiteGrowthLoop(
   steps.comparePages = await syncComparePages(prisma);
   steps.taxonomySeo = await refreshTaxonomySeoMetadata(prisma, toolId, actorId);
   steps.sitemapPing = await pingSitemapsAfterPublish();
+  steps.searchIndex = await enqueueSearchIndex(toolId, "publish");
 
   await prisma.tool.update({
     where: { id: toolId },

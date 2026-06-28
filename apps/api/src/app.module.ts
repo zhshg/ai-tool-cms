@@ -15,7 +15,9 @@ import { TagsModule } from "./tags/tags.module";
 import { ToolsModule } from "./tools/tools.module";
 import { CrawlerModule } from "./crawler/crawler.module";
 import { AiModule } from "./ai/ai.module";
+import { AnalyticsModule } from "./analytics/analytics.module";
 import { SeoModule } from "./seo/seo.module";
+import { SearchModule } from "./search/search.module";
 
 @Module({
   imports: [
@@ -39,6 +41,8 @@ import { SeoModule } from "./seo/seo.module";
     CrawlerModule,
     AiModule,
     SeoModule,
+    SearchModule,
+    AnalyticsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },

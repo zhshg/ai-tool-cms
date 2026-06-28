@@ -4,6 +4,7 @@ import { closeAllQueues } from "@ai-tool-cms/queue";
 import { createLogger } from "@ai-tool-cms/logger";
 import { startAiPipelineWorkers } from "./ai-pipeline";
 import { startGrowthWorker } from "./growth-worker";
+import { startSearchIndexWorker } from "./search-index-worker";
 import { startAllWorkers } from "./workers";
 
 const log = createLogger({ service: "worker-main" });
@@ -13,12 +14,14 @@ async function main(): Promise<void> {
   const crawlWorkers = startAllWorkers();
   const aiWorkers = startAiPipelineWorkers();
   const growthWorkers = [startGrowthWorker()];
-  const workers = [...crawlWorkers, ...aiWorkers, ...growthWorkers];
+  const searchWorkers = [startSearchIndexWorker()];
+  const workers = [...crawlWorkers, ...aiWorkers, ...growthWorkers, ...searchWorkers];
 
   log.info("Workers started", {
     crawlQueues: crawlWorkers.length,
     aiQueues: aiWorkers.length,
     growthQueues: growthWorkers.length,
+    searchQueues: searchWorkers.length,
   });
 
   const shutdown = async (signal: string) => {
