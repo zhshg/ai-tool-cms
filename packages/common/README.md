@@ -26,6 +26,7 @@ import {
 | `enums` | Re-exports domain enums from `@ai-tool-cms/types` |
 | `errors` | `AppError`, `ValidationError`, `NotFoundError`, `ApiErrorBody` |
 | `helpers` | `slugify`, pagination helpers, string utilities |
+| `utils` | Re-exports helpers (统一 Utils 入口) |
 | `validators` | Zod schemas + `parseSlug`, `parseEmail`, `parsePaginationQuery` |
 
 ## Errors
@@ -64,6 +65,7 @@ packages/common/src/
 ├── enums/
 ├── errors/
 ├── helpers/
+├── utils/
 ├── validators/
 └── index.ts
 ```
