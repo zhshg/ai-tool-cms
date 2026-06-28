@@ -24,7 +24,7 @@
     "@ai-tool-cms/config": "workspace:*",
     "@ai-tool-cms/database": "workspace:*",
     "@ai-tool-cms/queue": "workspace:*",
-    "meilisearch": "^0.49.0"
+    "meilisearch": "^0.58.0"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
