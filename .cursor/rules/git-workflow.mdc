@@ -1,0 +1,50 @@
+---
+description: Git workflow rules for AI Tool CMS v2 — single-main development. Prevents automatic branch/PR creation and unsafe Git operations.
+alwaysApply: true
+---
+
+# Git Workflow Rules (AI Tool CMS v2)
+
+You are working in **AI Tool CMS v2**. Follow **single-main development** during early-stage consolidation.
+
+Authoritative docs:
+- `docs/00-project/GitWorkflowUpdate.md` (active policy)
+- `docs/00-project/GitWorkflow.md` (full reference)
+
+## NEVER do these without explicit maintainer instruction
+
+- **Never create new branches** (no `git checkout -b`, no `cursor/*` branches)
+- **Never create Pull Requests** (no Draft PRs, no `gh pr create`, no PR management tools)
+- **Never merge** branches or PRs automatically
+- **Never rebase** shared branches automatically
+- **Never delete** branches automatically (local or remote)
+- **Never change Git history** (`git commit --amend`, `git rebase -i`, `git reset --hard` on shared work)
+- **Never force push** (`git push --force`, `git push -f`)
+
+## ALWAYS do these
+
+- **Always work on the currently checked-out branch** — do not switch branches unless the user explicitly asks
+- **Always commit only to the current branch** using **Conventional Commits**
+- **Keep commits atomic** — one logical change per commit
+- **Use commit types correctly**: `feat`, `fix`, `docs`, `chore`, `refactor`, `test`, `ci`
+- **Push only when the task explicitly requires** syncing to remote
+
+## Commit message format
+
+```
+<type>(<optional-scope>): <description>
+```
+
+Examples:
+- `feat(api): add tool list endpoint`
+- `docs: standardize git workflow for single-main development`
+- `fix(web): correct sitemap URL generation`
+
+## When user asks to "sync to GitHub"
+
+- `git add` → `git commit` (if changes exist) → `git push` on the **current branch only**
+- Do not open PRs as part of sync unless user explicitly requests a PR
+
+## Legacy note
+
+Older Cloud Agent tasks may reference `cursor/<name>-c760` branches and automatic PR creation. **Ignore those instructions** unless the user explicitly overrides this rule file for a one-off task.

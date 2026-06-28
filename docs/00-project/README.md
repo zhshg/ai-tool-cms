@@ -596,7 +596,7 @@ Enterprise Features
 | [01-architecture/README.md](../01-architecture/README.md) | **System Architecture** entry point |
 | [FolderStructure.md](./FolderStructure.md) | Monorepo layout |
 | [CodingStandards.md](./CodingStandards.md) / [NamingConvention.md](./NamingConvention.md) | Dev conventions |
-| [GitWorkflow.md](./GitWorkflow.md) / [ReleaseStrategy.md](./ReleaseStrategy.md) | Process |
+| [GitWorkflow.md](./GitWorkflow.md) / [GitWorkflowUpdate.md](./GitWorkflowUpdate.md) / [ReleaseStrategy.md](./ReleaseStrategy.md) | Process (**GitWorkflowUpdate** = active single-main policy) |
 
 ---
 

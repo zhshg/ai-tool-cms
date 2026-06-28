@@ -47,6 +47,8 @@ ai-tool-cms/
 
 项目总入口文档：[docs/00-project/README.md](./docs/00-project/README.md)
 
+**Git 工作流（当前有效）：** [docs/00-project/GitWorkflowUpdate.md](./docs/00-project/GitWorkflowUpdate.md) — 早期开发采用 **single-main** 直接提交，不自动创建功能分支或 Draft PR。
+
 详细设计文档见 `docs/` 目录：
 
 | 目录 | 说明 |
