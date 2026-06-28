@@ -3,9 +3,9 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "predev": "pnpm --filter @ai-tool-cms/config build && pnpm --filter @ai-tool-cms/auth build && pnpm --filter @ai-tool-cms/common build && pnpm --filter @ai-tool-cms/logger build && pnpm --filter @ai-tool-cms/database build && pnpm --filter @ai-tool-cms/ai build && pnpm --filter @ai-tool-cms/seo build && pnpm --filter @ai-tool-cms/geo build && pnpm --filter @ai-tool-cms/growth build && pnpm --filter @ai-tool-cms/search build && pnpm --filter @ai-tool-cms/ranking build && pnpm --filter @ai-tool-cms/recommendation build && pnpm --filter @ai-tool-cms/crawler-core build && pnpm --filter @ai-tool-cms/queue build",
+    "predev": "pnpm --filter @ai-tool-cms/config build && pnpm --filter @ai-tool-cms/auth build && pnpm --filter @ai-tool-cms/common build && pnpm --filter @ai-tool-cms/logger build && pnpm --filter @ai-tool-cms/database build && pnpm --filter @ai-tool-cms/ai build && pnpm --filter @ai-tool-cms/seo build && pnpm --filter @ai-tool-cms/geo build && pnpm --filter @ai-tool-cms/growth build && pnpm --filter @ai-tool-cms/search build && pnpm --filter @ai-tool-cms/ranking build && pnpm --filter @ai-tool-cms/recommendation build && pnpm --filter @ai-tool-cms/affiliate build && pnpm --filter @ai-tool-cms/ads build && pnpm --filter @ai-tool-cms/api-platform build && pnpm --filter @ai-tool-cms/email build && pnpm --filter @ai-tool-cms/crawler-core build && pnpm --filter @ai-tool-cms/queue build",
     "dev": "nest start --watch",
-    "prebuild": "pnpm --filter @ai-tool-cms/config build && pnpm --filter @ai-tool-cms/auth build && pnpm --filter @ai-tool-cms/common build && pnpm --filter @ai-tool-cms/logger build && pnpm --filter @ai-tool-cms/database build && pnpm --filter @ai-tool-cms/ai build && pnpm --filter @ai-tool-cms/seo build && pnpm --filter @ai-tool-cms/geo build && pnpm --filter @ai-tool-cms/growth build && pnpm --filter @ai-tool-cms/search build && pnpm --filter @ai-tool-cms/ranking build && pnpm --filter @ai-tool-cms/recommendation build && pnpm --filter @ai-tool-cms/crawler-core build && pnpm --filter @ai-tool-cms/queue build",
+    "prebuild": "pnpm --filter @ai-tool-cms/config build && pnpm --filter @ai-tool-cms/auth build && pnpm --filter @ai-tool-cms/common build && pnpm --filter @ai-tool-cms/logger build && pnpm --filter @ai-tool-cms/database build && pnpm --filter @ai-tool-cms/ai build && pnpm --filter @ai-tool-cms/seo build && pnpm --filter @ai-tool-cms/geo build && pnpm --filter @ai-tool-cms/growth build && pnpm --filter @ai-tool-cms/search build && pnpm --filter @ai-tool-cms/ranking build && pnpm --filter @ai-tool-cms/recommendation build && pnpm --filter @ai-tool-cms/affiliate build && pnpm --filter @ai-tool-cms/ads build && pnpm --filter @ai-tool-cms/api-platform build && pnpm --filter @ai-tool-cms/email build && pnpm --filter @ai-tool-cms/crawler-core build && pnpm --filter @ai-tool-cms/queue build",
     "build": "nest build",
     "start": "node dist/main.js",
     "start:prod": "node dist/main.js",
@@ -15,7 +15,11 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@ai-tool-cms/affiliate": "workspace:*",
+    "@ai-tool-cms/ads": "workspace:*",
     "@ai-tool-cms/ai": "workspace:*",
+    "@ai-tool-cms/api-platform": "workspace:*",
+    "@ai-tool-cms/email": "workspace:*",
     "@ai-tool-cms/crawler-core": "workspace:*",
     "@ai-tool-cms/geo": "workspace:*",
     "@ai-tool-cms/growth": "workspace:*",

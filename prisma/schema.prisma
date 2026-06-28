@@ -181,6 +181,121 @@ enum AuditAction {
   OTHER
 }
 
+/// Affiliate network (Commit 061).
+enum AffiliateNetwork {
+  AMAZON
+  IMPACT
+  PARTNERSTACK
+  CJ
+  SHAREASALE
+  CUSTOM
+}
+
+enum AffiliateProgramStatus {
+  ACTIVE
+  PAUSED
+  ARCHIVED
+}
+
+enum AffiliateLinkStatus {
+  ACTIVE
+  PAUSED
+}
+
+/// Sponsored placement types (Commit 062).
+enum SponsoredPlacementType {
+  SPONSORED
+  FEATURED
+  TRENDING
+  EDITORS_CHOICE
+}
+
+enum SponsoredPlacementStatus {
+  SCHEDULED
+  ACTIVE
+  EXPIRED
+  PAUSED
+}
+
+/// Ad network (Commit 063).
+enum AdNetwork {
+  ADSENSE
+  AD_MANAGER
+  CARBON
+  CUSTOM
+  NATIVE
+}
+
+enum AdSlotStatus {
+  ACTIVE
+  PAUSED
+}
+
+/// Newsletter campaign types (Commit 064).
+enum NewsletterCampaignType {
+  WEEKLY_AI
+  TOP_AI
+  NEW_AI
+  TRENDING_AI
+  CATEGORY_WEEKLY
+}
+
+enum NewsletterCampaignStatus {
+  DRAFT
+  SCHEDULED
+  SENDING
+  SENT
+  FAILED
+}
+
+enum NewsletterSubscriberStatus {
+  PENDING
+  CONFIRMED
+  UNSUBSCRIBED
+}
+
+/// Email template types (Commit 065).
+enum EmailTemplateType {
+  NEW_TOOL
+  WEEKLY_DIGEST
+  MONTHLY_DIGEST
+  TRENDING
+  COLLECTIONS
+  NEWSLETTER
+  CONFIRM
+  CUSTOM
+}
+
+/// Webhook events (Commit 067).
+enum WebhookEvent {
+  TOOL_ADDED
+  TOOL_UPDATED
+  AI_GENERATED
+  CRAWLER_FINISHED
+  SEO_UPDATED
+}
+
+enum WebhookDeliveryStatus {
+  PENDING
+  DELIVERED
+  FAILED
+  RETRYING
+}
+
+/// Revenue source (Commit 069).
+enum RevenueSource {
+  AFFILIATE
+  ADS
+  SPONSORED
+  API
+  OTHER
+}
+
+enum PartnerAccountStatus {
+  ACTIVE
+  SUSPENDED
+}
+
 // -----------------------------------------------------------------------------
 // RBAC & Identity
 // -----------------------------------------------------------------------------
@@ -206,6 +321,8 @@ model User {
 
   roles             UserRole[]
   apiKeys           ApiKey[]
+  partnerAccount    PartnerAccount?
+  webhooks          Webhook[]
   reviews           Review[]
   reviewVotes       ReviewVote[]
   favorites         Favorite[]
@@ -338,7 +455,8 @@ model ApiKey {
   updatedAt  DateTime     @updatedAt @map("updated_at")
   deletedAt  DateTime?    @map("deleted_at")
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  usageLogs ApiKeyUsageLog[]
 
   @@index([userId])
   @@index([keyPrefix])
@@ -346,6 +464,25 @@ model ApiKey {
   @@index([deletedAt])
   @@index([updatedAt])
   @@map("api_keys")
+}
+
+/// API key usage tracking (Commit 066).
+model ApiKeyUsageLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  apiKeyId   String   @map("api_key_id") @db.Uuid
+  endpoint   String   @db.VarChar(256)
+  method     String   @db.VarChar(16)
+  statusCode Int      @map("status_code")
+  durationMs Int      @map("duration_ms")
+  metadata   Json     @default("{}")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  apiKey ApiKey @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
+
+  @@index([apiKeyId])
+  @@index([endpoint])
+  @@index([createdAt])
+  @@map("api_key_usage_logs")
 }
 
 // -----------------------------------------------------------------------------
@@ -458,6 +595,8 @@ model Tool {
   seoComparePagesB  SeoComparePage[]   @relation("SeoCompareSecondaryTool")
   popularitySnapshots ToolPopularitySnapshot[]
   searchClicks      SearchClickLog[]
+  affiliateLinks    AffiliateLink[]
+  sponsoredPlacements SponsoredPlacement[]
 
   @@index([slug])
   @@index([status])
@@ -1142,6 +1281,372 @@ model ToolPopularitySnapshot {
   @@index([overallScore])
   @@index([createdAt])
   @@map("tool_popularity_snapshots")
+}
+
+// -----------------------------------------------------------------------------
+// Monetization — Affiliate (Commit 061)
+// -----------------------------------------------------------------------------
+
+/// Affiliate program (Amazon, Impact, CJ, etc.).
+model AffiliateProgram {
+  id          String                 @id @default(uuid()) @db.Uuid
+  slug        String                 @db.VarChar(120)
+  name        String                 @db.VarChar(200)
+  network     AffiliateNetwork
+  status      AffiliateProgramStatus @default(ACTIVE)
+  config      Json                   @default("{}")
+  createdById String?                @map("created_by_id") @db.Uuid
+  updatedById String?                @map("updated_by_id") @db.Uuid
+  deletedById String?                @map("deleted_by_id") @db.Uuid
+  metadata    Json                   @default("{}")
+  createdAt   DateTime               @default(now()) @map("created_at")
+  updatedAt   DateTime               @updatedAt @map("updated_at")
+  deletedAt   DateTime?              @map("deleted_at")
+
+  links       AffiliateLink[]
+  campaigns   AffiliateCampaign[]
+
+  @@index([slug])
+  @@index([network])
+  @@index([status])
+  @@index([deletedAt])
+  @@index([updatedAt])
+  @@map("affiliate_programs")
+}
+
+/// Tool affiliate link (official URL → affiliate redirect).
+model AffiliateLink {
+  id          String              @id @default(uuid()) @db.Uuid
+  toolId      String              @map("tool_id") @db.Uuid
+  programId   String?             @map("program_id") @db.Uuid
+  network     AffiliateNetwork    @default(CUSTOM)
+  officialUrl String              @map("official_url") @db.VarChar(2048)
+  affiliateUrl String             @map("affiliate_url") @db.VarChar(2048)
+  status      AffiliateLinkStatus @default(ACTIVE)
+  createdById String?             @map("created_by_id") @db.Uuid
+  updatedById String?             @map("updated_by_id") @db.Uuid
+  deletedById String?             @map("deleted_by_id") @db.Uuid
+  metadata    Json                @default("{}")
+  createdAt   DateTime            @default(now()) @map("created_at")
+  updatedAt   DateTime            @updatedAt @map("updated_at")
+  deletedAt   DateTime?           @map("deleted_at")
+
+  tool        Tool                @relation(fields: [toolId], references: [id], onDelete: Cascade)
+  program     AffiliateProgram?   @relation(fields: [programId], references: [id], onDelete: SetNull)
+  clicks      AffiliateClick[]
+  conversions AffiliateConversion[]
+  commissions AffiliateCommission[]
+
+  @@index([toolId])
+  @@index([programId])
+  @@index([network])
+  @@index([status])
+  @@index([deletedAt])
+  @@index([updatedAt])
+  @@map("affiliate_links")
+}
+
+model AffiliateClick {
+  id        String   @id @default(uuid()) @db.Uuid
+  linkId    String   @map("link_id") @db.Uuid
+  ipAddress String?  @map("ip_address") @db.VarChar(64)
+  userAgent String?  @map("user_agent") @db.VarChar(512)
+  referrer  String?  @db.VarChar(2048)
+  country   String?  @db.VarChar(8)
+  metadata  Json     @default("{}")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  link AffiliateLink @relation(fields: [linkId], references: [id], onDelete: Cascade)
+
+  @@index([linkId])
+  @@index([createdAt])
+  @@map("affiliate_clicks")
+}
+
+model AffiliateConversion {
+  id        String   @id @default(uuid()) @db.Uuid
+  linkId    String   @map("link_id") @db.Uuid
+  amount    Decimal  @default(0) @db.Decimal(12, 2)
+  currency  String   @default("USD") @db.VarChar(8)
+  externalId String? @map("external_id") @db.VarChar(128)
+  metadata  Json     @default("{}")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  link AffiliateLink @relation(fields: [linkId], references: [id], onDelete: Cascade)
+
+  @@index([linkId])
+  @@index([createdAt])
+  @@map("affiliate_conversions")
+}
+
+model AffiliateCommission {
+  id        String   @id @default(uuid()) @db.Uuid
+  linkId    String   @map("link_id") @db.Uuid
+  amount    Decimal  @default(0) @db.Decimal(12, 2)
+  currency  String   @default("USD") @db.VarChar(8)
+  status    String   @default("pending") @db.VarChar(32)
+  metadata  Json     @default("{}")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  link AffiliateLink @relation(fields: [linkId], references: [id], onDelete: Cascade)
+
+  @@index([linkId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("affiliate_commissions")
+}
+
+model AffiliateCampaign {
+  id        String    @id @default(uuid()) @db.Uuid
+  programId String    @map("program_id") @db.Uuid
+  name      String    @db.VarChar(200)
+  utmSource String?   @map("utm_source") @db.VarChar(64)
+  utmMedium String?   @map("utm_medium") @db.VarChar(64)
+  utmCampaign String? @map("utm_campaign") @db.VarChar(128)
+  metadata  Json      @default("{}")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  program AffiliateProgram @relation(fields: [programId], references: [id], onDelete: Cascade)
+
+  @@index([programId])
+  @@index([deletedAt])
+  @@map("affiliate_campaigns")
+}
+
+// -----------------------------------------------------------------------------
+// Monetization — Sponsored (Commit 062)
+// -----------------------------------------------------------------------------
+
+model SponsoredPlacement {
+  id        String                   @id @default(uuid()) @db.Uuid
+  toolId    String                   @map("tool_id") @db.Uuid
+  type      SponsoredPlacementType
+  status    SponsoredPlacementStatus @default(SCHEDULED)
+  weight    Int                      @default(100)
+  startAt   DateTime?                @map("start_at")
+  endAt     DateTime?                @map("end_at")
+  regions   String[]                 @default([])
+  devices   String[]                 @default([])
+  createdById String?                @map("created_by_id") @db.Uuid
+  updatedById String?                @map("updated_by_id") @db.Uuid
+  deletedById String?                @map("deleted_by_id") @db.Uuid
+  metadata  Json                     @default("{}")
+  createdAt DateTime                 @default(now()) @map("created_at")
+  updatedAt DateTime                 @updatedAt @map("updated_at")
+  deletedAt DateTime?                @map("deleted_at")
+
+  tool Tool @relation(fields: [toolId], references: [id], onDelete: Cascade)
+
+  @@index([toolId])
+  @@index([type])
+  @@index([status])
+  @@index([startAt])
+  @@index([endAt])
+  @@index([deletedAt])
+  @@map("sponsored_placements")
+}
+
+// -----------------------------------------------------------------------------
+// Monetization — Ads (Commit 063)
+// -----------------------------------------------------------------------------
+
+model AdSlot {
+  id          String       @id @default(uuid()) @db.Uuid
+  slug        String       @db.VarChar(120)
+  name        String       @db.VarChar(200)
+  network     AdNetwork    @default(CUSTOM)
+  position    String       @db.VarChar(64)
+  sortOrder   Int          @default(0) @map("sort_order")
+  status      AdSlotStatus @default(ACTIVE)
+  config      Json         @default("{}")
+  createdById String?      @map("created_by_id") @db.Uuid
+  updatedById String?      @map("updated_by_id") @db.Uuid
+  deletedById String?      @map("deleted_by_id") @db.Uuid
+  metadata    Json         @default("{}")
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+  deletedAt   DateTime?    @map("deleted_at")
+
+  @@index([slug])
+  @@index([position])
+  @@index([status])
+  @@index([sortOrder])
+  @@index([deletedAt])
+  @@map("ad_slots")
+}
+
+// -----------------------------------------------------------------------------
+// Newsletter & Email (Commits 064–065)
+// -----------------------------------------------------------------------------
+
+model NewsletterSubscriber {
+  id            String                   @id @default(uuid()) @db.Uuid
+  email         String                   @unique @db.VarChar(320)
+  status        NewsletterSubscriberStatus @default(PENDING)
+  locale        String                   @default("zh-CN") @db.VarChar(16)
+  confirmToken  String?                  @map("confirm_token") @db.VarChar(128)
+  confirmedAt   DateTime?                @map("confirmed_at")
+  unsubscribedAt DateTime?               @map("unsubscribed_at")
+  metadata      Json                     @default("{}")
+  createdAt     DateTime                 @default(now()) @map("created_at")
+  updatedAt     DateTime                 @updatedAt @map("updated_at")
+  deletedAt     DateTime?                @map("deleted_at")
+
+  @@index([status])
+  @@index([deletedAt])
+  @@map("newsletter_subscribers")
+}
+
+model NewsletterCampaign {
+  id          String                 @id @default(uuid()) @db.Uuid
+  type        NewsletterCampaignType
+  status      NewsletterCampaignStatus @default(DRAFT)
+  subject     String                 @db.VarChar(320)
+  contentHtml String?                @map("content_html") @db.Text
+  categoryId  String?                @map("category_id") @db.Uuid
+  scheduledAt DateTime?              @map("scheduled_at")
+  sentAt      DateTime?              @map("sent_at")
+  recipientCount Int                 @default(0) @map("recipient_count")
+  metadata    Json                   @default("{}")
+  createdAt   DateTime               @default(now()) @map("created_at")
+  updatedAt   DateTime               @updatedAt @map("updated_at")
+  deletedAt   DateTime?              @map("deleted_at")
+
+  @@index([type])
+  @@index([status])
+  @@index([scheduledAt])
+  @@index([deletedAt])
+  @@map("newsletter_campaigns")
+}
+
+model EmailTemplate {
+  id          String           @id @default(uuid()) @db.Uuid
+  slug        String           @db.VarChar(120)
+  name        String           @db.VarChar(200)
+  type        EmailTemplateType
+  subject     String           @db.VarChar(320)
+  bodyHtml    String           @map("body_html") @db.Text
+  bodyText    String?          @map("body_text") @db.Text
+  createdById String?          @map("created_by_id") @db.Uuid
+  updatedById String?          @map("updated_by_id") @db.Uuid
+  deletedById String?          @map("deleted_by_id") @db.Uuid
+  metadata    Json             @default("{}")
+  createdAt   DateTime         @default(now()) @map("created_at")
+  updatedAt   DateTime         @updatedAt @map("updated_at")
+  deletedAt   DateTime?        @map("deleted_at")
+
+  @@index([slug])
+  @@index([type])
+  @@index([deletedAt])
+  @@map("email_templates")
+}
+
+model EmailSendLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  templateId String?  @map("template_id") @db.Uuid
+  toEmail    String   @map("to_email") @db.VarChar(320)
+  subject    String   @db.VarChar(320)
+  status     String   @default("sent") @db.VarChar(32)
+  metadata   Json     @default("{}")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([templateId])
+  @@index([toEmail])
+  @@index([status])
+  @@index([createdAt])
+  @@map("email_send_logs")
+}
+
+// -----------------------------------------------------------------------------
+// Platform — Webhooks (Commit 067)
+// -----------------------------------------------------------------------------
+
+model Webhook {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  name      String    @db.VarChar(200)
+  url       String    @db.VarChar(2048)
+  secret    String    @db.VarChar(128)
+  events    WebhookEvent[]
+  isActive  Boolean   @default(true) @map("is_active")
+  metadata  Json      @default("{}")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  user       User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deliveries WebhookDelivery[]
+
+  @@index([userId])
+  @@index([isActive])
+  @@index([deletedAt])
+  @@map("webhooks")
+}
+
+model WebhookDelivery {
+  id           String                @id @default(uuid()) @db.Uuid
+  webhookId    String                @map("webhook_id") @db.Uuid
+  event        WebhookEvent
+  payload      Json
+  status       WebhookDeliveryStatus @default(PENDING)
+  statusCode   Int?                  @map("status_code")
+  responseBody String?               @map("response_body") @db.Text
+  attempts     Int                   @default(0)
+  metadata     Json                  @default("{}")
+  createdAt    DateTime              @default(now()) @map("created_at")
+  deliveredAt  DateTime?             @map("delivered_at")
+
+  webhook Webhook @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+
+  @@index([webhookId])
+  @@index([event])
+  @@index([status])
+  @@index([createdAt])
+  @@map("webhook_deliveries")
+}
+
+// -----------------------------------------------------------------------------
+// Partner & Revenue (Commits 068–069)
+// -----------------------------------------------------------------------------
+
+model PartnerAccount {
+  id          String               @id @default(uuid()) @db.Uuid
+  userId      String               @unique @map("user_id") @db.Uuid
+  company     String               @db.VarChar(200)
+  status      PartnerAccountStatus @default(ACTIVE)
+  metadata    Json                 @default("{}")
+  createdAt   DateTime             @default(now()) @map("created_at")
+  updatedAt   DateTime             @updatedAt @map("updated_at")
+  deletedAt   DateTime?            @map("deleted_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([deletedAt])
+  @@map("partner_accounts")
+}
+
+model RevenueSnapshot {
+  id        String        @id @default(uuid()) @db.Uuid
+  source    RevenueSource
+  period    String        @db.VarChar(16)
+  periodKey String        @map("period_key") @db.VarChar(32)
+  amount    Decimal       @default(0) @db.Decimal(14, 2)
+  currency  String        @default("USD") @db.VarChar(8)
+  clicks    Int           @default(0)
+  impressions Int         @default(0)
+  conversions Int         @default(0)
+  payload   Json          @default("{}")
+  createdAt DateTime      @default(now()) @map("created_at")
+
+  @@unique([source, periodKey])
+  @@index([source])
+  @@index([period])
+  @@index([periodKey])
+  @@index([createdAt])
+  @@map("revenue_snapshots")
 }
 
 // -----------------------------------------------------------------------------

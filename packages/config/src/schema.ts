@@ -65,6 +65,8 @@ export const envSchema = z.object({
   SMTP_USER: optionalString,
   SMTP_PASSWORD: optionalString,
   MAILPIT_URL: z.string().url().default("http://localhost:8025"),
+  NEWSLETTER_FROM_EMAIL: optionalString,
+  WEBHOOK_SIGNING_SECRET: optionalString,
   CRAWLER_ENABLE_PRODUCTION_ADAPTERS: z
     .string()
     .optional()
