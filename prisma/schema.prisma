@@ -296,6 +296,30 @@ enum PartnerAccountStatus {
   SUSPENDED
 }
 
+/// Translation workflow status (Commit 075).
+enum TranslationStatus {
+  PENDING
+  AI_GENERATED
+  HUMAN_REVIEWED
+  PUBLISHED
+}
+
+enum TranslationJobStatus {
+  PENDING
+  RUNNING
+  SUCCEEDED
+  FAILED
+  CANCELLED
+}
+
+enum TranslationJobStage {
+  ENGLISH
+  AI_GENERATE
+  SEO
+  REVIEW
+  PUBLISH
+}
+
 // -----------------------------------------------------------------------------
 // RBAC & Identity
 // -----------------------------------------------------------------------------
@@ -597,6 +621,8 @@ model Tool {
   searchClicks      SearchClickLog[]
   affiliateLinks    AffiliateLink[]
   sponsoredPlacements SponsoredPlacement[]
+  translations      ToolTranslation[]
+  translationJobs   TranslationJob[]
 
   @@index([slug])
   @@index([status])
@@ -1647,6 +1673,134 @@ model RevenueSnapshot {
   @@index([periodKey])
   @@index([createdAt])
   @@map("revenue_snapshots")
+}
+
+// -----------------------------------------------------------------------------
+// Internationalization (Commits 071–080)
+// -----------------------------------------------------------------------------
+
+/// Per-locale tool content (Commit 072) — AI-generated per language, not machine-translated.
+model ToolTranslation {
+  id              String            @id @default(uuid()) @db.Uuid
+  toolId          String            @map("tool_id") @db.Uuid
+  locale          String            @db.VarChar(16)
+  region          String?           @db.VarChar(16)
+  summary         String?           @db.VarChar(500)
+  longDescription String?           @map("long_description") @db.Text
+  metaTitle       String?           @map("meta_title") @db.VarChar(160)
+  metaDescription String?           @map("meta_description") @db.VarChar(320)
+  faqJson         Json              @default("[]") @map("faq_json")
+  compareJson     Json              @default("[]") @map("compare_json")
+  alternativesJson Json             @default("[]") @map("alternatives_json")
+  status          TranslationStatus @default(PENDING)
+  createdById     String?           @map("created_by_id") @db.Uuid
+  updatedById     String?           @map("updated_by_id") @db.Uuid
+  deletedById     String?           @map("deleted_by_id") @db.Uuid
+  metadata        Json              @default("{}")
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+  deletedAt       DateTime?         @map("deleted_at")
+
+  tool Tool @relation(fields: [toolId], references: [id], onDelete: Cascade)
+
+  @@unique([toolId, locale])
+  @@index([toolId])
+  @@index([locale])
+  @@index([region])
+  @@index([status])
+  @@index([deletedAt])
+  @@index([updatedAt])
+  @@map("tool_translations")
+}
+
+model CategoryTranslation {
+  id              String            @id @default(uuid()) @db.Uuid
+  categoryId      String            @map("category_id") @db.Uuid
+  locale          String            @db.VarChar(16)
+  name            String            @db.VarChar(160)
+  description     String?           @db.Text
+  metaTitle       String?           @map("meta_title") @db.VarChar(160)
+  metaDescription String?           @map("meta_description") @db.VarChar(320)
+  status          TranslationStatus @default(PENDING)
+  metadata        Json              @default("{}")
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+  deletedAt       DateTime?         @map("deleted_at")
+
+  @@unique([categoryId, locale])
+  @@index([categoryId])
+  @@index([locale])
+  @@index([status])
+  @@index([deletedAt])
+  @@map("category_translations")
+}
+
+/// BullMQ translation workflow tracking (Commit 076).
+model TranslationJob {
+  id           String              @id @default(uuid()) @db.Uuid
+  toolId       String              @map("tool_id") @db.Uuid
+  targetLocale String              @map("target_locale") @db.VarChar(16)
+  sourceLocale String              @default("en") @map("source_locale") @db.VarChar(16)
+  status       TranslationJobStatus @default(PENDING)
+  stage        TranslationJobStage @default(ENGLISH)
+  errorMessage String?             @map("error_message") @db.Text
+  metadata     Json                @default("{}")
+  createdAt    DateTime            @default(now()) @map("created_at")
+  updatedAt    DateTime            @updatedAt @map("updated_at")
+  finishedAt   DateTime?           @map("finished_at")
+
+  tool Tool @relation(fields: [toolId], references: [id], onDelete: Cascade)
+
+  @@index([toolId])
+  @@index([targetLocale])
+  @@index([status])
+  @@index([stage])
+  @@index([createdAt])
+  @@map("translation_jobs")
+}
+
+/// Regional SEO config per country/region (Commit 073).
+model RegionalSeoConfig {
+  id          String    @id @default(uuid()) @db.Uuid
+  region      String    @db.VarChar(16)
+  locale      String    @db.VarChar(16)
+  keywords    String[]  @default([])
+  metaTitle   String?   @map("meta_title") @db.VarChar(160)
+  metaDescription String? @map("meta_description") @db.VarChar(320)
+  aiSummary   String?   @map("ai_summary") @db.Text
+  config      Json      @default("{}")
+  metadata    Json      @default("{}")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  @@unique([region, locale])
+  @@index([region])
+  @@index([locale])
+  @@index([deletedAt])
+  @@map("regional_seo_configs")
+}
+
+/// Country/locale analytics snapshot (Commit 077).
+model CountryAnalyticsSnapshot {
+  id           String   @id @default(uuid()) @db.Uuid
+  country      String   @db.VarChar(8)
+  locale       String   @db.VarChar(16)
+  period       String   @db.VarChar(16)
+  periodKey    String   @map("period_key") @db.VarChar(32)
+  traffic      Int      @default(0)
+  ctr          Decimal  @default(0) @db.Decimal(8, 4)
+  revenue      Decimal  @default(0) @db.Decimal(14, 2)
+  topCategory  String?  @map("top_category") @db.VarChar(120)
+  payload      Json     @default("{}")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@unique([country, locale, periodKey])
+  @@index([country])
+  @@index([locale])
+  @@index([periodKey])
+  @@index([createdAt])
+  @@map("country_analytics_snapshots")
 }
 
 // -----------------------------------------------------------------------------

@@ -6,6 +6,7 @@ import { startAiPipelineWorkers } from "./ai-pipeline";
 import { startGrowthWorker } from "./growth-worker";
 import { startSearchIndexWorker } from "./search-index-worker";
 import { startPlatformWorkers } from "./platform-worker";
+import { startTranslationWorker } from "./translation-worker";
 import { startAllWorkers } from "./workers";
 
 const log = createLogger({ service: "worker-main" });
@@ -17,12 +18,14 @@ async function main(): Promise<void> {
   const growthWorkers = [startGrowthWorker()];
   const searchWorkers = [startSearchIndexWorker()];
   const platformWorkers = startPlatformWorkers();
+  const i18nWorkers = [startTranslationWorker()];
   const workers = [
     ...crawlWorkers,
     ...aiWorkers,
     ...growthWorkers,
     ...searchWorkers,
     ...platformWorkers,
+    ...i18nWorkers,
   ];
 
   log.info("Workers started", {
@@ -31,6 +34,7 @@ async function main(): Promise<void> {
     growthQueues: growthWorkers.length,
     searchQueues: searchWorkers.length,
     platformQueues: platformWorkers.length,
+    i18nQueues: i18nWorkers.length,
   });
 
   const shutdown = async (signal: string) => {

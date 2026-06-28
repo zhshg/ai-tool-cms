@@ -1,8 +1,8 @@
 {
-  "name": "@ai-tool-cms/growth",
+  "name": "@ai-tool-cms/i18n",
   "version": "0.0.0",
   "private": true,
-  "description": "Site Growth Loop — auto-expand SEO/GEO, taxonomy, links, and search pings when tools publish",
+  "description": "Internationalization — locales, routing, translation cache, regional SEO",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -21,15 +21,9 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@ai-tool-cms/api-platform": "workspace:*",
-    "@ai-tool-cms/i18n": "workspace:*",
-    "@ai-tool-cms/common": "workspace:*",
     "@ai-tool-cms/config": "workspace:*",
     "@ai-tool-cms/database": "workspace:*",
-    "@ai-tool-cms/geo": "workspace:*",
-    "@ai-tool-cms/queue": "workspace:*",
-    "@ai-tool-cms/search": "workspace:*",
-    "@ai-tool-cms/seo": "workspace:*"
+    "@ai-tool-cms/queue": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

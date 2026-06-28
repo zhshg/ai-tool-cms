@@ -23,6 +23,8 @@ export type HomeSection = {
 };
 
 export type RecommendationContext = {
+  locale?: string;
+  region?: string;
   viewedToolIds?: string[];
   categorySlug?: string;
   limit?: number;

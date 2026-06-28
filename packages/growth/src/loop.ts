@@ -3,6 +3,8 @@ import type { PrismaClient } from "@ai-tool-cms/database";
 import { pingSitemapsAfterPublish, syncComparePages, syncInternalLinks } from "@ai-tool-cms/seo";
 import { enqueueSearchIndex } from "@ai-tool-cms/search";
 import { emitWebhookEvent } from "@ai-tool-cms/api-platform";
+import { enqueueAllLocaleTranslations, parseEnabledLocales } from "@ai-tool-cms/i18n";
+import { getEnv } from "@ai-tool-cms/config";
 import { persistGeoDocumentForTool } from "./geo-persist";
 import {
   ensureDefaultCategory,
@@ -69,6 +71,14 @@ export async function runSiteGrowthLoop(
     name: tool.name,
     reason,
   });
+
+  try {
+    const env = getEnv();
+    const locales = parseEnabledLocales(env.ENABLED_LOCALES).filter((l) => l !== "en");
+    steps.translations = await enqueueAllLocaleTranslations(prisma, toolId, locales);
+  } catch {
+    steps.translations = [];
+  }
 
   await prisma.tool.update({
     where: { id: toolId },

@@ -153,6 +153,9 @@ importers:
       '@ai-tool-cms/growth':
         specifier: workspace:*
         version: link:../../packages/growth
+      '@ai-tool-cms/i18n':
+        specifier: workspace:*
+        version: link:../../packages/i18n
       '@ai-tool-cms/logger':
         specifier: workspace:*
         version: link:../../packages/logger
@@ -372,6 +375,9 @@ importers:
       '@ai-tool-cms/growth':
         specifier: workspace:*
         version: link:../../packages/growth
+      '@ai-tool-cms/i18n':
+        specifier: workspace:*
+        version: link:../../packages/i18n
       '@ai-tool-cms/logger':
         specifier: workspace:*
         version: link:../../packages/logger
@@ -612,6 +618,9 @@ importers:
       '@ai-tool-cms/geo':
         specifier: workspace:*
         version: link:../geo
+      '@ai-tool-cms/i18n':
+        specifier: workspace:*
+        version: link:../i18n
       '@ai-tool-cms/queue':
         specifier: workspace:*
         version: link:../queue
@@ -621,6 +630,25 @@ importers:
       '@ai-tool-cms/seo':
         specifier: workspace:*
         version: link:../seo
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.0
+        version: 22.20.0
+      typescript:
+        specifier: ^5.7.3
+        version: 5.9.3
+
+  packages/i18n:
+    dependencies:
+      '@ai-tool-cms/config':
+        specifier: workspace:*
+        version: link:../config
+      '@ai-tool-cms/database':
+        specifier: workspace:*
+        version: link:../database
+      '@ai-tool-cms/queue':
+        specifier: workspace:*
+        version: link:../queue
     devDependencies:
       '@types/node':
         specifier: ^22.10.0
@@ -723,6 +751,9 @@ importers:
       '@ai-tool-cms/database':
         specifier: workspace:*
         version: link:../database
+      '@ai-tool-cms/i18n':
+        specifier: workspace:*
+        version: link:../i18n
     devDependencies:
       '@types/node':
         specifier: ^22.10.0
