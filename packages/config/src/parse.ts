@@ -40,6 +40,16 @@ export function parseEnv(source: EnvSource = process.env): Env {
     SITE_NAME: source.SITE_NAME,
     SITE_DESCRIPTION: source.SITE_DESCRIPTION,
     DEFAULT_LOCALE: source.DEFAULT_LOCALE,
+    STORAGE_ENDPOINT: source.STORAGE_ENDPOINT,
+    STORAGE_BUCKET: source.STORAGE_BUCKET,
+    STORAGE_ACCESS_KEY: source.STORAGE_ACCESS_KEY,
+    STORAGE_SECRET_KEY: source.STORAGE_SECRET_KEY,
+    STORAGE_REGION: source.STORAGE_REGION,
+    SMTP_HOST: source.SMTP_HOST,
+    SMTP_PORT: source.SMTP_PORT,
+    SMTP_USER: source.SMTP_USER,
+    SMTP_PASSWORD: source.SMTP_PASSWORD,
+    MAILPIT_URL: source.MAILPIT_URL,
   };
 
   return envSchema.parse(raw);
