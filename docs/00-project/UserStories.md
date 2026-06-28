@@ -30,10 +30,12 @@
 
 This document defines **major user stories** for AI Tool CMS v2 using Agile user story format and **Behavior-Driven Development (BDD)** Gherkin scenarios. Stories translate [Personas.md](./Personas.md) needs into testable requirements for product, engineering, and QA.
 
+Each user story maps to one or more features in the master index [FeatureCatalog.md](./FeatureCatalog.md) (`FE-{MODULE}-{NNN}`).
+
 | Audience | Usage |
 |---|---|
 | **Product Managers** | Prioritize backlog; validate scope against [Goals.md](./Goals.md) |
-| **Architects** | Trace features to API and module boundaries |
+| **Architects** | Trace features to API and module boundaries via [FeatureCatalog.md](./FeatureCatalog.md) |
 | **Developers** | Implement against acceptance criteria |
 | **QA Engineers** | Derive test cases from BDD scenarios |
 | **AI Assistants** | Generate features only within documented stories |
@@ -2229,6 +2231,7 @@ stateDiagram-v2
 
 | Document | Relationship |
 |---|---|
+| [FeatureCatalog.md](./FeatureCatalog.md) | Master feature index (`FE-*`) mapped to stories, APIs, models |
 | [Personas.md](./Personas.md) | Story persona assignment |
 | [Goals.md](./Goals.md) | Business value alignment |
 | [Scope.md](./Scope.md) | In/out of scope per story |

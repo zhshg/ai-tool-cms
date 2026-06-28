@@ -584,6 +584,19 @@ Enterprise Features
 
 项目说明
 
+| Document | Description |
+|---|---|
+| [Vision.md](./Vision.md) | Product vision |
+| [Goals.md](./Goals.md) | Strategic goals |
+| [Scope.md](./Scope.md) / [NonGoals.md](./NonGoals.md) | Boundaries |
+| [Personas.md](./Personas.md) | User personas |
+| [UserStories.md](./UserStories.md) | BDD user stories (90) |
+| [FeatureCatalog.md](./FeatureCatalog.md) | **Enterprise feature matrix** — master index (88 features) |
+| [TechStack.md](./TechStack.md) | Technology choices |
+| [FolderStructure.md](./FolderStructure.md) | Monorepo layout |
+| [CodingStandards.md](./CodingStandards.md) / [NamingConvention.md](./NamingConvention.md) | Dev conventions |
+| [GitWorkflow.md](./GitWorkflow.md) / [ReleaseStrategy.md](./ReleaseStrategy.md) | Process |
+
 ---
 
 01-architecture
