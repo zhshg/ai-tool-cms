@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 
 import { SiteFooter } from "@/components/marketing/site-footer";
