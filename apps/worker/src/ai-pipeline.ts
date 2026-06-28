@@ -15,6 +15,7 @@ import {
 } from "@ai-tool-cms/database";
 import { createLogger } from "@ai-tool-cms/logger";
 import {
+  applyPipelineArtifacts,
   enqueueNextStage,
   extractFeatures,
   generateFaq,
@@ -24,9 +25,11 @@ import {
   QUALITY_THRESHOLD,
   scoreQuality,
   type EnqueueFn,
+  type PipelineArtifacts,
   type ToolPromptContext,
 } from "@ai-tool-cms/ai";
 import type { AiPipelineStageId } from "@ai-tool-cms/ai";
+import { getEnv } from "@ai-tool-cms/config";
 
 const log = createLogger({ service: "ai-pipeline-worker" });
 const MAX_QUALITY_RETRIES = 3;
@@ -104,15 +107,21 @@ async function saveRevision(
   payload: Record<string, unknown>,
   aiTaskId: string,
   qualityScore?: number,
+  options?: { autoApproved?: boolean },
 ): Promise<void> {
+  const now = new Date();
   await prisma.contentRevision.create({
     data: {
       toolId,
       stage,
-      status: ContentRevisionStatus.PENDING,
+      status: options?.autoApproved
+        ? ContentRevisionStatus.APPROVED
+        : ContentRevisionStatus.PENDING,
       payload: payload as never,
       qualityScore,
       aiTaskId,
+      reviewedAt: options?.autoApproved ? now : undefined,
+      reviewNote: options?.autoApproved ? "Auto-published by AI pipeline (Sprint 4)" : undefined,
       metadata: { source: "ai-pipeline" },
     },
   });
@@ -185,6 +194,7 @@ async function processStage(
         await saveRevision(payload.toolId, AiPipelineStage.FAQ, { faqs: result }, taskId);
         await updatePipelineMetadata(payload.toolId, payload.pipelineRunId, {
           stage: "FAQ",
+          faqs: result,
           faqCount: result.length,
         });
         await finishAiTask(taskId, { faqs: result } as never);
@@ -195,7 +205,7 @@ async function processStage(
         await saveRevision(payload.toolId, AiPipelineStage.SEO, result, taskId);
         await updatePipelineMetadata(payload.toolId, payload.pipelineRunId, {
           stage: "SEO",
-          seo: true,
+          seo: result,
         });
         await finishAiTask(taskId, result as never);
         break;
@@ -205,7 +215,7 @@ async function processStage(
         await saveRevision(payload.toolId, AiPipelineStage.GEO, result, taskId);
         await updatePipelineMetadata(payload.toolId, payload.pipelineRunId, {
           stage: "GEO",
-          geo: true,
+          geo: result,
         });
         await finishAiTask(taskId, result as never);
         break;
@@ -222,7 +232,9 @@ async function processStage(
           summary: summary?.oneParagraph,
           longDescription: summary?.longDescription,
           features: features?.features,
-          faqCount: Number(pipeline.faqCount ?? 0),
+          faqCount: Number(
+            pipeline.faqCount ?? (pipeline.faqs as unknown[] | undefined)?.length ?? 0,
+          ),
           hasSeo: Boolean(pipeline.seo),
           hasGeo: Boolean(pipeline.geo),
         });
@@ -263,20 +275,73 @@ async function processStage(
         break;
       }
       case "PUBLISH": {
-        await saveRevision(
-          payload.toolId,
-          AiPipelineStage.PUBLISH,
-          {
-            message: "Pipeline complete — awaiting human review before publish",
+        const tool = await prisma.tool.findUniqueOrThrow({ where: { id: payload.toolId } });
+        const metadata = (tool.metadata ?? {}) as Record<string, unknown>;
+        const pipeline = (metadata.aiPipeline ?? {}) as Record<string, unknown>;
+        const autoPublish = getEnv().AI_PIPELINE_AUTO_PUBLISH;
+
+        if (autoPublish) {
+          const artifacts: PipelineArtifacts = {
+            summary: pipeline.summary as PipelineArtifacts["summary"],
+            features: pipeline.features as PipelineArtifacts["features"],
+            faqs: (pipeline.faqs as PipelineArtifacts["faqs"]) ?? undefined,
+            seo: pipeline.seo as PipelineArtifacts["seo"],
+            geo: pipeline.geo as PipelineArtifacts["geo"],
+          };
+
+          await prisma.$transaction(async (tx) => {
+            await applyPipelineArtifacts(tx, payload.toolId, artifacts, {
+              actorId: payload.actorId,
+              publish: true,
+            });
+            await tx.contentRevision.updateMany({
+              where: {
+                toolId: payload.toolId,
+                status: ContentRevisionStatus.PENDING,
+              },
+              data: {
+                status: ContentRevisionStatus.APPROVED,
+                reviewedAt: new Date(),
+                reviewNote: "Auto-published by AI pipeline (Sprint 4)",
+              },
+            });
+          });
+
+          log.info("tool auto-published to frontend", {
+            toolId: payload.toolId,
+            slug: tool.slug,
             pipelineRunId: payload.pipelineRunId,
-          },
-          taskId,
-        );
-        await updatePipelineMetadata(payload.toolId, payload.pipelineRunId, {
-          stage: "PUBLISH",
-          status: "awaiting_review",
-        });
-        await finishAiTask(taskId, { status: "awaiting_review" });
+          });
+
+          await saveRevision(
+            payload.toolId,
+            AiPipelineStage.PUBLISH,
+            {
+              message: "Auto-published to public catalog",
+              pipelineRunId: payload.pipelineRunId,
+              status: "published",
+            },
+            taskId,
+            undefined,
+            { autoApproved: true },
+          );
+          await finishAiTask(taskId, { status: "published", autoPublish: true });
+        } else {
+          await saveRevision(
+            payload.toolId,
+            AiPipelineStage.PUBLISH,
+            {
+              message: "Pipeline complete — awaiting human review before publish",
+              pipelineRunId: payload.pipelineRunId,
+            },
+            taskId,
+          );
+          await updatePipelineMetadata(payload.toolId, payload.pipelineRunId, {
+            stage: "PUBLISH",
+            status: "awaiting_review",
+          });
+          await finishAiTask(taskId, { status: "awaiting_review" });
+        }
         break;
       }
       default:

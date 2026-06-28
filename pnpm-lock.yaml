@@ -349,6 +349,9 @@ importers:
       '@ai-tool-cms/config':
         specifier: workspace:*
         version: link:../config
+      '@ai-tool-cms/database':
+        specifier: workspace:*
+        version: link:../database
       '@ai-tool-cms/logger':
         specifier: workspace:*
         version: link:../logger

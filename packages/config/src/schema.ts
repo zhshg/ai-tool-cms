@@ -57,6 +57,11 @@ export const envSchema = z.object({
     .string()
     .optional()
     .transform((v) => v === "true" || v === "1"),
+  /** Sprint 4: auto-apply AI output and publish tool without human review (default: true). */
+  AI_PIPELINE_AUTO_PUBLISH: z
+    .string()
+    .optional()
+    .transform((v) => v !== "false" && v !== "0"),
 });
 
 export type Env = z.infer<typeof envSchema>;

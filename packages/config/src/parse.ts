@@ -60,6 +60,7 @@ export function parseEnv(source?: EnvSource): Env {
     SMTP_PASSWORD: resolved.SMTP_PASSWORD,
     MAILPIT_URL: resolved.MAILPIT_URL,
     CRAWLER_ENABLE_PRODUCTION_ADAPTERS: resolved.CRAWLER_ENABLE_PRODUCTION_ADAPTERS,
+    AI_PIPELINE_AUTO_PUBLISH: resolved.AI_PIPELINE_AUTO_PUBLISH,
   };
 
   return envSchema.parse(raw);

@@ -22,7 +22,7 @@ export default function AiReviewPage() {
       <div>
         <PageHeader
           title="AI Review"
-          description="审核 AI 生成内容：Pending / Approved / Rejected，支持一键重新生成。"
+          description="Sprint 4 默认全自动：爬虫 → AI 生成 → 质量评分 → 自动发布。人工审核为可选（AI_PIPELINE_AUTO_PUBLISH=false）。"
         />
 
         <div className="flex flex-wrap gap-2">
@@ -76,10 +76,20 @@ export default function AiReviewPage() {
               <dd className="font-medium">POST /v1/ai/tools/:toolId/regenerate</dd>
             </div>
             <div>
+              <dt className="text-muted-foreground">自动发布</dt>
+              <dd className="font-medium">
+                AI_PIPELINE_AUTO_PUBLISH=true（默认）→ Tool.status=PUBLISHED
+              </dd>
+            </div>
+            <div>
               <dt className="text-muted-foreground">Pipeline</dt>
               <dd className="font-medium">
-                Summary → Feature → FAQ → SEO → GEO → Quality → Publish
+                Crawler → Normalize → Summary → Feature → FAQ → SEO → GEO → Quality → Publish
               </dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">质量门控</dt>
+              <dd className="font-medium">评分低于 80 自动从 Summary 重试（最多 3 次）</dd>
             </div>
           </dl>
         </div>

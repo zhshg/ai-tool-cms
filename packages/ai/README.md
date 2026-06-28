@@ -56,6 +56,12 @@ const result = await router.generate({ messages: [...] });
 
 Without keys, `AIFactory.createDefault()` uses `mock`.
 
-## Architecture rule
+## Sprint 4 — Auto pipeline
 
-LLM output must not auto-publish. Commit 032+ wires queue + human review gate.
+Default (`AI_PIPELINE_AUTO_PUBLISH=true`, unset = enabled):
+
+```
+Crawler → Normalize → AI Summary → Feature → FAQ → SEO → GEO → Quality → Publish (PUBLISHED)
+```
+
+Quality score &lt; 80 restarts from Summary (max 3 attempts). Set `AI_PIPELINE_AUTO_PUBLISH=false` to restore human review gate.

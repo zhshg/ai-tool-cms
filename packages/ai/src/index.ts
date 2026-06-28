@@ -124,4 +124,10 @@ export {
   type EnqueueFn,
 } from "./pipeline/orchestrator";
 
+export {
+  applyPipelineArtifacts,
+  applyStagePayload,
+  type PipelineArtifacts,
+} from "./pipeline/apply-payload";
+
 export { parseJsonFromLlm, clampScore } from "./utils/json";
