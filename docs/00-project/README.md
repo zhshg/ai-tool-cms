@@ -606,10 +606,16 @@ Enterprise Features
 
 | Document | Description |
 |---|---|
-| [README.md](../01-architecture/README.md) | **System Architecture** — entry point, vision, layers, principles |
-| Architecture.md, Monorepo.md, DDD.md, … | Specialized architecture docs (planned) |
-
----
+| [README.md](../01-architecture/README.md) | **System Architecture** — specification entry point |
+| [Architecture.md](../01-architecture/Architecture.md) | Canonical architecture specification |
+| [DDD.md](../01-architecture/DDD.md) | Domain-driven design |
+| [Modules.md](../01-architecture/Modules.md) | Module catalog |
+| [DependencyGraph.md](../01-architecture/DependencyGraph.md) | Dependency rules |
+| C4 diagrams | Context, Container, Component, Deployment |
+| Flows | DataFlow, RequestFlow, EventFlow |
+| Sequence/ | Authentication, Crawler, SEO, AI |
+| ADR/ | Architecture decision records |
+| RFC/ | Tool model, crawler, AI pipeline |
 
 02-database
 
