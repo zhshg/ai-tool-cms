@@ -132,6 +132,9 @@ importers:
       '@ai-tool-cms/auth':
         specifier: workspace:*
         version: link:../../packages/auth
+      '@ai-tool-cms/automation':
+        specifier: workspace:*
+        version: link:../../packages/automation
       '@ai-tool-cms/common':
         specifier: workspace:*
         version: link:../../packages/common
@@ -144,6 +147,9 @@ importers:
       '@ai-tool-cms/database':
         specifier: workspace:*
         version: link:../../packages/database
+      '@ai-tool-cms/discovery':
+        specifier: workspace:*
+        version: link:../../packages/discovery
       '@ai-tool-cms/email':
         specifier: workspace:*
         version: link:../../packages/email
@@ -168,6 +174,9 @@ importers:
       '@ai-tool-cms/recommendation':
         specifier: workspace:*
         version: link:../../packages/recommendation
+      '@ai-tool-cms/screenshot':
+        specifier: workspace:*
+        version: link:../../packages/screenshot
       '@ai-tool-cms/search':
         specifier: workspace:*
         version: link:../../packages/search
@@ -244,6 +253,9 @@ importers:
 
   apps/scheduler:
     dependencies:
+      '@ai-tool-cms/automation':
+        specifier: workspace:*
+        version: link:../../packages/automation
       '@ai-tool-cms/config':
         specifier: workspace:*
         version: link:../../packages/config
@@ -357,6 +369,9 @@ importers:
       '@ai-tool-cms/api-platform':
         specifier: workspace:*
         version: link:../../packages/api-platform
+      '@ai-tool-cms/automation':
+        specifier: workspace:*
+        version: link:../../packages/automation
       '@ai-tool-cms/common':
         specifier: workspace:*
         version: link:../../packages/common
@@ -369,6 +384,9 @@ importers:
       '@ai-tool-cms/database':
         specifier: workspace:*
         version: link:../../packages/database
+      '@ai-tool-cms/discovery':
+        specifier: workspace:*
+        version: link:../../packages/discovery
       '@ai-tool-cms/email':
         specifier: workspace:*
         version: link:../../packages/email
@@ -387,6 +405,9 @@ importers:
       '@ai-tool-cms/ranking':
         specifier: workspace:*
         version: link:../../packages/ranking
+      '@ai-tool-cms/screenshot':
+        specifier: workspace:*
+        version: link:../../packages/screenshot
       '@ai-tool-cms/search':
         specifier: workspace:*
         version: link:../../packages/search
@@ -493,6 +514,37 @@ importers:
         specifier: ^5.7.3
         version: 5.9.3
 
+  packages/automation:
+    dependencies:
+      '@ai-tool-cms/ai':
+        specifier: workspace:*
+        version: link:../ai
+      '@ai-tool-cms/config':
+        specifier: workspace:*
+        version: link:../config
+      '@ai-tool-cms/database':
+        specifier: workspace:*
+        version: link:../database
+      '@ai-tool-cms/discovery':
+        specifier: workspace:*
+        version: link:../discovery
+      '@ai-tool-cms/email':
+        specifier: workspace:*
+        version: link:../email
+      '@ai-tool-cms/queue':
+        specifier: workspace:*
+        version: link:../queue
+      '@ai-tool-cms/screenshot':
+        specifier: workspace:*
+        version: link:../screenshot
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.0
+        version: 22.20.0
+      typescript:
+        specifier: ^5.7.3
+        version: 5.9.3
+
   packages/common:
     dependencies:
       '@ai-tool-cms/types':
@@ -562,6 +614,25 @@ importers:
       tsx:
         specifier: ^4.19.3
         version: 4.22.4
+      typescript:
+        specifier: ^5.7.3
+        version: 5.9.3
+
+  packages/discovery:
+    dependencies:
+      '@ai-tool-cms/config':
+        specifier: workspace:*
+        version: link:../config
+      '@ai-tool-cms/database':
+        specifier: workspace:*
+        version: link:../database
+      '@ai-tool-cms/queue':
+        specifier: workspace:*
+        version: link:../queue
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.0
+        version: 22.20.0
       typescript:
         specifier: ^5.7.3
         version: 5.9.3
@@ -713,6 +784,29 @@ importers:
       '@ai-tool-cms/search':
         specifier: workspace:*
         version: link:../search
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.0
+        version: 22.20.0
+      typescript:
+        specifier: ^5.7.3
+        version: 5.9.3
+
+  packages/screenshot:
+    dependencies:
+      '@ai-tool-cms/config':
+        specifier: workspace:*
+        version: link:../config
+      '@ai-tool-cms/database':
+        specifier: workspace:*
+        version: link:../database
+      '@ai-tool-cms/queue':
+        specifier: workspace:*
+        version: link:../queue
+    optionalDependencies:
+      playwright:
+        specifier: ^1.50.1
+        version: 1.61.1
     devDependencies:
       '@types/node':
         specifier: ^22.10.0
@@ -3397,6 +3491,11 @@ packages:
   fs-monkey@1.1.0:
     resolution: {integrity: sha512-QMUezzXWII9EV5aTFXW1UBVUO77wYPpjqIF8/AviUCThNeSYZykpoTixUeaNNBwmCev0AMDWMAni+f8Hxb1IFw==}
 
+  fsevents@2.3.2:
+    resolution: {integrity: sha512-xiqMQR4xAeHTuB9uWm+fFRcIOgKBMiOBP+eXiyT7jsgVCq1bkVygt00oASowB7EdtpOHaaPgKt812P9ab+DDKA==}
+    engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
+    os: [darwin]
+
   fsevents@2.3.3:
     resolution: {integrity: sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw==}
     engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
@@ -4264,6 +4363,16 @@ packages:
 
   pkg-types@2.3.1:
     resolution: {integrity: sha512-y+ichcgc2LrADuhLNAx8DFjVfgz91pRxfZdI3UDhxHvcVEZsenLO+7XaU5vOp0u/7V/wZ+plyuQxtrDlZJ+yeg==}
+
+  playwright-core@1.61.1:
+    resolution: {integrity: sha512-h7Qlt6m4REp25qvIdvbDtVmD4LqVXfpRxhORv9L0jzETM05p4fuPJ3dKyuSXQxDSbXnmS79HAgi9589lGSpLkg==}
+    engines: {node: '>=18'}
+    hasBin: true
+
+  playwright@1.61.1:
+    resolution: {integrity: sha512-DWnY5o3YbLWK4GovuAVwpqL+1VwGNdUGrRr++8j8PtQQzvAVZUIMjKQ90fY689sEJZJBbZVw1rXaOKSTitkzPQ==}
+    engines: {node: '>=18'}
+    hasBin: true
 
   pluralize@8.0.0:
     resolution: {integrity: sha512-Nc3IT5yHzflTfbjgqWcCPpo7DaKy4FnpB0l/zCAW0Tc7jxAiuqSxHasntB3D7887LSrA93kDJ9IXovxJYxyLCA==}
@@ -8105,6 +8214,9 @@ snapshots:
 
   fs-monkey@1.1.0: {}
 
+  fsevents@2.3.2:
+    optional: true
+
   fsevents@2.3.3:
     optional: true
 
@@ -8985,6 +9097,16 @@ snapshots:
       confbox: 0.2.4
       exsolve: 1.1.0
       pathe: 2.0.3
+
+  playwright-core@1.61.1:
+    optional: true
+
+  playwright@1.61.1:
+    dependencies:
+      playwright-core: 1.61.1
+    optionalDependencies:
+      fsevents: 2.3.2
+    optional: true
 
   pluralize@8.0.0: {}
 

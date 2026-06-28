@@ -170,3 +170,5 @@ export function queueNameForJobType(jobType: CrawlQueueJobType): CrawlQueueName 
       return CRAWL_QUEUE_NAMES.CRAWL_TOOL;
   }
 }
+
+export * from "./automation-types";

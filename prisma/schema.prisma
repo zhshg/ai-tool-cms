@@ -623,6 +623,10 @@ model Tool {
   sponsoredPlacements SponsoredPlacement[]
   translations      ToolTranslation[]
   translationJobs   TranslationJob[]
+  websiteMonitors   WebsiteMonitor[]
+  priceMonitors     PriceMonitor[]
+  toolScreenshots   ToolScreenshot[]
+  aiRefreshSchedules AiRefreshSchedule[]
 
   @@index([slug])
   @@index([status])
@@ -1801,6 +1805,412 @@ model CountryAnalyticsSnapshot {
   @@index([periodKey])
   @@index([createdAt])
   @@map("country_analytics_snapshots")
+}
+
+// -----------------------------------------------------------------------------
+// Autonomous Platform — Automation 2.0 (Commits 081–090)
+// -----------------------------------------------------------------------------
+
+enum DiscoverySourceKind {
+  PRODUCT_HUNT
+  GITHUB_TRENDING
+  HUGGING_FACE
+  REDDIT_AI
+  HACKER_NEWS
+  X_AI
+  GOOGLE_NEWS_AI
+  RSS_FEED
+  OFFICIAL_BLOG
+}
+
+enum DiscoveryTaskStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum DiscoveryResultStatus {
+  NEW
+  IMPORTED
+  DISMISSED
+  DUPLICATE
+}
+
+enum AutomationMonitorStatus {
+  ACTIVE
+  PAUSED
+  ERROR
+}
+
+enum ScreenshotVariant {
+  DESKTOP
+  MOBILE
+  DARK
+}
+
+enum BrokenLinkIssueType {
+  HTTP_ERROR
+  SSL_ERROR
+  DNS_ERROR
+  REDIRECT_LOOP
+  TIMEOUT
+  OTHER
+}
+
+enum SocialPlatform {
+  X
+  LINKEDIN
+  BLUESKY
+  THREADS
+  MASTODON
+}
+
+enum SocialPostStatus {
+  DRAFT
+  SCHEDULED
+  PUBLISHED
+  FAILED
+}
+
+enum IndexProvider {
+  GOOGLE
+  BING
+}
+
+enum IndexSubmissionStatus {
+  PENDING
+  SUBMITTED
+  FAILED
+}
+
+enum AiRefreshContentType {
+  SUMMARY
+  FAQ
+  SEO
+  GEO
+}
+
+enum AutomationRunKind {
+  DISCOVERY
+  WEBSITE_MONITOR
+  PRICE_MONITOR
+  SCREENSHOT
+  LINK_CHECK
+  AI_REFRESH
+  SOCIAL_POST
+  NEWSLETTER
+  INDEX_SUBMIT
+}
+
+enum AutomationRunStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+/// Configured discovery feed (Commit 081).
+model DiscoverySource {
+  id            String              @id @default(uuid()) @db.Uuid
+  slug          String              @unique @db.VarChar(120)
+  name          String              @db.VarChar(200)
+  kind          DiscoverySourceKind
+  url           String?             @db.VarChar(2048)
+  isEnabled     Boolean             @default(true) @map("is_enabled")
+  priority      Int                 @default(0)
+  intervalHours Int                 @default(24) @map("interval_hours")
+  lastRunAt     DateTime?           @map("last_run_at")
+  nextRunAt     DateTime?           @map("next_run_at")
+  config        Json                @default("{}")
+  metadata      Json                @default("{}")
+  createdAt     DateTime            @default(now()) @map("created_at")
+  updatedAt     DateTime            @updatedAt @map("updated_at")
+  deletedAt     DateTime?           @map("deleted_at")
+
+  tasks DiscoveryTask[]
+
+  @@index([kind])
+  @@index([isEnabled])
+  @@index([nextRunAt])
+  @@index([deletedAt])
+  @@map("discovery_sources")
+}
+
+/// Single discovery run (Commit 081).
+model DiscoveryTask {
+  id           String              @id @default(uuid()) @db.Uuid
+  sourceId     String              @map("source_id") @db.Uuid
+  status       DiscoveryTaskStatus @default(PENDING)
+  startedAt    DateTime?           @map("started_at")
+  finishedAt   DateTime?           @map("finished_at")
+  itemsFound   Int                 @default(0) @map("items_found")
+  errorMessage String?             @map("error_message") @db.Text
+  metadata     Json                @default("{}")
+  createdAt    DateTime            @default(now()) @map("created_at")
+  updatedAt    DateTime            @updatedAt @map("updated_at")
+
+  source  DiscoverySource   @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  results DiscoveryResult[]
+
+  @@index([sourceId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("discovery_tasks")
+}
+
+/// Candidate AI tool from discovery (Commit 081).
+model DiscoveryResult {
+  id             String                @id @default(uuid()) @db.Uuid
+  taskId         String                @map("task_id") @db.Uuid
+  sourceKind     DiscoverySourceKind   @map("source_kind")
+  externalId     String?               @map("external_id") @db.VarChar(256)
+  title          String                @db.VarChar(500)
+  url            String                @db.VarChar(2048)
+  description    String?               @db.Text
+  relevanceScore Decimal               @default(0) @map("relevance_score") @db.Decimal(6, 3)
+  status         DiscoveryResultStatus @default(NEW)
+  toolId         String?               @map("tool_id") @db.Uuid
+  metadata       Json                  @default("{}")
+  createdAt      DateTime              @default(now()) @map("created_at")
+  updatedAt      DateTime              @updatedAt @map("updated_at")
+
+  task DiscoveryTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+  @@index([sourceKind])
+  @@index([status])
+  @@index([externalId])
+  @@index([createdAt])
+  @@map("discovery_results")
+}
+
+/// Website change monitor per tool (Commit 082).
+model WebsiteMonitor {
+  id           String                  @id @default(uuid()) @db.Uuid
+  toolId       String                  @map("tool_id") @db.Uuid
+  url          String                  @db.VarChar(2048)
+  status       AutomationMonitorStatus @default(ACTIVE)
+  contentHash  String?                 @map("content_hash") @db.VarChar(128)
+  etag         String?                 @db.VarChar(256)
+  lastCheckedAt DateTime?              @map("last_checked_at")
+  lastChangedAt DateTime?              @map("last_changed_at")
+  metadata     Json                    @default("{}")
+  createdAt    DateTime                @default(now()) @map("created_at")
+  updatedAt    DateTime                @updatedAt @map("updated_at")
+  deletedAt    DateTime?               @map("deleted_at")
+
+  tool   Tool                  @relation(fields: [toolId], references: [id], onDelete: Cascade)
+  events WebsiteMonitorEvent[]
+
+  @@unique([toolId, url])
+  @@index([toolId])
+  @@index([status])
+  @@index([lastCheckedAt])
+  @@index([deletedAt])
+  @@map("website_monitors")
+}
+
+model WebsiteMonitorEvent {
+  id         String   @id @default(uuid()) @db.Uuid
+  monitorId  String   @map("monitor_id") @db.Uuid
+  changeType String   @map("change_type") @db.VarChar(64)
+  beforeHash String?  @map("before_hash") @db.VarChar(128)
+  afterHash  String?  @map("after_hash") @db.VarChar(128)
+  snapshot   Json     @default("{}")
+  metadata   Json     @default("{}")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  monitor WebsiteMonitor @relation(fields: [monitorId], references: [id], onDelete: Cascade)
+
+  @@index([monitorId])
+  @@index([createdAt])
+  @@map("website_monitor_events")
+}
+
+/// Pricing page monitor (Commit 083).
+model PriceMonitor {
+  id            String                  @id @default(uuid()) @db.Uuid
+  toolId        String                  @map("tool_id") @db.Uuid
+  pricingUrl    String                  @map("pricing_url") @db.VarChar(2048)
+  status        AutomationMonitorStatus @default(ACTIVE)
+  lastSnapshot  Json                    @default("{}") @map("last_snapshot")
+  lastCheckedAt DateTime?               @map("last_checked_at")
+  metadata      Json                    @default("{}")
+  createdAt     DateTime                @default(now()) @map("created_at")
+  updatedAt     DateTime                @updatedAt @map("updated_at")
+  deletedAt     DateTime?               @map("deleted_at")
+
+  tool   Tool               @relation(fields: [toolId], references: [id], onDelete: Cascade)
+  events PriceChangeEvent[]
+
+  @@unique([toolId, pricingUrl])
+  @@index([toolId])
+  @@index([status])
+  @@index([lastCheckedAt])
+  @@index([deletedAt])
+  @@map("price_monitors")
+}
+
+model PriceChangeEvent {
+  id         String   @id @default(uuid()) @db.Uuid
+  monitorId  String   @map("monitor_id") @db.Uuid
+  before     Json     @default("{}")
+  after      Json     @default("{}")
+  metadata   Json     @default("{}")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  monitor PriceMonitor @relation(fields: [monitorId], references: [id], onDelete: Cascade)
+
+  @@index([monitorId])
+  @@index([createdAt])
+  @@map("price_change_events")
+}
+
+/// Playwright screenshot capture (Commit 084).
+model ToolScreenshot {
+  id         String            @id @default(uuid()) @db.Uuid
+  toolId     String            @map("tool_id") @db.Uuid
+  variant    ScreenshotVariant
+  targetUrl  String            @map("target_url") @db.VarChar(2048)
+  storageKey String            @map("storage_key") @db.VarChar(512)
+  width      Int               @default(1280)
+  height     Int               @default(720)
+  capturedAt DateTime          @map("captured_at")
+  metadata   Json              @default("{}")
+  createdAt  DateTime          @default(now()) @map("created_at")
+  updatedAt  DateTime          @updatedAt @map("updated_at")
+
+  tool Tool @relation(fields: [toolId], references: [id], onDelete: Cascade)
+
+  @@unique([toolId, variant])
+  @@index([toolId])
+  @@index([variant])
+  @@index([capturedAt])
+  @@map("tool_screenshots")
+}
+
+/// Broken link audit (Commit 085).
+model BrokenLinkCheck {
+  id         String   @id @default(uuid()) @db.Uuid
+  targetType String   @map("target_type") @db.VarChar(64)
+  targetId   String   @map("target_id") @db.Uuid
+  url        String   @db.VarChar(2048)
+  httpStatus Int?     @map("http_status")
+  isHealthy  Boolean  @default(true) @map("is_healthy")
+  checkedAt  DateTime @map("checked_at")
+  metadata   Json     @default("{}")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  issues BrokenLinkIssue[]
+
+  @@index([targetType, targetId])
+  @@index([url])
+  @@index([isHealthy])
+  @@index([checkedAt])
+  @@map("broken_link_checks")
+}
+
+model BrokenLinkIssue {
+  id        String              @id @default(uuid()) @db.Uuid
+  checkId   String              @map("check_id") @db.Uuid
+  issueType BrokenLinkIssueType @map("issue_type")
+  message   String              @db.Text
+  metadata  Json                @default("{}")
+  createdAt DateTime            @default(now()) @map("created_at")
+
+  check BrokenLinkCheck @relation(fields: [checkId], references: [id], onDelete: Cascade)
+
+  @@index([checkId])
+  @@index([issueType])
+  @@index([createdAt])
+  @@map("broken_link_issues")
+}
+
+/// Scheduled AI content refresh (Commit 086).
+model AiRefreshSchedule {
+  id              String   @id @default(uuid()) @db.Uuid
+  toolId          String   @map("tool_id") @db.Uuid
+  contentTypes    AiRefreshContentType[] @default([SUMMARY, FAQ, SEO, GEO]) @map("content_types")
+  intervalDays    Int      @default(30) @map("interval_days")
+  lastRefreshedAt DateTime? @map("last_refreshed_at")
+  nextDueAt       DateTime? @map("next_due_at")
+  isEnabled       Boolean  @default(true) @map("is_enabled")
+  metadata        Json     @default("{}")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  deletedAt       DateTime? @map("deleted_at")
+
+  tool Tool @relation(fields: [toolId], references: [id], onDelete: Cascade)
+
+  @@unique([toolId])
+  @@index([nextDueAt])
+  @@index([isEnabled])
+  @@index([deletedAt])
+  @@map("ai_refresh_schedules")
+}
+
+/// Social post queue (Commit 087).
+model SocialPost {
+  id          String           @id @default(uuid()) @db.Uuid
+  platform    SocialPlatform
+  status      SocialPostStatus @default(DRAFT)
+  content     String           @db.Text
+  toolId      String?          @map("tool_id") @db.Uuid
+  scheduledAt DateTime?        @map("scheduled_at")
+  publishedAt DateTime?        @map("published_at")
+  externalId  String?          @map("external_id") @db.VarChar(256)
+  errorMessage String?         @map("error_message") @db.Text
+  metadata    Json             @default("{}")
+  createdAt   DateTime         @default(now()) @map("created_at")
+  updatedAt   DateTime         @updatedAt @map("updated_at")
+
+  @@index([platform])
+  @@index([status])
+  @@index([scheduledAt])
+  @@index([createdAt])
+  @@map("social_posts")
+}
+
+/// Search engine index submission (Commit 089).
+model IndexSubmission {
+  id           String                @id @default(uuid()) @db.Uuid
+  url          String                @db.VarChar(2048)
+  provider     IndexProvider
+  status       IndexSubmissionStatus @default(PENDING)
+  submittedAt  DateTime?             @map("submitted_at")
+  errorMessage String?               @map("error_message") @db.Text
+  metadata     Json                  @default("{}")
+  createdAt    DateTime              @default(now()) @map("created_at")
+  updatedAt    DateTime              @updatedAt @map("updated_at")
+
+  @@index([url])
+  @@index([provider])
+  @@index([status])
+  @@index([createdAt])
+  @@map("index_submissions")
+}
+
+/// Unified automation run log for Automation Center (Commit 090).
+model AutomationRun {
+  id           String              @id @default(uuid()) @db.Uuid
+  kind         AutomationRunKind
+  status       AutomationRunStatus @default(PENDING)
+  referenceId  String?             @map("reference_id") @db.Uuid
+  startedAt    DateTime?           @map("started_at")
+  finishedAt   DateTime?           @map("finished_at")
+  errorMessage String?             @map("error_message") @db.Text
+  result       Json                @default("{}")
+  metadata     Json                @default("{}")
+  createdAt    DateTime            @default(now()) @map("created_at")
+  updatedAt    DateTime            @updatedAt @map("updated_at")
+
+  @@index([kind])
+  @@index([status])
+  @@index([referenceId])
+  @@index([createdAt])
+  @@map("automation_runs")
 }
 
 // -----------------------------------------------------------------------------

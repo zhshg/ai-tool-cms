@@ -6,6 +6,7 @@ import { startAiPipelineWorkers } from "./ai-pipeline";
 import { startGrowthWorker } from "./growth-worker";
 import { startSearchIndexWorker } from "./search-index-worker";
 import { startPlatformWorkers } from "./platform-worker";
+import { startAutomationWorkers } from "./automation-worker";
 import { startTranslationWorker } from "./translation-worker";
 import { startAllWorkers } from "./workers";
 
@@ -19,6 +20,7 @@ async function main(): Promise<void> {
   const searchWorkers = [startSearchIndexWorker()];
   const platformWorkers = startPlatformWorkers();
   const i18nWorkers = [startTranslationWorker()];
+  const automationWorkers = startAutomationWorkers();
   const workers = [
     ...crawlWorkers,
     ...aiWorkers,
@@ -26,6 +28,7 @@ async function main(): Promise<void> {
     ...searchWorkers,
     ...platformWorkers,
     ...i18nWorkers,
+    ...automationWorkers,
   ];
 
   log.info("Workers started", {
@@ -35,6 +38,7 @@ async function main(): Promise<void> {
     searchQueues: searchWorkers.length,
     platformQueues: platformWorkers.length,
     i18nQueues: i18nWorkers.length,
+    automationQueues: automationWorkers.length,
   });
 
   const shutdown = async (signal: string) => {
