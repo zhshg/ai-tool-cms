@@ -11,6 +11,7 @@
     "dev:web": "pnpm --filter @ai-tool-cms/web dev",
     "dev:api": "pnpm --filter @ai-tool-cms/api dev",
     "dev:admin": "pnpm --filter @ai-tool-cms/admin dev",
+    "dev:ui": "turbo run dev --filter=@ai-tool-cms/web --filter=@ai-tool-cms/admin",
     "db:generate": "pnpm --filter @ai-tool-cms/database db:generate",
     "db:migrate": "pnpm --filter @ai-tool-cms/database db:migrate",
     "db:migrate:deploy": "pnpm --filter @ai-tool-cms/database db:migrate:deploy",
