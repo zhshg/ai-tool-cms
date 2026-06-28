@@ -63,6 +63,9 @@ export function usePermissions() {
     canReadCategories: hasPermission(Permission.CategoriesRead),
     canManageUsers: hasPermission(Permission.UsersManage),
     canReadSettings: hasPermission(Permission.SettingsRead),
+    canReadCrawler: hasPermission(Permission.CrawlerRead),
+    canManageCrawler: hasPermission(Permission.CrawlerManage),
+    canRunCrawler: hasPermission(Permission.CrawlerRun),
     hasPermission,
     hasAnyPermission,
   };

@@ -64,12 +64,15 @@ export async function seedRolesAndPermissions(): Promise<{
     PermissionCode.TagRead,
     PermissionCode.TagCreate,
     PermissionCode.TagUpdate,
+    PermissionCode.CrawlerRead,
+    PermissionCode.CrawlerRun,
   ];
   const viewerCodes = [
     PermissionCode.DashboardView,
     PermissionCode.ToolRead,
     PermissionCode.CategoryRead,
     PermissionCode.TagRead,
+    PermissionCode.CrawlerRead,
   ];
 
   await syncRolePermissions(adminRole.id, allPermissionIds);

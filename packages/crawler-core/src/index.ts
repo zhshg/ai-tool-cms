@@ -63,3 +63,47 @@ export {
 } from "./adapters/mock.adapter";
 export type { MockFixture } from "./adapters/mock.adapter";
 export { ExampleSiteAdapter, ExampleSiteCrawler } from "./adapters/example-site.adapter";
+
+// Site adapters (Commit 024–026)
+export {
+  registerSiteAdapters,
+  SITE_ADAPTERS,
+  ToolifyAdapter,
+  FuturepediaAdapter,
+  TaaftAdapter,
+} from "./adapters";
+
+// Unified DTO & normalization (Commit 027)
+export type {
+  ToolDTO,
+  CrawlCategoryDTO,
+  CrawlToolListItemDTO,
+  CrawlToolDetailDTO,
+} from "./ToolDTO";
+export {
+  UnifiedToolNormalizer,
+  unifiedToolNormalizer,
+  normalizeToToolDTO,
+} from "./UnifiedNormalizer";
+export type { UnifiedNormalizeInput } from "./UnifiedNormalizer";
+
+// Structured adapter base (Commit 024)
+export { StructuredSiteAdapter } from "./StructuredSiteAdapter";
+export type { FieldMapping, StructuredAdapterConfig } from "./StructuredSiteAdapter";
+
+// Duplicate detection (Commit 028)
+export { DuplicateDetector, defaultDuplicateDetector } from "./DuplicateDetector";
+export type {
+  DuplicateCandidate,
+  DuplicateCheckResult,
+  DuplicateMatch,
+  DuplicateDetectorOptions,
+  ExistingToolRecord,
+} from "./DuplicateDetector";
+
+// Ingestion helper (Commit 028)
+export { ingestToolDtos } from "./Ingestion";
+export type { IngestionResult, ToolPersistence } from "./Ingestion";
+
+// Scheduler helpers (Commit 029)
+export { computeNextRunAt, isSourceRunnable } from "./schedule";

@@ -88,6 +88,29 @@ enum CrawlJobStatus {
   CANCELLED
 }
 
+/// Source registry lifecycle (enable / disable / pause).
+enum CrawlSourceStatus {
+  ENABLED
+  DISABLED
+  PAUSED
+}
+
+/// Scheduler cadence for automated crawls.
+enum CrawlSchedule {
+  HOURLY
+  DAILY
+  WEEKLY
+  MANUAL
+}
+
+enum CrawlQueueJobType {
+  CRAWL_TOOL
+  CRAWL_CATEGORY
+  CRAWL_DETAIL
+  CRAWL_IMAGE
+  NORMALIZE
+}
+
 enum AiGenerationTaskStatus {
   PENDING
   RUNNING
@@ -791,26 +814,38 @@ model SeoMetadata {
 // Crawler
 // -----------------------------------------------------------------------------
 
-/// Registered external source for crawler ingestion.
+/// Registered external source for crawler ingestion (Source Registry).
 model CrawlSource {
-  id          String    @id @default(uuid()) @db.Uuid
-  slug        String    @db.VarChar(120)
-  name        String    @db.VarChar(160)
-  baseUrl     String    @map("base_url") @db.VarChar(2048)
-  adapterType String    @map("adapter_type") @db.VarChar(64)
-  isEnabled   Boolean   @default(true) @map("is_enabled")
-  config      Json      @default("{}")
-  createdById String?   @map("created_by_id") @db.Uuid
-  updatedById String?   @map("updated_by_id") @db.Uuid
-  deletedById String?   @map("deleted_by_id") @db.Uuid
-  metadata    Json      @default("{}")
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
-  deletedAt   DateTime? @map("deleted_at")
+  id                   String            @id @default(uuid()) @db.Uuid
+  slug                 String            @db.VarChar(120)
+  name                 String            @db.VarChar(160)
+  baseUrl              String            @map("base_url") @db.VarChar(2048)
+  adapterType          String            @map("adapter_type") @db.VarChar(64)
+  status               CrawlSourceStatus @default(ENABLED)
+  crawlIntervalMinutes Int               @default(1440) @map("crawl_interval_minutes")
+  schedule             CrawlSchedule     @default(DAILY)
+  robotsTxt            String?           @map("robots_txt") @db.Text
+  priority             Int               @default(100)
+  lastRunAt            DateTime?         @map("last_run_at")
+  nextRunAt            DateTime?         @map("next_run_at")
+  isEnabled            Boolean           @default(true) @map("is_enabled")
+  config               Json              @default("{}")
+  createdById          String?           @map("created_by_id") @db.Uuid
+  updatedById          String?           @map("updated_by_id") @db.Uuid
+  deletedById          String?           @map("deleted_by_id") @db.Uuid
+  metadata             Json              @default("{}")
+  createdAt            DateTime          @default(now()) @map("created_at")
+  updatedAt            DateTime          @updatedAt @map("updated_at")
+  deletedAt            DateTime?         @map("deleted_at")
 
   jobs CrawlJob[]
 
   @@index([slug])
+  @@index([status])
+  @@index([schedule])
+  @@index([priority])
+  @@index([nextRunAt])
+  @@index([lastRunAt])
   @@index([isEnabled])
   @@index([createdById])
   @@index([updatedById])
@@ -822,9 +857,10 @@ model CrawlSource {
 
 /// Single crawl execution against a source.
 model CrawlJob {
-  id           String         @id @default(uuid()) @db.Uuid
-  sourceId     String         @map("source_id") @db.Uuid
-  status       CrawlJobStatus @default(PENDING)
+  id           String            @id @default(uuid()) @db.Uuid
+  sourceId     String            @map("source_id") @db.Uuid
+  jobType      CrawlQueueJobType @default(CRAWL_TOOL) @map("job_type")
+  status       CrawlJobStatus    @default(PENDING)
   startedAt    DateTime?      @map("started_at")
   finishedAt   DateTime?      @map("finished_at")
   itemsFound   Int            @default(0) @map("items_found")
@@ -843,6 +879,7 @@ model CrawlJob {
   source CrawlSource @relation(fields: [sourceId], references: [id], onDelete: Cascade)
 
   @@index([sourceId])
+  @@index([jobType])
   @@index([status])
   @@index([createdById])
   @@index([updatedById])

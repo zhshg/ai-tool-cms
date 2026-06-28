@@ -1,4 +1,5 @@
 import {
+  Activity,
   FolderTree,
   LayoutDashboard,
   Settings,
@@ -36,6 +37,12 @@ export const navItems: NavItem[] = [
     permission: Permission.CategoriesRead,
   },
   {
+    title: "Crawler",
+    href: "/crawler",
+    icon: Activity,
+    permission: Permission.CrawlerRead,
+  },
+  {
     title: "Users",
     href: "/users",
     icon: Users,
@@ -53,6 +60,7 @@ export const breadcrumbLabels: Record<string, string> = {
   "": "Dashboard",
   tools: "Tools",
   categories: "Categories",
+  crawler: "Crawler",
   users: "Users",
   settings: "Settings",
 };

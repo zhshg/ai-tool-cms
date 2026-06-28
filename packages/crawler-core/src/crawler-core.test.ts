@@ -3,6 +3,9 @@ import { normalizeToolRecord } from "./Normalizer";
 import { computeBackoffDelay, retry, DEFAULT_RETRY_CONFIG } from "./Retry";
 import { DelayRateLimiter } from "./RateLimiter";
 import { MockCrawler } from "./adapters/mock.adapter";
+import { DuplicateDetector } from "./DuplicateDetector";
+import { unifiedToolNormalizer } from "./UnifiedNormalizer";
+import { computeNextRunAt } from "./schedule";
 
 describe("ToolDraftNormalizer", () => {
   it("normalizes valid extracted items", () => {
@@ -63,6 +66,61 @@ describe("DelayRateLimiter", () => {
     await limiter.acquire();
     await limiter.acquire();
     expect(Date.now() - start).toBeGreaterThanOrEqual(15);
+  });
+});
+
+describe("DuplicateDetector", () => {
+  it("detects duplicate by website", () => {
+    const detector = new DuplicateDetector();
+    const result = detector.check(
+      {
+        name: "ChatGPT",
+        slug: "chatgpt",
+        website: "https://chat.openai.com",
+        domain: "chat.openai.com",
+      },
+      [
+        {
+          id: "1",
+          name: "OpenAI Chat",
+          slug: "chatgpt",
+          website: "https://chat.openai.com/",
+          domain: "chat.openai.com",
+        },
+      ],
+    );
+    expect(result.isDuplicate).toBe(true);
+    expect(result.bestMatch?.reasons).toContain("website");
+  });
+});
+
+describe("UnifiedToolNormalizer", () => {
+  it("normalizes structured detail to ToolDTO", () => {
+    const dto = unifiedToolNormalizer.normalize({
+      sourceId: "toolify",
+      detail: {
+        externalId: "1",
+        name: "Midjourney",
+        website: "https://midjourney.com",
+        description: "Image AI",
+        tags: ["image"],
+        features: [],
+        platforms: ["web"],
+      },
+    });
+
+    expect(dto).toMatchObject({
+      name: "Midjourney",
+      domain: "midjourney.com",
+      sourceId: "toolify",
+      tags: ["image"],
+    });
+  });
+});
+
+describe("computeNextRunAt", () => {
+  it("returns null for manual schedule", () => {
+    expect(computeNextRunAt("MANUAL", 60)).toBeNull();
   });
 });
 

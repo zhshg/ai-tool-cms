@@ -1,0 +1,30 @@
+{
+  "name": "@ai-tool-cms/worker",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "predev": "pnpm --filter @ai-tool-cms/config build && pnpm --filter @ai-tool-cms/database build && pnpm --filter @ai-tool-cms/crawler-core build && pnpm --filter @ai-tool-cms/queue build",
+    "dev": "tsx watch src/main.ts",
+    "prebuild": "pnpm --filter @ai-tool-cms/config build && pnpm --filter @ai-tool-cms/database build && pnpm --filter @ai-tool-cms/crawler-core build && pnpm --filter @ai-tool-cms/queue build",
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node dist/main.js",
+    "lint": "eslint \"src/**/*.ts\" --config ../../eslint.config.mjs",
+    "test": "vitest run --passWithNoTests --config ../../vitest.config.ts",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@ai-tool-cms/common": "workspace:*",
+    "@ai-tool-cms/config": "workspace:*",
+    "@ai-tool-cms/crawler-core": "workspace:*",
+    "@ai-tool-cms/database": "workspace:*",
+    "@ai-tool-cms/logger": "workspace:*",
+    "@ai-tool-cms/queue": "workspace:*",
+    "bullmq": "^5.34.10"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsx": "^4.19.3",
+    "typescript": "^5.7.3"
+  }
+}

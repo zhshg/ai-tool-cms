@@ -15,6 +15,9 @@ export const PermissionCode = {
   TagDelete: "tag:delete",
   UsersManage: "users:manage",
   SettingsRead: "settings:read",
+  CrawlerRead: "crawler:read",
+  CrawlerManage: "crawler:manage",
+  CrawlerRun: "crawler:run",
 } as const;
 
 export type PermissionCodeValue = (typeof PermissionCode)[keyof typeof PermissionCode];
@@ -116,6 +119,24 @@ export const PERMISSION_DEFINITIONS: PermissionDefinition[] = [
     slug: "settings-read",
     name: "Read Settings",
     module: "settings",
+  },
+  {
+    code: PermissionCode.CrawlerRead,
+    slug: "crawler-read",
+    name: "Read Crawler",
+    module: "crawler",
+  },
+  {
+    code: PermissionCode.CrawlerManage,
+    slug: "crawler-manage",
+    name: "Manage Crawler Sources",
+    module: "crawler",
+  },
+  {
+    code: PermissionCode.CrawlerRun,
+    slug: "crawler-run",
+    name: "Run Crawler Jobs",
+    module: "crawler",
   },
 ];
 

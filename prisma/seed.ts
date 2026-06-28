@@ -9,6 +9,7 @@
 import { prisma } from "./seeds/context";
 import { seedBulkData } from "./seeds/bulk";
 import { seedDemoTools } from "./seeds/demo-tools";
+import { seedCrawlSources } from "./seeds/crawl-sources";
 import { seedRolesAndPermissions } from "./seeds/rbac";
 import { seedDefaultTaxonomy } from "./seeds/taxonomy";
 
@@ -24,7 +25,8 @@ async function main(): Promise<void> {
 
   if (profile === "demo" || profile === "all") {
     await seedDemoTools(adminUserId, categoryIds, tagIds);
-    console.info("[seed] 10 demo tools seeded");
+    await seedCrawlSources(adminUserId);
+    console.info("[seed] 10 demo tools + crawl sources seeded");
   }
 
   if (profile === "bulk" || profile === "all") {

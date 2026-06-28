@@ -1,7 +1,18 @@
 # scheduler
 
-Cron and scheduled tasks. Scaffold only.
+Polls `CrawlSource` registry and enqueues due crawls (Commit 029).
 
-**Status:** Scaffold (Commit-0002) — no business implementation yet.
+## Schedules
 
-See [FolderStructure.md](../../docs/00-project/FolderStructure.md) for full layout.
+- `HOURLY` — every hour
+- `DAILY` — uses `crawlIntervalMinutes` (default 1440)
+- `WEEKLY` — every 7 days
+- `MANUAL` — only via `POST /v1/crawler/jobs`
+
+## Start
+
+```bash
+pnpm --filter @ai-tool-cms/scheduler dev
+```
+
+Requires PostgreSQL and Redis.
