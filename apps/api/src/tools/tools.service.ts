@@ -4,6 +4,7 @@ import { ToolStatus } from "@ai-tool-cms/database";
 import { slugify } from "@ai-tool-cms/common";
 import { startAiPipeline } from "@ai-tool-cms/ai";
 import { enqueueAiJob, type AiQueueName } from "@ai-tool-cms/queue";
+import { enqueueSearchIndex } from "@ai-tool-cms/search";
 import { GrowthService } from "../growth/growth.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { activeOnly } from "../common/prisma.util";
@@ -133,6 +134,8 @@ export class ToolsService {
 
     if (dto.status === ToolStatus.PUBLISHED && existing.status !== ToolStatus.PUBLISHED) {
       await this.growth.enqueueToolPublished(id, "manual_publish", actorId);
+    } else if (existing.status === ToolStatus.PUBLISHED) {
+      await enqueueSearchIndex(id, "tool_update");
     }
 
     return this.findById(id);

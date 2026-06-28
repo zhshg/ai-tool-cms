@@ -23,6 +23,8 @@ export const PermissionCode = {
   AiReview: "ai:review",
   SeoRead: "seo:read",
   SeoManage: "seo:manage",
+  SearchRead: "search:read",
+  AnalyticsRead: "analytics:read",
 } as const;
 
 export type PermissionCodeValue = (typeof PermissionCode)[keyof typeof PermissionCode];
@@ -172,6 +174,18 @@ export const PERMISSION_DEFINITIONS: PermissionDefinition[] = [
     slug: "seo-manage",
     name: "Manage SEO Engine",
     module: "seo",
+  },
+  {
+    code: PermissionCode.SearchRead,
+    slug: "search-read",
+    name: "Read Search Dashboard",
+    module: "search",
+  },
+  {
+    code: PermissionCode.AnalyticsRead,
+    slug: "analytics-read",
+    name: "Read Analytics",
+    module: "analytics",
   },
 ];
 

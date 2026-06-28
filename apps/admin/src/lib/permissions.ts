@@ -12,6 +12,8 @@ export const Permission = {
   AiReview: "ai:review",
   SeoRead: "seo:read",
   SeoManage: "seo:manage",
+  SearchRead: "search:read",
+  AnalyticsRead: "analytics:read",
 } as const;
 
 export type PermissionCode = (typeof Permission)[keyof typeof Permission];
@@ -29,6 +31,8 @@ export const RolePermissions: Record<string, PermissionCode[]> = {
     Permission.AiReview,
     Permission.SeoRead,
     Permission.SeoManage,
+    Permission.SearchRead,
+    Permission.AnalyticsRead,
     Permission.UsersManage,
     Permission.SettingsRead,
   ],
@@ -39,5 +43,7 @@ export const RolePermissions: Record<string, PermissionCode[]> = {
     Permission.CrawlerRead,
     Permission.CrawlerRun,
     Permission.AiRead,
+    Permission.SearchRead,
+    Permission.AnalyticsRead,
   ],
 };

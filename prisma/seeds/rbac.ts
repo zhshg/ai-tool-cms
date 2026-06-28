@@ -70,6 +70,8 @@ export async function seedRolesAndPermissions(): Promise<{
     PermissionCode.AiManage,
     PermissionCode.SeoRead,
     PermissionCode.SeoManage,
+    PermissionCode.SearchRead,
+    PermissionCode.AnalyticsRead,
   ];
   const viewerCodes = [
     PermissionCode.DashboardView,

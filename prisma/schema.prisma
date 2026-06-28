@@ -456,6 +456,8 @@ model Tool {
   internalLinks     InternalLink[]     @relation("InternalLinkSource")
   seoComparePages   SeoComparePage[]   @relation("SeoComparePrimaryTool")
   seoComparePagesB  SeoComparePage[]   @relation("SeoCompareSecondaryTool")
+  popularitySnapshots ToolPopularitySnapshot[]
+  searchClicks      SearchClickLog[]
 
   @@index([slug])
   @@index([status])
@@ -1075,6 +1077,71 @@ model SeoHealthSnapshot {
 
   @@index([createdAt])
   @@map("seo_health_snapshots")
+}
+
+// -----------------------------------------------------------------------------
+// Search platform (Commits 051–060)
+// -----------------------------------------------------------------------------
+
+/// Search query log for analytics dashboard (Commit 059).
+model SearchQueryLog {
+  id              String   @id @default(uuid()) @db.Uuid
+  query           String   @db.VarChar(500)
+  normalizedQuery String   @map("normalized_query") @db.VarChar(500)
+  filters         Json     @default("{}")
+  resultCount     Int      @map("result_count")
+  latencyMs       Int      @map("latency_ms")
+  hadResults      Boolean  @map("had_results")
+  semanticUsed    Boolean  @default(false) @map("semantic_used")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  clicks SearchClickLog[]
+
+  @@index([query])
+  @@index([normalizedQuery])
+  @@index([hadResults])
+  @@index([createdAt])
+  @@map("search_query_logs")
+}
+
+/// Search result click tracking.
+model SearchClickLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  queryLogId String?  @map("query_log_id") @db.Uuid
+  query      String   @db.VarChar(500)
+  toolId     String   @map("tool_id") @db.Uuid
+  position   Int
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  queryLog SearchQueryLog? @relation(fields: [queryLogId], references: [id], onDelete: SetNull)
+  tool     Tool            @relation(fields: [toolId], references: [id], onDelete: Cascade)
+
+  @@index([queryLogId])
+  @@index([toolId])
+  @@index([query])
+  @@index([createdAt])
+  @@map("search_click_logs")
+}
+
+/// Tool popularity score snapshot (Commit 057).
+model ToolPopularitySnapshot {
+  id             String   @id @default(uuid()) @db.Uuid
+  toolId         String   @map("tool_id") @db.Uuid
+  seoScore       Int      @map("seo_score")
+  aiScore        Int      @map("ai_score")
+  trafficScore   Int      @map("traffic_score")
+  freshnessScore Int      @map("freshness_score")
+  reviewScore    Int      @map("review_score")
+  overallScore   Int      @map("overall_score")
+  payload        Json     @default("{}")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  tool Tool @relation(fields: [toolId], references: [id], onDelete: Cascade)
+
+  @@index([toolId])
+  @@index([overallScore])
+  @@index([createdAt])
+  @@map("tool_popularity_snapshots")
 }
 
 // -----------------------------------------------------------------------------

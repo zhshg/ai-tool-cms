@@ -95,6 +95,21 @@ export type GrowthQueuePayloadMap = {
   [GROWTH_QUEUE_NAMES.TOOL_PUBLISHED]: GrowthJobPayload;
 };
 
+export const SEARCH_QUEUE_NAMES = {
+  TOOL_INDEX: "search-tool-index",
+} as const;
+
+export type SearchQueueName = (typeof SEARCH_QUEUE_NAMES)[keyof typeof SEARCH_QUEUE_NAMES];
+
+export type SearchIndexJobPayload = {
+  toolId: string;
+  reason?: "tool_update" | "ai_generated" | "seo_generated" | "publish";
+};
+
+export type SearchQueuePayloadMap = {
+  [SEARCH_QUEUE_NAMES.TOOL_INDEX]: SearchIndexJobPayload;
+};
+
 export function queueNameForJobType(jobType: CrawlQueueJobType): CrawlQueueName {
   switch (jobType) {
     case "CRAWL_CATEGORY":

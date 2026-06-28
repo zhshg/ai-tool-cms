@@ -26,6 +26,7 @@
     "@ai-tool-cms/database": "workspace:*",
     "@ai-tool-cms/geo": "workspace:*",
     "@ai-tool-cms/queue": "workspace:*",
+    "@ai-tool-cms/search": "workspace:*",
     "@ai-tool-cms/seo": "workspace:*"
   },
   "devDependencies": {

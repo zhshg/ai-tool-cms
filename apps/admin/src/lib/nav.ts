@@ -4,6 +4,7 @@ import {
   Bot,
   FolderTree,
   LayoutDashboard,
+  Search,
   Settings,
   Users,
   Wrench,
@@ -57,6 +58,18 @@ export const navItems: NavItem[] = [
     permission: Permission.SeoRead,
   },
   {
+    title: "Search",
+    href: "/search",
+    icon: Search,
+    permission: Permission.SearchRead,
+  },
+  {
+    title: "Analytics",
+    href: "/analytics",
+    icon: Activity,
+    permission: Permission.AnalyticsRead,
+  },
+  {
     title: "Users",
     href: "/users",
     icon: Users,
@@ -77,6 +90,8 @@ export const breadcrumbLabels: Record<string, string> = {
   crawler: "Crawler",
   "ai-review": "AI Review",
   seo: "SEO",
+  search: "Search",
+  analytics: "Analytics",
   users: "Users",
   settings: "Settings",
 };
