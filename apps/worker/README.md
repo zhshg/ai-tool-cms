@@ -1,7 +1,13 @@
 # worker
 
-Background job processors (BullMQ). Scaffold only.
+Independent BullMQ worker process for crawler queues (Commit 023).
 
-**Status:** Scaffold (Commit-0002) — no business implementation yet.
+## Start
 
-See [FolderStructure.md](../../docs/00-project/FolderStructure.md) for full layout.
+```bash
+pnpm --filter @ai-tool-cms/worker dev
+```
+
+Requires PostgreSQL and Redis (`QUEUE_URL` / `REDIS_URL`).
+
+Processes all five queues: `crawl-tool`, `crawl-category`, `crawl-detail`, `crawl-image`, `normalize`.

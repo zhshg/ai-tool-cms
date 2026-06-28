@@ -1,0 +1,46 @@
+{
+  "name": "@ai-tool-cms/mcp-server",
+  "version": "0.0.0",
+  "private": true,
+  "description": "MCP Server — AI-native interface for AI Tool CMS (Search, Details, Compare, Categories, Pricing, Latest)",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "ai-tool-cms-mcp": "./dist/main.cjs"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json && node scripts/bundle.mjs",
+    "dev": "tsx src/main.ts",
+    "start": "node dist/main.cjs",
+    "lint": "eslint \"src/**/*.ts\" --config ../../eslint.config.mjs",
+    "test": "vitest run --config ../../vitest.config.ts",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@ai-tool-cms/config": "workspace:*",
+    "@ai-tool-cms/database": "workspace:*",
+    "@ai-tool-cms/public-api": "workspace:*",
+    "@ai-tool-cms/ranking": "workspace:*",
+    "@ai-tool-cms/recommendation": "workspace:*",
+    "@ai-tool-cms/search": "workspace:*",
+    "@ai-tool-cms/seo": "workspace:*",
+    "@modelcontextprotocol/sdk": "^1.12.1",
+    "@prisma/client": "^6.19.3",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "esbuild": "^0.25.0",
+    "tsx": "^4.19.3",
+    "typescript": "^5.7.3"
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "name": "@ai-tool-cms/worker",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "predev": "pnpm --filter @ai-tool-cms/config build && pnpm --filter @ai-tool-cms/database build && pnpm --filter @ai-tool-cms/seo build && pnpm --filter @ai-tool-cms/geo build && pnpm --filter @ai-tool-cms/i18n build && pnpm --filter @ai-tool-cms/search build && pnpm --filter @ai-tool-cms/ranking build && pnpm --filter @ai-tool-cms/growth build && pnpm --filter @ai-tool-cms/api-platform build && pnpm --filter @ai-tool-cms/email build && pnpm --filter @ai-tool-cms/discovery build && pnpm --filter @ai-tool-cms/screenshot build && pnpm --filter @ai-tool-cms/automation build && pnpm --filter @ai-tool-cms/ai build && pnpm --filter @ai-tool-cms/crawler-core build && pnpm --filter @ai-tool-cms/queue build",
+    "dev": "tsx watch src/main.ts",
+    "prebuild": "pnpm --filter @ai-tool-cms/config build && pnpm --filter @ai-tool-cms/database build && pnpm --filter @ai-tool-cms/seo build && pnpm --filter @ai-tool-cms/geo build && pnpm --filter @ai-tool-cms/i18n build && pnpm --filter @ai-tool-cms/search build && pnpm --filter @ai-tool-cms/ranking build && pnpm --filter @ai-tool-cms/growth build && pnpm --filter @ai-tool-cms/api-platform build && pnpm --filter @ai-tool-cms/email build && pnpm --filter @ai-tool-cms/discovery build && pnpm --filter @ai-tool-cms/screenshot build && pnpm --filter @ai-tool-cms/automation build && pnpm --filter @ai-tool-cms/ai build && pnpm --filter @ai-tool-cms/crawler-core build && pnpm --filter @ai-tool-cms/queue build",
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node dist/main.js",
+    "lint": "eslint \"src/**/*.ts\" --config ../../eslint.config.mjs",
+    "test": "vitest run --passWithNoTests --config ../../vitest.config.ts",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@ai-tool-cms/automation": "workspace:*",
+    "@ai-tool-cms/discovery": "workspace:*",
+    "@ai-tool-cms/screenshot": "workspace:*",
+    "@ai-tool-cms/ai": "workspace:*",
+    "@ai-tool-cms/api-platform": "workspace:*",
+    "@ai-tool-cms/i18n": "workspace:*",
+    "@ai-tool-cms/email": "workspace:*",
+    "@ai-tool-cms/common": "workspace:*",
+    "@ai-tool-cms/config": "workspace:*",
+    "@ai-tool-cms/crawler-core": "workspace:*",
+    "@ai-tool-cms/database": "workspace:*",
+    "@ai-tool-cms/growth": "workspace:*",
+    "@ai-tool-cms/logger": "workspace:*",
+    "@ai-tool-cms/monitoring": "workspace:*",
+    "@ai-tool-cms/plugins": "workspace:*",
+    "@ai-tool-cms/queue": "workspace:*",
+    "@ai-tool-cms/workflow": "workspace:*",
+    "@ai-tool-cms/ranking": "workspace:*",
+    "@ai-tool-cms/search": "workspace:*",
+    "@ai-tool-cms/seo": "workspace:*",
+    "bullmq": "^5.34.10"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsx": "^4.19.3",
+    "typescript": "^5.7.3"
+  }
+}

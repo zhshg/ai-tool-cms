@@ -1,0 +1,76 @@
+# Prompt Catalog — edit this file + catalog/*.md to improve AI output without redeploying app code.
+# Future: admin hot-reload can override this registry from DB (see PromptEngine.reload).
+
+apiVersion: v1
+kind: PromptCatalog
+
+defaults:
+  locale: en
+  version: latest # resolves per-template latestVersion
+  variant: auto # weighted A/B selection from registry weights
+  system: _shared/system.default.md
+
+templates:
+  summary:
+    description: One-sentence, paragraph, long description, feature highlights
+    latestVersion: "1"
+    versions:
+      "1":
+        locales: [en, zh-CN]
+        variants:
+          default: { weight: 70 }
+          concise: { weight: 30 }
+
+  feature:
+    description: Extract features, pricing, platforms, integrations
+    latestVersion: "1"
+    versions:
+      "1":
+        locales: [en]
+        variants:
+          default: { weight: 100 }
+
+  faq:
+    description: FAQ JSON array for tool pages
+    latestVersion: "1"
+    versions:
+      "1":
+        locales: [en, zh-CN]
+        variants:
+          default: { weight: 100 }
+
+  seo:
+    description: Title, meta, OG, Twitter, JSON-LD
+    latestVersion: "1"
+    versions:
+      "1":
+        locales: [en]
+        variants:
+          default: { weight: 100 }
+
+  geo:
+    description: Generative Engine Optimization for LLM citation
+    latestVersion: "1"
+    versions:
+      "1":
+        locales: [en]
+        variants:
+          default: { weight: 100 }
+
+  compare:
+    description: Competitor comparison JSON
+    latestVersion: "1"
+    versions:
+      "1":
+        locales: [en]
+        variants:
+          default: { weight: 100 }
+
+  pros-cons:
+    description: Pros, cons, verdict JSON
+    latestVersion: "1"
+    versions:
+      "1":
+        locales: [en]
+        variants:
+          default: { weight: 100 }

@@ -1,0 +1,15 @@
+AI Tool CMS
+Copyright (c) 2026 AI Tool CMS Contributors
+
+This product includes software developed by the open source community.
+See LICENSE for the full MIT license text.
+
+Third-party notices:
+
+- NestJS — MIT License
+- Next.js — MIT License
+- Prisma — Apache License 2.0
+- BullMQ — MIT License
+- Meilisearch client — MIT License
+
+For a complete dependency list, run: pnpm licenses list

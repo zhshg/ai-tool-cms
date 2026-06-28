@@ -1,6 +1,213 @@
 {
+  "home": {
+    "title": "AI 工具目录",
+    "description": "发现、对比和探索最佳 AI 工具 —— 由 AI Tool CMS 驱动。",
+    "trending": "热门工具",
+    "categories": "按分类浏览",
+    "latest": "最新收录"
+  },
   "scaffold": {
     "title": "AI Tool CMS Web",
     "description": "框架脚手架 — 尚未包含业务页面。"
+  },
+  "landing": {
+    "nav": {
+      "docs": "文档",
+      "pricing": "定价",
+      "showcase": "案例",
+      "blog": "博客",
+      "changelog": "更新日志",
+      "getStarted": "快速开始"
+    },
+    "hero": {
+      "badge": "v1.0.0 正式版 — 开源",
+      "title": "面向工具目录的 AI 原生 CMS",
+      "subtitle": "采集、AI  enrichment、SEO 优化、一键发布 —— 配套 REST API、MCP Server 与完整可观测性。",
+      "ctaPrimary": "30 分钟上手",
+      "ctaSecondary": "GitHub 仓库",
+      "stats": "生产级 · 7×24 · 文档齐全 · 可观测"
+    },
+    "features": {
+      "title": "一站式发布所需",
+      "subtitle": "从采集到发布，一个平台搞定。",
+      "items": {
+        "ai": {
+          "title": "AI 流水线",
+          "desc": "多模型生成、审核工作流与质量评分。"
+        },
+        "search": {
+          "title": "混合搜索",
+          "desc": "Meilisearch + 语义向量，即时发现工具。"
+        },
+        "seo": {
+          "title": "SEO 引擎",
+          "desc": "Sitemap、JSON-LD、对比页与内链系统。"
+        },
+        "i18n": {
+          "title": "10+ 语言",
+          "desc": "hreflang、区域 SEO 与翻译工作流。"
+        },
+        "workflow": {
+          "title": "工作流引擎",
+          "desc": "可配置发布流水线与插件钩子。"
+        },
+        "security": {
+          "title": "生产级安全",
+          "desc": "RBAC、API Key、安全头与 CI 扫描。"
+        }
+      }
+    },
+    "architecture": {
+      "title": "开放平台架构",
+      "subtitle": "为规模与扩展而生的 Monorepo。",
+      "layers": {
+        "web": { "title": "Web + Admin", "desc": "Next.js 15" },
+        "api": { "title": "API", "desc": "NestJS REST" },
+        "worker": { "title": "Worker", "desc": "BullMQ 异步" },
+        "open": { "title": "开放接口", "desc": "SDK · MCP · Webhooks" }
+      }
+    },
+    "demo": {
+      "title": "在线演示",
+      "subtitle": "浏览目录中已发布的工具。",
+      "empty": "执行 db:seed 后即可在此看到工具。",
+      "browseAll": "浏览全部工具"
+    },
+    "screenshots": {
+      "title": "为运营者打造",
+      "subtitle": "SEO、增长与自动化管理后台。",
+      "items": {
+        "admin": "管理后台",
+        "seo": "SEO 监控",
+        "api": "API 与平台"
+      }
+    },
+    "sponsors": {
+      "title": "技术栈",
+      "cta": "有意赞助？欢迎在 GitHub Discussions 联系我们。"
+    },
+    "github": {
+      "title": "GitHub 开源",
+      "subtitle": "MIT 协议。可自托管或通过插件扩展。",
+      "license": "协议",
+      "packages": "包数量",
+      "sprints": "已交付 Sprint",
+      "cta": "Star 项目"
+    },
+    "docs": {
+      "title": "开发者文档",
+      "subtitle": "30 分钟本地部署，完整 API 参考。",
+      "gettingStarted": "快速开始",
+      "api": "API 参考",
+      "deployment": "部署指南",
+      "cta": "阅读文档"
+    },
+    "roadmap": {
+      "title": "未来规划",
+      "subtitle": "v1.0 今日 GA，v1.1 与 v2.0 在路上。",
+      "v11": {
+        "agent": "AI Agent 仪表盘",
+        "prompts": "Prompt 库",
+        "marketplace": "插件市场",
+        "analytics": "更强 Analytics"
+      },
+      "v20": {
+        "mcp": "MCP Server GA",
+        "workflow": "工作流可视化编辑器",
+        "enterprise": "企业版",
+        "saas": "SaaS 云服务"
+      },
+      "changelogLink": "查看完整更新日志 →"
+    },
+    "cta": {
+      "title": "准备好发布你的 AI 工具目录了吗？",
+      "subtitle": "克隆、部署，今日即可上线 v1.0.0。",
+      "primary": "立即开始",
+      "secondary": "查看定价"
+    },
+    "footer": {
+      "tagline": "开源 AI 工具内容管理系统。",
+      "product": "产品",
+      "pricing": "定价",
+      "showcase": "案例",
+      "changelog": "更新日志",
+      "resources": "资源",
+      "docs": "文档",
+      "blog": "博客",
+      "community": "社区"
+    }
+  },
+  "pages": {
+    "docs": {
+      "title": "文档",
+      "subtitle": "面向开发者与运维的指南。",
+      "githubHint": "完整文档维护在代码仓库中：",
+      "sections": {
+        "gettingStarted": "快速开始 — 30 分钟部署",
+        "api": "API 参考 — REST、SDK、MCP",
+        "deployment": "部署 — Docker 与 K8s",
+        "architecture": "架构概览"
+      },
+      "back": "返回首页"
+    },
+    "pricing": {
+      "title": "定价",
+      "subtitle": "核心开源，按你的方式扩展。",
+      "cta": "开始使用",
+      "tiers": {
+        "oss": {
+          "name": "开源版",
+          "price": "免费",
+          "desc": "自托管完整平台。",
+          "features": ["MIT 协议", "全部核心功能", "社区支持"]
+        },
+        "selfHosted": {
+          "name": "自托管专业版",
+          "price": "自有基础设施",
+          "desc": "在你的云上生产部署。",
+          "features": ["Docker 镜像", "运维手册", "备份脚本", "CI/CD 模板"]
+        },
+        "enterprise": {
+          "name": "企业版",
+          "price": "联系销售",
+          "desc": "团队工作区与 SLA（v2.0 规划）。",
+          "features": ["SSO", "专属支持", "定制 SLA", "多租户 SaaS"]
+        }
+      }
+    },
+    "blog": {
+      "title": "博客",
+      "subtitle": "版本发布与工程动态。",
+      "back": "返回首页",
+      "posts": {
+        "v1-ga-launch": {
+          "title": "AI Tool CMS v1.0.0 正式发布",
+          "excerpt": "General Availability — 生产就绪、文档齐全、完全开源。"
+        },
+        "open-ecosystem": {
+          "title": "开放生态：API、MCP、SDK",
+          "excerpt": "Sprint 10 交付面向 AI 原生集成的开发者平台。"
+        },
+        "production-ready": {
+          "title": "生产就绪 Sprint",
+          "excerpt": "监控、备份、CI/CD 与零停机部署实践。"
+        }
+      }
+    },
+    "changelog": {
+      "title": "更新日志",
+      "subtitle": "AI Tool CMS 版本历史。",
+      "releases": {
+        "1_0_0": "Sprint 12 — v1.0.0 GA：发布、文档、社区、营销。",
+        "1_0_0-prod_1": "Sprint 11 — 生产就绪：监控、备份、CI/CD。",
+        "1_0_0-rc_1": "Sprint 10 — 开放生态：Public API、MCP、SDK、Webhooks。"
+      }
+    },
+    "showcase": {
+      "title": "案例展示",
+      "subtitle": "目录中的精选工具与分类。",
+      "trending": "热门",
+      "categories": "分类"
+    }
   }
 }

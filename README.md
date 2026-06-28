@@ -1,65 +1,80 @@
 # AI Tool CMS
 
-AI 工具内容管理系统 Monorepo。
+[![Version](https://img.shields.io/badge/version-1.0.0-blue)](./VERSION)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 
-## 项目结构
+![AI Tool CMS](media/banner/github-readme-banner.svg)
 
-```
-ai-tool-cms/
-├── apps/                 # 应用层
-│   ├── web/              # 面向用户的 Web 站点
-│   ├── admin/            # 管理后台
-│   ├── api/              # 后端 API 服务
-│   ├── crawler/          # 数据采集服务
-│   ├── worker/           # 异步任务 Worker
-│   └── scheduler/        # 定时调度服务
-├── packages/             # 共享包
-│   ├── ui/               # UI 组件库
-│   ├── config/           # 共享配置
-│   ├── database/         # 数据库访问层
-│   ├── types/            # 共享类型定义
-│   ├── utils/            # 工具函数
-│   ├── seo/              # SEO 相关
-│   ├── ai/               # AI 能力封装
-│   ├── crawler-core/     # 爬虫核心
-│   ├── logger/           # 日志
-│   ├── auth/             # 认证授权
-│   ├── storage/          # 对象存储
-│   ├── queue/            # 消息队列
-│   └── common/           # 通用模块
-├── docs/                 # 项目文档
-├── spec/                 # 业务规格与内容规范
-├── docker/               # Docker 相关
-├── scripts/              # 脚本
-└── prisma/               # 数据库 Schema 与迁移
+**开源 AI 工具内容管理系统** — 采集、AI 增强、SEO 优化、一键发布。配套 REST API、MCP Server、TypeScript SDK 与生产级运维工具链。
+
+**v1.0.0 GA** — Production · 24×7 · Open Source · Stable · Documented · Observable · Maintainable
+
+## 特性
+
+- 🤖 **AI 流水线** — 多模型生成、审核工作流、质量评分
+- 🔍 **混合搜索** — Meilisearch + 语义向量
+- 📈 **SEO 引擎** — Sitemap、JSON-LD、对比页、内链系统
+- 🌍 **10+ 语言** — i18n、hreflang、区域 SEO
+- 🔌 **开放生态** — Public API v1、MCP、Webhooks、Plugin Framework
+- 🛡️ **生产就绪** — 监控、备份、CI/CD、安全加固
+
+## 30 分钟快速开始
+
+```bash
+git clone https://github.com/zhshg/ai-tool-cms.git
+cd ai-tool-cms
+cp .env.example .env
+pnpm install
+pnpm docker:up
+pnpm db:migrate:deploy
+pnpm db:seed
+pnpm dev:stack
 ```
 
-## 快速开始
+| 服务 | URL |
+|------|-----|
+| Website | http://localhost:3000 |
+| Admin | http://localhost:3001 |
+| API | http://localhost:4000 |
+| Swagger | http://localhost:4000/api/docs |
 
-> 依赖安装与启动命令将在包管理配置完成后补充。
+## Docker
 
-1. 复制环境变量：`cp .env.example .env`
-2. 安装依赖（待配置）
-3. 初始化数据库（待配置）
-4. 启动开发服务（待配置）
+```bash
+docker pull ghcr.io/zhshg/ai-tool-cms:1.0.0
+```
 
 ## 文档
 
-项目总入口文档：[docs/00-project/README.md](./docs/00-project/README.md)
-
-**Git 工作流（当前有效）：** [docs/00-project/GitWorkflowUpdate.md](./docs/00-project/GitWorkflowUpdate.md) — 早期开发采用 **single-main** 直接提交，不自动创建功能分支或 Draft PR。
-
-详细设计文档见 `docs/` 目录：
-
-| 目录 | 说明 |
+| 文档 | 说明 |
 |------|------|
-| `00-project` | 项目概述 |
-| `01-architecture` | 架构设计 |
-| `02-database` | 数据库设计 |
-| `03-api` | API 规范 |
-| `04-web` ~ `08-ai` | 各应用模块说明 |
-| `09-seo` ~ `13-roadmap` | SEO、运维、测试与路线图 |
+| [Getting Started](./docs/GettingStarted.md) | 30 分钟部署 |
+| [API Reference](./docs/API.md) | REST · SDK · MCP |
+| [Operations](./docs/operations/README.md) | 运维手册 |
+| [RELEASE.md](./RELEASE.md) | v1.0.0 发布说明 |
+| [Examples](./examples/README.md) | 示例代码 |
+
+## 架构
+
+```
+                AI Tool Platform
+                     Database
+                         │
+     ┌────────────┬──────────────┬────────────┬────────────┐
+     ▼            ▼              ▼            ▼            ▼
+   Website    REST API v1    MCP Server    Webhook Hub    SDK
+```
+
+## 路线图
+
+- [v1.1](./ROADMAP_v1.1.md) — AI Agent Dashboard、Prompt Library、Plugin Marketplace
+- [v2.0](./ROADMAP_v2.0.md) — Workflow Builder、Enterprise、SaaS Cloud
+- [Vision 2027](./VISION_2027.md)
+
+## 贡献
+
+欢迎贡献！见 [CONTRIBUTING.md](./.github/CONTRIBUTING.md) 与 [Code of Conduct](./.github/CODE_OF_CONDUCT.md)。
 
 ## 许可证
 
-见 [LICENSE](./LICENSE) 文件。
+[MIT](./LICENSE) © 2026 AI Tool CMS Contributors

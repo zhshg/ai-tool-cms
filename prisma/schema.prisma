@@ -1,5 +1,21 @@
-// AI Tool CMS v2 — Prisma schema (scaffold)
-// Business models are added in subsequent commits.
+// =============================================================================
+// AI Tool CMS — Prisma Schema v1 (Commit 011)
+// Production-grade baseline. Minimize future breaking migrations.
+// =============================================================================
+//
+// Every model MUST include:
+//   id (UUID) | createdAt | updatedAt | deletedAt | metadata (JSON)
+//   slug (when publicly addressable) | indexes on FKs | soft-delete support
+//
+// Auditable domain models also include:
+//   createdById | updatedById | deletedById (indexed actor UUIDs)
+//
+// Slug uniqueness among active rows is enforced via partial unique indexes
+// in migration SQL (WHERE deleted_at IS NULL). Soft-deleted rows may reuse slugs.
+//
+// AuditLog is append-only in application code; it still carries standard
+// timestamp / metadata fields for schema consistency.
+// =============================================================================
 
 generator client {
   provider = "prisma-client-js"
@@ -8,4 +24,2354 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+// -----------------------------------------------------------------------------
+// Enums
+// -----------------------------------------------------------------------------
+
+/// Tool editorial lifecycle (RFC-0001).
+enum ToolStatus {
+  DRAFT
+  IN_REVIEW
+  APPROVED
+  SCHEDULED
+  PUBLISHED
+  ARCHIVED
+}
+
+/// High-level pricing classification on a tool.
+enum PricingModel {
+  FREE
+  FREEMIUM
+  PAID
+  CONTACT
+}
+
+enum BillingPeriod {
+  MONTHLY
+  YEARLY
+  ONE_TIME
+  CUSTOM
+}
+
+enum ReviewStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  PUBLISHED
+}
+
+enum PromptStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum ApiKeyStatus {
+  ACTIVE
+  REVOKED
+  EXPIRED
+}
+
+enum CrawlJobStatus {
+  PENDING
+  RUNNING
+  SUCCEEDED
+  FAILED
+  CANCELLED
+}
+
+/// Source registry lifecycle (enable / disable / pause).
+enum CrawlSourceStatus {
+  ENABLED
+  DISABLED
+  PAUSED
+}
+
+/// Scheduler cadence for automated crawls.
+enum CrawlSchedule {
+  HOURLY
+  DAILY
+  WEEKLY
+  MANUAL
+}
+
+enum CrawlQueueJobType {
+  CRAWL_TOOL
+  CRAWL_CATEGORY
+  CRAWL_DETAIL
+  CRAWL_IMAGE
+  NORMALIZE
+}
+
+enum AiGenerationTaskStatus {
+  PENDING
+  RUNNING
+  SUCCEEDED
+  FAILED
+  CANCELLED
+}
+
+/// AI-generated content review gate (Commit 039).
+enum ContentRevisionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+/// AI enrichment pipeline stages (Commit 040).
+enum AiPipelineStage {
+  SUMMARY
+  FEATURE
+  FAQ
+  SEO
+  GEO
+  QUALITY
+  PUBLISH
+}
+
+enum ReviewVoteValue {
+  UP
+  DOWN
+}
+
+enum SeoEntityType {
+  TOOL
+  CATEGORY
+  TAG
+  PROMPT
+  COLLECTION
+  PAGE
+}
+
+/// Compare / alternatives / top-list SEO pages (Commit 046).
+enum SeoComparePageType {
+  TOOL_VS
+  ALTERNATIVES
+  TOP_LIST
+}
+
+/// Internal link types for tool pages (Commit 044).
+enum InternalLinkType {
+  ALTERNATIVE
+  COMPARE
+  CATEGORY
+  TAG
+  PROMPT
+  FAQ
+  RELATED
+  TRENDING
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  PUBLISH
+  ARCHIVE
+  LOGIN
+  LOGOUT
+  OTHER
+}
+
+/// Affiliate network (Commit 061).
+enum AffiliateNetwork {
+  AMAZON
+  IMPACT
+  PARTNERSTACK
+  CJ
+  SHAREASALE
+  CUSTOM
+}
+
+enum AffiliateProgramStatus {
+  ACTIVE
+  PAUSED
+  ARCHIVED
+}
+
+enum AffiliateLinkStatus {
+  ACTIVE
+  PAUSED
+}
+
+/// Sponsored placement types (Commit 062).
+enum SponsoredPlacementType {
+  SPONSORED
+  FEATURED
+  TRENDING
+  EDITORS_CHOICE
+}
+
+enum SponsoredPlacementStatus {
+  SCHEDULED
+  ACTIVE
+  EXPIRED
+  PAUSED
+}
+
+/// Ad network (Commit 063).
+enum AdNetwork {
+  ADSENSE
+  AD_MANAGER
+  CARBON
+  CUSTOM
+  NATIVE
+}
+
+enum AdSlotStatus {
+  ACTIVE
+  PAUSED
+}
+
+/// Newsletter campaign types (Commit 064).
+enum NewsletterCampaignType {
+  WEEKLY_AI
+  TOP_AI
+  NEW_AI
+  TRENDING_AI
+  CATEGORY_WEEKLY
+}
+
+enum NewsletterCampaignStatus {
+  DRAFT
+  SCHEDULED
+  SENDING
+  SENT
+  FAILED
+}
+
+enum NewsletterSubscriberStatus {
+  PENDING
+  CONFIRMED
+  UNSUBSCRIBED
+}
+
+/// Email template types (Commit 065).
+enum EmailTemplateType {
+  NEW_TOOL
+  WEEKLY_DIGEST
+  MONTHLY_DIGEST
+  TRENDING
+  COLLECTIONS
+  NEWSLETTER
+  CONFIRM
+  CUSTOM
+}
+
+/// Webhook events (Commit 067, expanded Sprint 10).
+enum WebhookEvent {
+  TOOL_ADDED
+  TOOL_UPDATED
+  TOOL_DELETED
+  AI_GENERATED
+  CRAWLER_FINISHED
+  SEO_UPDATED
+}
+
+enum WebhookDeliveryStatus {
+  PENDING
+  DELIVERED
+  FAILED
+  RETRYING
+}
+
+/// Revenue source (Commit 069).
+enum RevenueSource {
+  AFFILIATE
+  ADS
+  SPONSORED
+  API
+  OTHER
+}
+
+enum PartnerAccountStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+/// Translation workflow status (Commit 075).
+enum TranslationStatus {
+  PENDING
+  AI_GENERATED
+  HUMAN_REVIEWED
+  PUBLISHED
+}
+
+enum TranslationJobStatus {
+  PENDING
+  RUNNING
+  SUCCEEDED
+  FAILED
+  CANCELLED
+}
+
+enum TranslationJobStage {
+  ENGLISH
+  AI_GENERATE
+  SEO
+  REVIEW
+  PUBLISH
+}
+
+// -----------------------------------------------------------------------------
+// RBAC & Identity
+// -----------------------------------------------------------------------------
+
+/// Platform user account.
+model User {
+  id              String     @id @default(uuid()) @db.Uuid
+  email           String     @unique @db.VarChar(320)
+  slug            String?    @db.VarChar(120)
+  passwordHash    String     @map("password_hash") @db.VarChar(255)
+  displayName     String?    @map("display_name") @db.VarChar(120)
+  avatarUrl       String?    @map("avatar_url") @db.VarChar(2048)
+  status          UserStatus @default(ACTIVE)
+  emailVerifiedAt DateTime?  @map("email_verified_at")
+  lastLoginAt     DateTime?  @map("last_login_at")
+  createdById     String?    @map("created_by_id") @db.Uuid
+  updatedById     String?    @map("updated_by_id") @db.Uuid
+  deletedById     String?    @map("deleted_by_id") @db.Uuid
+  metadata        Json       @default("{}")
+  createdAt       DateTime   @default(now()) @map("created_at")
+  updatedAt       DateTime   @updatedAt @map("updated_at")
+  deletedAt       DateTime?  @map("deleted_at")
+
+  roles             UserRole[]
+  apiKeys           ApiKey[]
+  partnerAccount    PartnerAccount?
+  webhooks          Webhook[]
+  reviews           Review[]
+  reviewVotes       ReviewVote[]
+  favorites         Favorite[]
+  collections       Collection[]
+  auditLogs         AuditLog[]         @relation("AuditActor")
+  aiGenerationTasks AiGenerationTask[]
+
+  @@index([status])
+  @@index([slug])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+  @@index([deletedAt])
+  @@index([createdAt])
+  @@index([updatedAt])
+  @@map("users")
+}
+
+/// RBAC role (admin, editor, viewer, ...).
+model Role {
+  id          String    @id @default(uuid()) @db.Uuid
+  slug        String    @db.VarChar(64)
+  code        String    @unique @db.VarChar(64)
+  name        String    @db.VarChar(120)
+  description String?   @db.Text
+  isSystem    Boolean   @default(false) @map("is_system")
+  createdById String?   @map("created_by_id") @db.Uuid
+  updatedById String?   @map("updated_by_id") @db.Uuid
+  deletedById String?   @map("deleted_by_id") @db.Uuid
+  metadata    Json      @default("{}")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  users       UserRole[]
+  permissions RolePermission[]
+
+  @@index([slug])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+  @@index([deletedAt])
+  @@index([updatedAt])
+  @@map("roles")
+}
+
+/// Atomic permission code (e.g. tools:read).
+model Permission {
+  id          String    @id @default(uuid()) @db.Uuid
+  slug        String    @db.VarChar(128)
+  code        String    @unique @db.VarChar(128)
+  name        String    @db.VarChar(120)
+  description String?   @db.Text
+  module      String    @db.VarChar(64)
+  createdById String?   @map("created_by_id") @db.Uuid
+  updatedById String?   @map("updated_by_id") @db.Uuid
+  deletedById String?   @map("deleted_by_id") @db.Uuid
+  metadata    Json      @default("{}")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  roles RolePermission[]
+
+  @@index([slug])
+  @@index([module])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+  @@index([deletedAt])
+  @@index([updatedAt])
+  @@map("permissions")
+}
+
+/// User ↔ Role assignment.
+model UserRole {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  roleId    String    @map("role_id") @db.Uuid
+  metadata  Json      @default("{}")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+  @@index([userId])
+  @@index([roleId])
+  @@index([deletedAt])
+  @@index([updatedAt])
+  @@map("user_roles")
+}
+
+/// Role ↔ Permission assignment.
+model RolePermission {
+  id           String    @id @default(uuid()) @db.Uuid
+  roleId       String    @map("role_id") @db.Uuid
+  permissionId String    @map("permission_id") @db.Uuid
+  metadata     Json      @default("{}")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  deletedAt    DateTime? @map("deleted_at")
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+  @@index([roleId])
+  @@index([permissionId])
+  @@index([deletedAt])
+  @@index([updatedAt])
+  @@map("role_permissions")
+}
+
+/// Programmatic API access key for a user.
+model ApiKey {
+  id         String       @id @default(uuid()) @db.Uuid
+  userId     String       @map("user_id") @db.Uuid
+  name       String       @db.VarChar(120)
+  keyPrefix  String       @map("key_prefix") @db.VarChar(16)
+  keyHash    String       @map("key_hash") @db.VarChar(255)
+  status     ApiKeyStatus @default(ACTIVE)
+  scopes     String[]     @default([])
+  expiresAt  DateTime?    @map("expires_at")
+  lastUsedAt DateTime?    @map("last_used_at")
+  metadata   Json         @default("{}")
+  createdAt  DateTime     @default(now()) @map("created_at")
+  updatedAt  DateTime     @updatedAt @map("updated_at")
+  deletedAt  DateTime?    @map("deleted_at")
+
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  usageLogs ApiKeyUsageLog[]
+
+  @@index([userId])
+  @@index([keyPrefix])
+  @@index([status])
+  @@index([deletedAt])
+  @@index([updatedAt])
+  @@map("api_keys")
+}
+
+/// API key usage tracking (Commit 066).
+model ApiKeyUsageLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  apiKeyId   String   @map("api_key_id") @db.Uuid
+  endpoint   String   @db.VarChar(256)
+  method     String   @db.VarChar(16)
+  statusCode Int      @map("status_code")
+  durationMs Int      @map("duration_ms")
+  metadata   Json     @default("{}")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  apiKey ApiKey @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
+
+  @@index([apiKeyId])
+  @@index([endpoint])
+  @@index([createdAt])
+  @@map("api_key_usage_logs")
+}
+
+// -----------------------------------------------------------------------------
+// Taxonomy
+// -----------------------------------------------------------------------------
+
+/// Hierarchical tool category.
+model Category {
+  id              String    @id @default(uuid()) @db.Uuid
+  slug            String    @db.VarChar(120)
+  name            String    @db.VarChar(160)
+  description     String?   @db.Text
+  parentId        String?   @map("parent_id") @db.Uuid
+  sortOrder       Int       @default(0) @map("sort_order")
+  iconUrl         String?   @map("icon_url") @db.VarChar(2048)
+  metaTitle       String?   @map("meta_title") @db.VarChar(160)
+  metaDescription String?   @map("meta_description") @db.VarChar(320)
+  createdById     String?   @map("created_by_id") @db.Uuid
+  updatedById     String?   @map("updated_by_id") @db.Uuid
+  deletedById     String?   @map("deleted_by_id") @db.Uuid
+  metadata        Json      @default("{}")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  deletedAt       DateTime? @map("deleted_at")
+
+  parent   Category?      @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children Category[]     @relation("CategoryHierarchy")
+  tools    ToolCategory[]
+  seoComparePages SeoComparePage[]
+
+  @@index([slug])
+  @@index([parentId])
+  @@index([sortOrder])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+  @@index([deletedAt])
+  @@index([updatedAt])
+  @@map("categories")
+}
+
+/// Flat tag for discovery and filtering.
+model Tag {
+  id          String    @id @default(uuid()) @db.Uuid
+  slug        String    @db.VarChar(120)
+  name        String    @db.VarChar(120)
+  description String?   @db.Text
+  createdById String?   @map("created_by_id") @db.Uuid
+  updatedById String?   @map("updated_by_id") @db.Uuid
+  deletedById String?   @map("deleted_by_id") @db.Uuid
+  metadata    Json      @default("{}")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  tools ToolTag[]
+  seoComparePages SeoComparePage[]
+
+  @@index([slug])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+  @@index([deletedAt])
+  @@index([updatedAt])
+  @@map("tags")
+}
+
+// -----------------------------------------------------------------------------
+// Tool aggregate (catalog core)
+// -----------------------------------------------------------------------------
+
+/// Canonical AI tool catalog entry (RFC-0001).
+model Tool {
+  id              String       @id @default(uuid()) @db.Uuid
+  slug            String       @db.VarChar(120)
+  name            String       @db.VarChar(200)
+  description     String?      @db.Text
+  summary         String?      @db.VarChar(500)
+  longDescription String?      @map("long_description") @db.Text
+  website         String       @db.VarChar(2048)
+  logoUrl         String?      @map("logo_url") @db.VarChar(2048)
+  pricingModel    PricingModel @default(FREE) @map("pricing_model")
+  status          ToolStatus   @default(DRAFT)
+  metaTitle       String?      @map("meta_title") @db.VarChar(160)
+  metaDescription String?      @map("meta_description") @db.VarChar(320)
+  publishedAt     DateTime?    @map("published_at")
+  scheduledAt     DateTime?    @map("scheduled_at")
+  createdById     String?      @map("created_by_id") @db.Uuid
+  updatedById     String?      @map("updated_by_id") @db.Uuid
+  deletedById     String?      @map("deleted_by_id") @db.Uuid
+  metadata        Json         @default("{}")
+  createdAt       DateTime     @default(now()) @map("created_at")
+  updatedAt       DateTime     @updatedAt @map("updated_at")
+  deletedAt       DateTime?    @map("deleted_at")
+
+  categories        ToolCategory[]
+  tags              ToolTag[]
+  pricingPlans      PricingPlan[]
+  versions          ToolVersion[]
+  reviews           Review[]
+  faqs              Faq[]
+  prompts           Prompt[]
+  favorites         Favorite[]
+  collectionItems   CollectionItem[]
+  seoMetadata       SeoMetadata[]
+  aiGenerationTasks AiGenerationTask[]
+  contentRevisions  ContentRevision[]
+  internalLinks     InternalLink[]     @relation("InternalLinkSource")
+  seoComparePages   SeoComparePage[]   @relation("SeoComparePrimaryTool")
+  seoComparePagesB  SeoComparePage[]   @relation("SeoCompareSecondaryTool")
+  popularitySnapshots ToolPopularitySnapshot[]
+  searchClicks      SearchClickLog[]
+  affiliateLinks    AffiliateLink[]
+  sponsoredPlacements SponsoredPlacement[]
+  translations      ToolTranslation[]
+  translationJobs   TranslationJob[]
+  websiteMonitors   WebsiteMonitor[]
+  priceMonitors     PriceMonitor[]
+  toolScreenshots   ToolScreenshot[]
+  aiRefreshSchedules AiRefreshSchedule[]
+
+  @@index([slug])
+  @@index([status])
+  @@index([pricingModel])
+  @@index([publishedAt])
+  @@index([website])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+  @@index([deletedAt])
+  @@index([createdAt])
+  @@index([updatedAt])
+  @@map("tools")
+}
+
+/// Tool ↔ Category (M:N).
+model ToolCategory {
+  id         String    @id @default(uuid()) @db.Uuid
+  toolId     String    @map("tool_id") @db.Uuid
+  categoryId String    @map("category_id") @db.Uuid
+  isPrimary  Boolean   @default(false) @map("is_primary")
+  metadata   Json      @default("{}")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+  deletedAt  DateTime? @map("deleted_at")
+
+  tool     Tool     @relation(fields: [toolId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([toolId, categoryId])
+  @@index([toolId])
+  @@index([categoryId])
+  @@index([deletedAt])
+  @@index([updatedAt])
+  @@map("tool_categories")
+}
+
+/// Tool ↔ Tag (M:N).
+model ToolTag {
+  id        String    @id @default(uuid()) @db.Uuid
+  toolId    String    @map("tool_id") @db.Uuid
+  tagId     String    @map("tag_id") @db.Uuid
+  metadata  Json      @default("{}")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  tool Tool @relation(fields: [toolId], references: [id], onDelete: Cascade)
+  tag  Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([toolId, tagId])
+  @@index([toolId])
+  @@index([tagId])
+  @@index([deletedAt])
+  @@index([updatedAt])
+  @@map("tool_tags")
+}
+
+/// Structured pricing tier for a tool.
+model PricingPlan {
+  id            String         @id @default(uuid()) @db.Uuid
+  toolId        String         @map("tool_id") @db.Uuid
+  slug          String         @db.VarChar(120)
+  name          String         @db.VarChar(120)
+  pricingModel  PricingModel   @map("pricing_model")
+  currency      String         @default("USD") @db.VarChar(3)
+  amount        Decimal?       @db.Decimal(12, 2)
+  billingPeriod BillingPeriod? @map("billing_period")
+  description   String?        @db.Text
+  isFeatured    Boolean        @default(false) @map("is_featured")
+  sortOrder     Int            @default(0) @map("sort_order")
+  createdById   String?        @map("created_by_id") @db.Uuid
+  updatedById   String?        @map("updated_by_id") @db.Uuid
+  deletedById   String?        @map("deleted_by_id") @db.Uuid
+  metadata      Json           @default("{}")
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+  deletedAt     DateTime?      @map("deleted_at")
+
+  tool Tool @relation(fields: [toolId], references: [id], onDelete: Cascade)
+
+  @@index([toolId, slug])
+  @@index([toolId])
+  @@index([pricingModel])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+  @@index([deletedAt])
+  @@index([updatedAt])
+  @@map("pricing_plans")
+}
+
+/// Immutable-style content snapshot for a tool.
+model ToolVersion {
+  id            String     @id @default(uuid()) @db.Uuid
+  toolId        String     @map("tool_id") @db.Uuid
+  slug          String     @db.VarChar(120)
+  versionNumber Int        @map("version_number")
+  status        ToolStatus
+  changelog     String?    @db.Text
+  snapshot      Json       @default("{}")
+  publishedAt   DateTime?  @map("published_at")
+  createdById   String?    @map("created_by_id") @db.Uuid
+  updatedById   String?    @map("updated_by_id") @db.Uuid
+  deletedById   String?    @map("deleted_by_id") @db.Uuid
+  metadata      Json       @default("{}")
+  createdAt     DateTime   @default(now()) @map("created_at")
+  updatedAt     DateTime   @updatedAt @map("updated_at")
+  deletedAt     DateTime?  @map("deleted_at")
+
+  tool Tool @relation(fields: [toolId], references: [id], onDelete: Cascade)
+
+  @@unique([toolId, versionNumber])
+  @@index([toolId, slug])
+  @@index([toolId])
+  @@index([status])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+  @@index([deletedAt])
+  @@index([updatedAt])
+  @@map("tool_versions")
+}
+
+// -----------------------------------------------------------------------------
+// Reviews & engagement
+// -----------------------------------------------------------------------------
+
+/// User or editorial review for a tool.
+model Review {
+  id          String       @id @default(uuid()) @db.Uuid
+  toolId      String       @map("tool_id") @db.Uuid
+  userId      String?      @map("user_id") @db.Uuid
+  slug        String       @db.VarChar(120)
+  authorName  String?      @map("author_name") @db.VarChar(120)
+  rating      Int
+  title       String?      @db.VarChar(200)
+  content     String       @db.Text
+  status      ReviewStatus @default(PENDING)
+  createdById String?      @map("created_by_id") @db.Uuid
+  updatedById String?      @map("updated_by_id") @db.Uuid
+  deletedById String?      @map("deleted_by_id") @db.Uuid
+  metadata    Json         @default("{}")
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+  deletedAt   DateTime?    @map("deleted_at")
+
+  tool  Tool         @relation(fields: [toolId], references: [id], onDelete: Cascade)
+  user  User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  votes ReviewVote[]
+
+  @@index([toolId, slug])
+  @@index([toolId])
+  @@index([userId])
+  @@index([status])
+  @@index([rating])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+  @@index([deletedAt])
+  @@index([updatedAt])
+  @@map("reviews")
+}
+
+/// Up/down vote on a review.
+model ReviewVote {
+  id        String          @id @default(uuid()) @db.Uuid
+  reviewId  String          @map("review_id") @db.Uuid
+  userId    String          @map("user_id") @db.Uuid
+  value     ReviewVoteValue
+  metadata  Json            @default("{}")
+  createdAt DateTime        @default(now()) @map("created_at")
+  updatedAt DateTime        @updatedAt @map("updated_at")
+  deletedAt DateTime?       @map("deleted_at")
+
+  review Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([reviewId, userId])
+  @@index([reviewId])
+  @@index([userId])
+  @@index([deletedAt])
+  @@index([updatedAt])
+  @@map("review_votes")
+}
+
+/// Tool-specific FAQ entry.
+model Faq {
+  id          String    @id @default(uuid()) @db.Uuid
+  toolId      String    @map("tool_id") @db.Uuid
+  slug        String    @db.VarChar(120)
+  question    String    @db.VarChar(500)
+  answer      String    @db.Text
+  sortOrder   Int       @default(0) @map("sort_order")
+  createdById String?   @map("created_by_id") @db.Uuid
+  updatedById String?   @map("updated_by_id") @db.Uuid
+  deletedById String?   @map("deleted_by_id") @db.Uuid
+  metadata    Json      @default("{}")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  tool Tool @relation(fields: [toolId], references: [id], onDelete: Cascade)
+
+  @@index([toolId, slug])
+  @@index([toolId])
+  @@index([sortOrder])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+  @@index([deletedAt])
+  @@index([updatedAt])
+  @@map("faqs")
+}
+
+// -----------------------------------------------------------------------------
+// Prompts library
+// -----------------------------------------------------------------------------
+
+/// Taxonomy for prompt templates.
+model PromptCategory {
+  id          String    @id @default(uuid()) @db.Uuid
+  slug        String    @db.VarChar(120)
+  name        String    @db.VarChar(160)
+  description String?   @db.Text
+  parentId    String?   @map("parent_id") @db.Uuid
+  sortOrder   Int       @default(0) @map("sort_order")
+  createdById String?   @map("created_by_id") @db.Uuid
+  updatedById String?   @map("updated_by_id") @db.Uuid
+  deletedById String?   @map("deleted_by_id") @db.Uuid
+  metadata    Json      @default("{}")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  parent   PromptCategory?  @relation("PromptCategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children PromptCategory[] @relation("PromptCategoryHierarchy")
+  prompts  Prompt[]
+
+  @@index([slug])
+  @@index([parentId])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+  @@index([deletedAt])
+  @@index([updatedAt])
+  @@map("prompt_categories")
+}
+
+/// Reusable prompt template, optionally linked to a tool.
+model Prompt {
+  id               String       @id @default(uuid()) @db.Uuid
+  slug             String       @db.VarChar(120)
+  title            String       @db.VarChar(200)
+  content          String       @db.Text
+  status           PromptStatus @default(DRAFT)
+  toolId           String?      @map("tool_id") @db.Uuid
+  promptCategoryId String?      @map("prompt_category_id") @db.Uuid
+  modelHint        String?      @map("model_hint") @db.VarChar(120)
+  variables        Json         @default("[]")
+  createdById      String?      @map("created_by_id") @db.Uuid
+  updatedById      String?      @map("updated_by_id") @db.Uuid
+  deletedById      String?      @map("deleted_by_id") @db.Uuid
+  metadata         Json         @default("{}")
+  createdAt        DateTime     @default(now()) @map("created_at")
+  updatedAt        DateTime     @updatedAt @map("updated_at")
+  deletedAt        DateTime?    @map("deleted_at")
+
+  tool           Tool?           @relation(fields: [toolId], references: [id], onDelete: SetNull)
+  promptCategory PromptCategory? @relation(fields: [promptCategoryId], references: [id], onDelete: SetNull)
+
+  @@index([slug])
+  @@index([toolId])
+  @@index([promptCategoryId])
+  @@index([status])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+  @@index([deletedAt])
+  @@index([updatedAt])
+  @@map("prompts")
+}
+
+// -----------------------------------------------------------------------------
+// Collections & favorites
+// -----------------------------------------------------------------------------
+
+/// Curated list of tools created by a user.
+model Collection {
+  id          String    @id @default(uuid()) @db.Uuid
+  slug        String    @db.VarChar(120)
+  name        String    @db.VarChar(160)
+  description String?   @db.Text
+  userId      String    @map("user_id") @db.Uuid
+  isPublic    Boolean   @default(false) @map("is_public")
+  createdById String?   @map("created_by_id") @db.Uuid
+  updatedById String?   @map("updated_by_id") @db.Uuid
+  deletedById String?   @map("deleted_by_id") @db.Uuid
+  metadata    Json      @default("{}")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  user  User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items CollectionItem[]
+
+  @@index([slug])
+  @@index([userId])
+  @@index([isPublic])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+  @@index([deletedAt])
+  @@index([updatedAt])
+  @@map("collections")
+}
+
+/// Tool membership inside a collection.
+model CollectionItem {
+  id           String    @id @default(uuid()) @db.Uuid
+  collectionId String    @map("collection_id") @db.Uuid
+  toolId       String    @map("tool_id") @db.Uuid
+  sortOrder    Int       @default(0) @map("sort_order")
+  note         String?   @db.VarChar(500)
+  metadata     Json      @default("{}")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  deletedAt    DateTime? @map("deleted_at")
+
+  collection Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  tool       Tool       @relation(fields: [toolId], references: [id], onDelete: Cascade)
+
+  @@unique([collectionId, toolId])
+  @@index([collectionId])
+  @@index([toolId])
+  @@index([deletedAt])
+  @@index([updatedAt])
+  @@map("collection_items")
+}
+
+/// User bookmark for a tool.
+model Favorite {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  toolId    String    @map("tool_id") @db.Uuid
+  metadata  Json      @default("{}")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tool Tool @relation(fields: [toolId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, toolId])
+  @@index([userId])
+  @@index([toolId])
+  @@index([deletedAt])
+  @@index([updatedAt])
+  @@map("favorites")
+}
+
+// -----------------------------------------------------------------------------
+// SEO
+// -----------------------------------------------------------------------------
+
+/// Polymorphic SEO metadata overlay for public entities.
+model SeoMetadata {
+  id              String        @id @default(uuid()) @db.Uuid
+  entityType      SeoEntityType @map("entity_type")
+  entityId        String        @map("entity_id") @db.Uuid
+  toolId          String?       @map("tool_id") @db.Uuid
+  metaTitle       String?       @map("meta_title") @db.VarChar(160)
+  metaDescription String?       @map("meta_description") @db.VarChar(320)
+  canonicalUrl    String?       @map("canonical_url") @db.VarChar(2048)
+  ogImageUrl      String?       @map("og_image_url") @db.VarChar(2048)
+  robots          String?       @db.VarChar(120)
+  schemaJson      Json          @default("{}") @map("schema_json")
+  createdById     String?       @map("created_by_id") @db.Uuid
+  updatedById     String?       @map("updated_by_id") @db.Uuid
+  deletedById     String?       @map("deleted_by_id") @db.Uuid
+  metadata        Json          @default("{}")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+  deletedAt       DateTime?     @map("deleted_at")
+
+  tool Tool? @relation(fields: [toolId], references: [id], onDelete: Cascade)
+
+  @@unique([entityType, entityId])
+  @@index([toolId])
+  @@index([entityType])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+  @@index([deletedAt])
+  @@index([updatedAt])
+  @@map("seo_metadata")
+}
+
+// -----------------------------------------------------------------------------
+// Crawler
+// -----------------------------------------------------------------------------
+
+/// Registered external source for crawler ingestion (Source Registry).
+model CrawlSource {
+  id                   String            @id @default(uuid()) @db.Uuid
+  slug                 String            @db.VarChar(120)
+  name                 String            @db.VarChar(160)
+  baseUrl              String            @map("base_url") @db.VarChar(2048)
+  adapterType          String            @map("adapter_type") @db.VarChar(64)
+  status               CrawlSourceStatus @default(ENABLED)
+  crawlIntervalMinutes Int               @default(1440) @map("crawl_interval_minutes")
+  schedule             CrawlSchedule     @default(DAILY)
+  robotsTxt            String?           @map("robots_txt") @db.Text
+  priority             Int               @default(100)
+  lastRunAt            DateTime?         @map("last_run_at")
+  nextRunAt            DateTime?         @map("next_run_at")
+  isEnabled            Boolean           @default(true) @map("is_enabled")
+  config               Json              @default("{}")
+  createdById          String?           @map("created_by_id") @db.Uuid
+  updatedById          String?           @map("updated_by_id") @db.Uuid
+  deletedById          String?           @map("deleted_by_id") @db.Uuid
+  metadata             Json              @default("{}")
+  createdAt            DateTime          @default(now()) @map("created_at")
+  updatedAt            DateTime          @updatedAt @map("updated_at")
+  deletedAt            DateTime?         @map("deleted_at")
+
+  jobs CrawlJob[]
+
+  @@index([slug])
+  @@index([status])
+  @@index([schedule])
+  @@index([priority])
+  @@index([nextRunAt])
+  @@index([lastRunAt])
+  @@index([isEnabled])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+  @@index([deletedAt])
+  @@index([updatedAt])
+  @@map("crawl_sources")
+}
+
+/// Single crawl execution against a source.
+model CrawlJob {
+  id           String            @id @default(uuid()) @db.Uuid
+  sourceId     String            @map("source_id") @db.Uuid
+  jobType      CrawlQueueJobType @default(CRAWL_TOOL) @map("job_type")
+  status       CrawlJobStatus    @default(PENDING)
+  startedAt    DateTime?      @map("started_at")
+  finishedAt   DateTime?      @map("finished_at")
+  itemsFound   Int            @default(0) @map("items_found")
+  itemsCreated Int            @default(0) @map("items_created")
+  itemsUpdated Int            @default(0) @map("items_updated")
+  errorMessage String?        @map("error_message") @db.Text
+  result       Json           @default("{}")
+  createdById  String?        @map("created_by_id") @db.Uuid
+  updatedById  String?        @map("updated_by_id") @db.Uuid
+  deletedById  String?        @map("deleted_by_id") @db.Uuid
+  metadata     Json           @default("{}")
+  createdAt    DateTime       @default(now()) @map("created_at")
+  updatedAt    DateTime       @updatedAt @map("updated_at")
+  deletedAt    DateTime?      @map("deleted_at")
+
+  source CrawlSource @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+
+  @@index([sourceId])
+  @@index([jobType])
+  @@index([status])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+  @@index([createdAt])
+  @@index([deletedAt])
+  @@index([updatedAt])
+  @@map("crawl_jobs")
+}
+
+// -----------------------------------------------------------------------------
+// AI pipeline
+// -----------------------------------------------------------------------------
+
+/// Async AI enrichment / generation job.
+model AiGenerationTask {
+  id           String                 @id @default(uuid()) @db.Uuid
+  taskType     String                 @map("task_type") @db.VarChar(64)
+  status       AiGenerationTaskStatus @default(PENDING)
+  toolId       String?                @map("tool_id") @db.Uuid
+  userId       String?                @map("user_id") @db.Uuid
+  model        String?                @db.VarChar(120)
+  input        Json                   @default("{}")
+  output       Json                   @default("{}")
+  errorMessage String?                @map("error_message") @db.Text
+  startedAt    DateTime?              @map("started_at")
+  finishedAt   DateTime?              @map("finished_at")
+  createdById  String?                @map("created_by_id") @db.Uuid
+  updatedById  String?                @map("updated_by_id") @db.Uuid
+  deletedById  String?                @map("deleted_by_id") @db.Uuid
+  metadata     Json                   @default("{}")
+  createdAt    DateTime               @default(now()) @map("created_at")
+  updatedAt    DateTime               @updatedAt @map("updated_at")
+  deletedAt    DateTime?              @map("deleted_at")
+
+  tool Tool? @relation(fields: [toolId], references: [id], onDelete: SetNull)
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  contentRevisions ContentRevision[]
+
+  @@index([toolId])
+  @@index([userId])
+  @@index([status])
+  @@index([taskType])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+  @@index([deletedAt])
+  @@index([updatedAt])
+  @@map("ai_generation_tasks")
+}
+
+/// AI-generated content pending human review before applying to Tool (RFC-0003).
+model ContentRevision {
+  id           String                 @id @default(uuid()) @db.Uuid
+  toolId       String                 @map("tool_id") @db.Uuid
+  stage        AiPipelineStage
+  status       ContentRevisionStatus  @default(PENDING)
+  payload      Json                   @default("{}")
+  qualityScore Int?                   @map("quality_score")
+  reviewNote   String?                @map("review_note") @db.Text
+  aiTaskId     String?                @map("ai_task_id") @db.Uuid
+  createdById  String?                @map("created_by_id") @db.Uuid
+  updatedById  String?                @map("updated_by_id") @db.Uuid
+  reviewedById String?                @map("reviewed_by_id") @db.Uuid
+  reviewedAt   DateTime?              @map("reviewed_at")
+  metadata     Json                   @default("{}")
+  createdAt    DateTime               @default(now()) @map("created_at")
+  updatedAt    DateTime               @updatedAt @map("updated_at")
+  deletedAt    DateTime?              @map("deleted_at")
+
+  tool   Tool              @relation(fields: [toolId], references: [id], onDelete: Cascade)
+  aiTask AiGenerationTask? @relation(fields: [aiTaskId], references: [id], onDelete: SetNull)
+
+  @@index([toolId])
+  @@index([stage])
+  @@index([status])
+  @@index([qualityScore])
+  @@index([aiTaskId])
+  @@index([createdAt])
+  @@index([deletedAt])
+  @@map("content_revisions")
+}
+
+// -----------------------------------------------------------------------------
+// SEO platform (Commits 041–050)
+// -----------------------------------------------------------------------------
+
+/// Programmatic compare / alternatives / list pages.
+model SeoComparePage {
+  id          String             @id @default(uuid()) @db.Uuid
+  slug        String             @db.VarChar(160)
+  type        SeoComparePageType
+  title       String             @db.VarChar(200)
+  toolId      String?            @map("tool_id") @db.Uuid
+  toolBId     String?            @map("tool_b_id") @db.Uuid
+  categoryId  String?            @map("category_id") @db.Uuid
+  tagId       String?            @map("tag_id") @db.Uuid
+  status      ToolStatus         @default(DRAFT)
+  metadata    Json               @default("{}")
+  publishedAt DateTime?          @map("published_at")
+  createdAt   DateTime           @default(now()) @map("created_at")
+  updatedAt   DateTime           @updatedAt @map("updated_at")
+  deletedAt   DateTime?          @map("deleted_at")
+
+  tool   Tool?     @relation("SeoComparePrimaryTool", fields: [toolId], references: [id], onDelete: SetNull)
+  toolB  Tool?     @relation("SeoCompareSecondaryTool", fields: [toolBId], references: [id], onDelete: SetNull)
+  category Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  tag    Tag?      @relation(fields: [tagId], references: [id], onDelete: SetNull)
+
+  @@unique([slug])
+  @@index([type])
+  @@index([status])
+  @@index([toolId])
+  @@index([categoryId])
+  @@index([deletedAt])
+  @@map("seo_compare_pages")
+}
+
+/// Internal links for tool detail pages (min 20 per tool).
+model InternalLink {
+  id           String           @id @default(uuid()) @db.Uuid
+  sourceToolId String           @map("source_tool_id") @db.Uuid
+  targetSlug   String           @map("target_slug") @db.VarChar(160)
+  targetKind   String           @map("target_kind") @db.VarChar(32)
+  linkType     InternalLinkType @map("link_type")
+  anchorText   String           @map("anchor_text") @db.VarChar(200)
+  href         String           @db.VarChar(2048)
+  sortOrder    Int              @default(0) @map("sort_order")
+  metadata     Json             @default("{}")
+  createdAt    DateTime         @default(now()) @map("created_at")
+  updatedAt    DateTime         @updatedAt @map("updated_at")
+  deletedAt    DateTime?        @map("deleted_at")
+
+  sourceTool Tool @relation("InternalLinkSource", fields: [sourceToolId], references: [id], onDelete: Cascade)
+
+  @@index([sourceToolId])
+  @@index([linkType])
+  @@index([targetSlug])
+  @@index([deletedAt])
+  @@map("internal_links")
+}
+
+/// Cached SEO health / search console snapshot for dashboard.
+model SeoHealthSnapshot {
+  id        String   @id @default(uuid()) @db.Uuid
+  score     Int
+  payload   Json     @default("{}")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([createdAt])
+  @@map("seo_health_snapshots")
+}
+
+// -----------------------------------------------------------------------------
+// Search platform (Commits 051–060)
+// -----------------------------------------------------------------------------
+
+/// Search query log for analytics dashboard (Commit 059).
+model SearchQueryLog {
+  id              String   @id @default(uuid()) @db.Uuid
+  query           String   @db.VarChar(500)
+  normalizedQuery String   @map("normalized_query") @db.VarChar(500)
+  filters         Json     @default("{}")
+  resultCount     Int      @map("result_count")
+  latencyMs       Int      @map("latency_ms")
+  hadResults      Boolean  @map("had_results")
+  semanticUsed    Boolean  @default(false) @map("semantic_used")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  clicks SearchClickLog[]
+
+  @@index([query])
+  @@index([normalizedQuery])
+  @@index([hadResults])
+  @@index([createdAt])
+  @@map("search_query_logs")
+}
+
+/// Search result click tracking.
+model SearchClickLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  queryLogId String?  @map("query_log_id") @db.Uuid
+  query      String   @db.VarChar(500)
+  toolId     String   @map("tool_id") @db.Uuid
+  position   Int
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  queryLog SearchQueryLog? @relation(fields: [queryLogId], references: [id], onDelete: SetNull)
+  tool     Tool            @relation(fields: [toolId], references: [id], onDelete: Cascade)
+
+  @@index([queryLogId])
+  @@index([toolId])
+  @@index([query])
+  @@index([createdAt])
+  @@map("search_click_logs")
+}
+
+/// Tool popularity score snapshot (Commit 057).
+model ToolPopularitySnapshot {
+  id             String   @id @default(uuid()) @db.Uuid
+  toolId         String   @map("tool_id") @db.Uuid
+  seoScore       Int      @map("seo_score")
+  aiScore        Int      @map("ai_score")
+  trafficScore   Int      @map("traffic_score")
+  freshnessScore Int      @map("freshness_score")
+  reviewScore    Int      @map("review_score")
+  overallScore   Int      @map("overall_score")
+  payload        Json     @default("{}")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  tool Tool @relation(fields: [toolId], references: [id], onDelete: Cascade)
+
+  @@index([toolId])
+  @@index([overallScore])
+  @@index([createdAt])
+  @@map("tool_popularity_snapshots")
+}
+
+// -----------------------------------------------------------------------------
+// Monetization — Affiliate (Commit 061)
+// -----------------------------------------------------------------------------
+
+/// Affiliate program (Amazon, Impact, CJ, etc.).
+model AffiliateProgram {
+  id          String                 @id @default(uuid()) @db.Uuid
+  slug        String                 @db.VarChar(120)
+  name        String                 @db.VarChar(200)
+  network     AffiliateNetwork
+  status      AffiliateProgramStatus @default(ACTIVE)
+  config      Json                   @default("{}")
+  createdById String?                @map("created_by_id") @db.Uuid
+  updatedById String?                @map("updated_by_id") @db.Uuid
+  deletedById String?                @map("deleted_by_id") @db.Uuid
+  metadata    Json                   @default("{}")
+  createdAt   DateTime               @default(now()) @map("created_at")
+  updatedAt   DateTime               @updatedAt @map("updated_at")
+  deletedAt   DateTime?              @map("deleted_at")
+
+  links       AffiliateLink[]
+  campaigns   AffiliateCampaign[]
+
+  @@index([slug])
+  @@index([network])
+  @@index([status])
+  @@index([deletedAt])
+  @@index([updatedAt])
+  @@map("affiliate_programs")
+}
+
+/// Tool affiliate link (official URL → affiliate redirect).
+model AffiliateLink {
+  id          String              @id @default(uuid()) @db.Uuid
+  toolId      String              @map("tool_id") @db.Uuid
+  programId   String?             @map("program_id") @db.Uuid
+  network     AffiliateNetwork    @default(CUSTOM)
+  officialUrl String              @map("official_url") @db.VarChar(2048)
+  affiliateUrl String             @map("affiliate_url") @db.VarChar(2048)
+  status      AffiliateLinkStatus @default(ACTIVE)
+  createdById String?             @map("created_by_id") @db.Uuid
+  updatedById String?             @map("updated_by_id") @db.Uuid
+  deletedById String?             @map("deleted_by_id") @db.Uuid
+  metadata    Json                @default("{}")
+  createdAt   DateTime            @default(now()) @map("created_at")
+  updatedAt   DateTime            @updatedAt @map("updated_at")
+  deletedAt   DateTime?           @map("deleted_at")
+
+  tool        Tool                @relation(fields: [toolId], references: [id], onDelete: Cascade)
+  program     AffiliateProgram?   @relation(fields: [programId], references: [id], onDelete: SetNull)
+  clicks      AffiliateClick[]
+  conversions AffiliateConversion[]
+  commissions AffiliateCommission[]
+
+  @@index([toolId])
+  @@index([programId])
+  @@index([network])
+  @@index([status])
+  @@index([deletedAt])
+  @@index([updatedAt])
+  @@map("affiliate_links")
+}
+
+model AffiliateClick {
+  id        String   @id @default(uuid()) @db.Uuid
+  linkId    String   @map("link_id") @db.Uuid
+  ipAddress String?  @map("ip_address") @db.VarChar(64)
+  userAgent String?  @map("user_agent") @db.VarChar(512)
+  referrer  String?  @db.VarChar(2048)
+  country   String?  @db.VarChar(8)
+  metadata  Json     @default("{}")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  link AffiliateLink @relation(fields: [linkId], references: [id], onDelete: Cascade)
+
+  @@index([linkId])
+  @@index([createdAt])
+  @@map("affiliate_clicks")
+}
+
+model AffiliateConversion {
+  id        String   @id @default(uuid()) @db.Uuid
+  linkId    String   @map("link_id") @db.Uuid
+  amount    Decimal  @default(0) @db.Decimal(12, 2)
+  currency  String   @default("USD") @db.VarChar(8)
+  externalId String? @map("external_id") @db.VarChar(128)
+  metadata  Json     @default("{}")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  link AffiliateLink @relation(fields: [linkId], references: [id], onDelete: Cascade)
+
+  @@index([linkId])
+  @@index([createdAt])
+  @@map("affiliate_conversions")
+}
+
+model AffiliateCommission {
+  id        String   @id @default(uuid()) @db.Uuid
+  linkId    String   @map("link_id") @db.Uuid
+  amount    Decimal  @default(0) @db.Decimal(12, 2)
+  currency  String   @default("USD") @db.VarChar(8)
+  status    String   @default("pending") @db.VarChar(32)
+  metadata  Json     @default("{}")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  link AffiliateLink @relation(fields: [linkId], references: [id], onDelete: Cascade)
+
+  @@index([linkId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("affiliate_commissions")
+}
+
+model AffiliateCampaign {
+  id        String    @id @default(uuid()) @db.Uuid
+  programId String    @map("program_id") @db.Uuid
+  name      String    @db.VarChar(200)
+  utmSource String?   @map("utm_source") @db.VarChar(64)
+  utmMedium String?   @map("utm_medium") @db.VarChar(64)
+  utmCampaign String? @map("utm_campaign") @db.VarChar(128)
+  metadata  Json      @default("{}")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  program AffiliateProgram @relation(fields: [programId], references: [id], onDelete: Cascade)
+
+  @@index([programId])
+  @@index([deletedAt])
+  @@map("affiliate_campaigns")
+}
+
+// -----------------------------------------------------------------------------
+// Monetization — Sponsored (Commit 062)
+// -----------------------------------------------------------------------------
+
+model SponsoredPlacement {
+  id        String                   @id @default(uuid()) @db.Uuid
+  toolId    String                   @map("tool_id") @db.Uuid
+  type      SponsoredPlacementType
+  status    SponsoredPlacementStatus @default(SCHEDULED)
+  weight    Int                      @default(100)
+  startAt   DateTime?                @map("start_at")
+  endAt     DateTime?                @map("end_at")
+  regions   String[]                 @default([])
+  devices   String[]                 @default([])
+  createdById String?                @map("created_by_id") @db.Uuid
+  updatedById String?                @map("updated_by_id") @db.Uuid
+  deletedById String?                @map("deleted_by_id") @db.Uuid
+  metadata  Json                     @default("{}")
+  createdAt DateTime                 @default(now()) @map("created_at")
+  updatedAt DateTime                 @updatedAt @map("updated_at")
+  deletedAt DateTime?                @map("deleted_at")
+
+  tool Tool @relation(fields: [toolId], references: [id], onDelete: Cascade)
+
+  @@index([toolId])
+  @@index([type])
+  @@index([status])
+  @@index([startAt])
+  @@index([endAt])
+  @@index([deletedAt])
+  @@map("sponsored_placements")
+}
+
+// -----------------------------------------------------------------------------
+// Monetization — Ads (Commit 063)
+// -----------------------------------------------------------------------------
+
+model AdSlot {
+  id          String       @id @default(uuid()) @db.Uuid
+  slug        String       @db.VarChar(120)
+  name        String       @db.VarChar(200)
+  network     AdNetwork    @default(CUSTOM)
+  position    String       @db.VarChar(64)
+  sortOrder   Int          @default(0) @map("sort_order")
+  status      AdSlotStatus @default(ACTIVE)
+  config      Json         @default("{}")
+  createdById String?      @map("created_by_id") @db.Uuid
+  updatedById String?      @map("updated_by_id") @db.Uuid
+  deletedById String?      @map("deleted_by_id") @db.Uuid
+  metadata    Json         @default("{}")
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+  deletedAt   DateTime?    @map("deleted_at")
+
+  @@index([slug])
+  @@index([position])
+  @@index([status])
+  @@index([sortOrder])
+  @@index([deletedAt])
+  @@map("ad_slots")
+}
+
+// -----------------------------------------------------------------------------
+// Newsletter & Email (Commits 064–065)
+// -----------------------------------------------------------------------------
+
+model NewsletterSubscriber {
+  id            String                   @id @default(uuid()) @db.Uuid
+  email         String                   @unique @db.VarChar(320)
+  status        NewsletterSubscriberStatus @default(PENDING)
+  locale        String                   @default("zh-CN") @db.VarChar(16)
+  confirmToken  String?                  @map("confirm_token") @db.VarChar(128)
+  confirmedAt   DateTime?                @map("confirmed_at")
+  unsubscribedAt DateTime?               @map("unsubscribed_at")
+  metadata      Json                     @default("{}")
+  createdAt     DateTime                 @default(now()) @map("created_at")
+  updatedAt     DateTime                 @updatedAt @map("updated_at")
+  deletedAt     DateTime?                @map("deleted_at")
+
+  @@index([status])
+  @@index([deletedAt])
+  @@map("newsletter_subscribers")
+}
+
+model NewsletterCampaign {
+  id          String                 @id @default(uuid()) @db.Uuid
+  type        NewsletterCampaignType
+  status      NewsletterCampaignStatus @default(DRAFT)
+  subject     String                 @db.VarChar(320)
+  contentHtml String?                @map("content_html") @db.Text
+  categoryId  String?                @map("category_id") @db.Uuid
+  scheduledAt DateTime?              @map("scheduled_at")
+  sentAt      DateTime?              @map("sent_at")
+  recipientCount Int                 @default(0) @map("recipient_count")
+  metadata    Json                   @default("{}")
+  createdAt   DateTime               @default(now()) @map("created_at")
+  updatedAt   DateTime               @updatedAt @map("updated_at")
+  deletedAt   DateTime?              @map("deleted_at")
+
+  @@index([type])
+  @@index([status])
+  @@index([scheduledAt])
+  @@index([deletedAt])
+  @@map("newsletter_campaigns")
+}
+
+model EmailTemplate {
+  id          String           @id @default(uuid()) @db.Uuid
+  slug        String           @db.VarChar(120)
+  name        String           @db.VarChar(200)
+  type        EmailTemplateType
+  subject     String           @db.VarChar(320)
+  bodyHtml    String           @map("body_html") @db.Text
+  bodyText    String?          @map("body_text") @db.Text
+  createdById String?          @map("created_by_id") @db.Uuid
+  updatedById String?          @map("updated_by_id") @db.Uuid
+  deletedById String?          @map("deleted_by_id") @db.Uuid
+  metadata    Json             @default("{}")
+  createdAt   DateTime         @default(now()) @map("created_at")
+  updatedAt   DateTime         @updatedAt @map("updated_at")
+  deletedAt   DateTime?        @map("deleted_at")
+
+  @@index([slug])
+  @@index([type])
+  @@index([deletedAt])
+  @@map("email_templates")
+}
+
+model EmailSendLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  templateId String?  @map("template_id") @db.Uuid
+  toEmail    String   @map("to_email") @db.VarChar(320)
+  subject    String   @db.VarChar(320)
+  status     String   @default("sent") @db.VarChar(32)
+  metadata   Json     @default("{}")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([templateId])
+  @@index([toEmail])
+  @@index([status])
+  @@index([createdAt])
+  @@map("email_send_logs")
+}
+
+// -----------------------------------------------------------------------------
+// Platform — Webhooks (Commit 067)
+// -----------------------------------------------------------------------------
+
+model Webhook {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  name      String    @db.VarChar(200)
+  url       String    @db.VarChar(2048)
+  secret    String    @db.VarChar(128)
+  events    WebhookEvent[]
+  isActive  Boolean   @default(true) @map("is_active")
+  metadata  Json      @default("{}")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  user       User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deliveries WebhookDelivery[]
+
+  @@index([userId])
+  @@index([isActive])
+  @@index([deletedAt])
+  @@map("webhooks")
+}
+
+model WebhookDelivery {
+  id           String                @id @default(uuid()) @db.Uuid
+  webhookId    String                @map("webhook_id") @db.Uuid
+  event        WebhookEvent
+  payload      Json
+  status       WebhookDeliveryStatus @default(PENDING)
+  statusCode   Int?                  @map("status_code")
+  responseBody String?               @map("response_body") @db.Text
+  attempts     Int                   @default(0)
+  metadata     Json                  @default("{}")
+  createdAt    DateTime              @default(now()) @map("created_at")
+  deliveredAt  DateTime?             @map("delivered_at")
+
+  webhook Webhook @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+
+  @@index([webhookId])
+  @@index([event])
+  @@index([status])
+  @@index([createdAt])
+  @@map("webhook_deliveries")
+}
+
+// -----------------------------------------------------------------------------
+// Partner & Revenue (Commits 068–069)
+// -----------------------------------------------------------------------------
+
+model PartnerAccount {
+  id          String               @id @default(uuid()) @db.Uuid
+  userId      String               @unique @map("user_id") @db.Uuid
+  company     String               @db.VarChar(200)
+  status      PartnerAccountStatus @default(ACTIVE)
+  metadata    Json                 @default("{}")
+  createdAt   DateTime             @default(now()) @map("created_at")
+  updatedAt   DateTime             @updatedAt @map("updated_at")
+  deletedAt   DateTime?            @map("deleted_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([deletedAt])
+  @@map("partner_accounts")
+}
+
+model RevenueSnapshot {
+  id        String        @id @default(uuid()) @db.Uuid
+  source    RevenueSource
+  period    String        @db.VarChar(16)
+  periodKey String        @map("period_key") @db.VarChar(32)
+  amount    Decimal       @default(0) @db.Decimal(14, 2)
+  currency  String        @default("USD") @db.VarChar(8)
+  clicks    Int           @default(0)
+  impressions Int         @default(0)
+  conversions Int         @default(0)
+  payload   Json          @default("{}")
+  createdAt DateTime      @default(now()) @map("created_at")
+
+  @@unique([source, periodKey])
+  @@index([source])
+  @@index([period])
+  @@index([periodKey])
+  @@index([createdAt])
+  @@map("revenue_snapshots")
+}
+
+// -----------------------------------------------------------------------------
+// Internationalization (Commits 071–080)
+// -----------------------------------------------------------------------------
+
+/// Per-locale tool content (Commit 072) — AI-generated per language, not machine-translated.
+model ToolTranslation {
+  id              String            @id @default(uuid()) @db.Uuid
+  toolId          String            @map("tool_id") @db.Uuid
+  locale          String            @db.VarChar(16)
+  region          String?           @db.VarChar(16)
+  summary         String?           @db.VarChar(500)
+  longDescription String?           @map("long_description") @db.Text
+  metaTitle       String?           @map("meta_title") @db.VarChar(160)
+  metaDescription String?           @map("meta_description") @db.VarChar(320)
+  faqJson         Json              @default("[]") @map("faq_json")
+  compareJson     Json              @default("[]") @map("compare_json")
+  alternativesJson Json             @default("[]") @map("alternatives_json")
+  status          TranslationStatus @default(PENDING)
+  createdById     String?           @map("created_by_id") @db.Uuid
+  updatedById     String?           @map("updated_by_id") @db.Uuid
+  deletedById     String?           @map("deleted_by_id") @db.Uuid
+  metadata        Json              @default("{}")
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+  deletedAt       DateTime?         @map("deleted_at")
+
+  tool Tool @relation(fields: [toolId], references: [id], onDelete: Cascade)
+
+  @@unique([toolId, locale])
+  @@index([toolId])
+  @@index([locale])
+  @@index([region])
+  @@index([status])
+  @@index([deletedAt])
+  @@index([updatedAt])
+  @@map("tool_translations")
+}
+
+model CategoryTranslation {
+  id              String            @id @default(uuid()) @db.Uuid
+  categoryId      String            @map("category_id") @db.Uuid
+  locale          String            @db.VarChar(16)
+  name            String            @db.VarChar(160)
+  description     String?           @db.Text
+  metaTitle       String?           @map("meta_title") @db.VarChar(160)
+  metaDescription String?           @map("meta_description") @db.VarChar(320)
+  status          TranslationStatus @default(PENDING)
+  metadata        Json              @default("{}")
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+  deletedAt       DateTime?         @map("deleted_at")
+
+  @@unique([categoryId, locale])
+  @@index([categoryId])
+  @@index([locale])
+  @@index([status])
+  @@index([deletedAt])
+  @@map("category_translations")
+}
+
+/// BullMQ translation workflow tracking (Commit 076).
+model TranslationJob {
+  id           String              @id @default(uuid()) @db.Uuid
+  toolId       String              @map("tool_id") @db.Uuid
+  targetLocale String              @map("target_locale") @db.VarChar(16)
+  sourceLocale String              @default("en") @map("source_locale") @db.VarChar(16)
+  status       TranslationJobStatus @default(PENDING)
+  stage        TranslationJobStage @default(ENGLISH)
+  errorMessage String?             @map("error_message") @db.Text
+  metadata     Json                @default("{}")
+  createdAt    DateTime            @default(now()) @map("created_at")
+  updatedAt    DateTime            @updatedAt @map("updated_at")
+  finishedAt   DateTime?           @map("finished_at")
+
+  tool Tool @relation(fields: [toolId], references: [id], onDelete: Cascade)
+
+  @@index([toolId])
+  @@index([targetLocale])
+  @@index([status])
+  @@index([stage])
+  @@index([createdAt])
+  @@map("translation_jobs")
+}
+
+/// Regional SEO config per country/region (Commit 073).
+model RegionalSeoConfig {
+  id          String    @id @default(uuid()) @db.Uuid
+  region      String    @db.VarChar(16)
+  locale      String    @db.VarChar(16)
+  keywords    String[]  @default([])
+  metaTitle   String?   @map("meta_title") @db.VarChar(160)
+  metaDescription String? @map("meta_description") @db.VarChar(320)
+  aiSummary   String?   @map("ai_summary") @db.Text
+  config      Json      @default("{}")
+  metadata    Json      @default("{}")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  @@unique([region, locale])
+  @@index([region])
+  @@index([locale])
+  @@index([deletedAt])
+  @@map("regional_seo_configs")
+}
+
+/// Country/locale analytics snapshot (Commit 077).
+model CountryAnalyticsSnapshot {
+  id           String   @id @default(uuid()) @db.Uuid
+  country      String   @db.VarChar(8)
+  locale       String   @db.VarChar(16)
+  period       String   @db.VarChar(16)
+  periodKey    String   @map("period_key") @db.VarChar(32)
+  traffic      Int      @default(0)
+  ctr          Decimal  @default(0) @db.Decimal(8, 4)
+  revenue      Decimal  @default(0) @db.Decimal(14, 2)
+  topCategory  String?  @map("top_category") @db.VarChar(120)
+  payload      Json     @default("{}")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@unique([country, locale, periodKey])
+  @@index([country])
+  @@index([locale])
+  @@index([periodKey])
+  @@index([createdAt])
+  @@map("country_analytics_snapshots")
+}
+
+// -----------------------------------------------------------------------------
+// Autonomous Platform — Automation 2.0 (Commits 081–090)
+// -----------------------------------------------------------------------------
+
+enum DiscoverySourceKind {
+  PRODUCT_HUNT
+  GITHUB_TRENDING
+  HUGGING_FACE
+  REDDIT_AI
+  HACKER_NEWS
+  X_AI
+  GOOGLE_NEWS_AI
+  RSS_FEED
+  OFFICIAL_BLOG
+}
+
+enum DiscoveryTaskStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum DiscoveryResultStatus {
+  NEW
+  IMPORTED
+  DISMISSED
+  DUPLICATE
+}
+
+enum AutomationMonitorStatus {
+  ACTIVE
+  PAUSED
+  ERROR
+}
+
+enum ScreenshotVariant {
+  DESKTOP
+  MOBILE
+  DARK
+}
+
+enum BrokenLinkIssueType {
+  HTTP_ERROR
+  SSL_ERROR
+  DNS_ERROR
+  REDIRECT_LOOP
+  TIMEOUT
+  OTHER
+}
+
+enum SocialPlatform {
+  X
+  LINKEDIN
+  BLUESKY
+  THREADS
+  MASTODON
+}
+
+enum SocialPostStatus {
+  DRAFT
+  SCHEDULED
+  PUBLISHED
+  FAILED
+}
+
+enum IndexProvider {
+  GOOGLE
+  BING
+}
+
+enum IndexSubmissionStatus {
+  PENDING
+  SUBMITTED
+  FAILED
+}
+
+enum AiRefreshContentType {
+  SUMMARY
+  FAQ
+  SEO
+  GEO
+}
+
+enum AutomationRunKind {
+  DISCOVERY
+  WEBSITE_MONITOR
+  PRICE_MONITOR
+  SCREENSHOT
+  LINK_CHECK
+  AI_REFRESH
+  SOCIAL_POST
+  NEWSLETTER
+  INDEX_SUBMIT
+}
+
+enum AutomationRunStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+/// Configured discovery feed (Commit 081).
+model DiscoverySource {
+  id            String              @id @default(uuid()) @db.Uuid
+  slug          String              @unique @db.VarChar(120)
+  name          String              @db.VarChar(200)
+  kind          DiscoverySourceKind
+  url           String?             @db.VarChar(2048)
+  isEnabled     Boolean             @default(true) @map("is_enabled")
+  priority      Int                 @default(0)
+  intervalHours Int                 @default(24) @map("interval_hours")
+  lastRunAt     DateTime?           @map("last_run_at")
+  nextRunAt     DateTime?           @map("next_run_at")
+  config        Json                @default("{}")
+  metadata      Json                @default("{}")
+  createdAt     DateTime            @default(now()) @map("created_at")
+  updatedAt     DateTime            @updatedAt @map("updated_at")
+  deletedAt     DateTime?           @map("deleted_at")
+
+  tasks DiscoveryTask[]
+
+  @@index([kind])
+  @@index([isEnabled])
+  @@index([nextRunAt])
+  @@index([deletedAt])
+  @@map("discovery_sources")
+}
+
+/// Single discovery run (Commit 081).
+model DiscoveryTask {
+  id           String              @id @default(uuid()) @db.Uuid
+  sourceId     String              @map("source_id") @db.Uuid
+  status       DiscoveryTaskStatus @default(PENDING)
+  startedAt    DateTime?           @map("started_at")
+  finishedAt   DateTime?           @map("finished_at")
+  itemsFound   Int                 @default(0) @map("items_found")
+  errorMessage String?             @map("error_message") @db.Text
+  metadata     Json                @default("{}")
+  createdAt    DateTime            @default(now()) @map("created_at")
+  updatedAt    DateTime            @updatedAt @map("updated_at")
+
+  source  DiscoverySource   @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  results DiscoveryResult[]
+
+  @@index([sourceId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("discovery_tasks")
+}
+
+/// Candidate AI tool from discovery (Commit 081).
+model DiscoveryResult {
+  id             String                @id @default(uuid()) @db.Uuid
+  taskId         String                @map("task_id") @db.Uuid
+  sourceKind     DiscoverySourceKind   @map("source_kind")
+  externalId     String?               @map("external_id") @db.VarChar(256)
+  title          String                @db.VarChar(500)
+  url            String                @db.VarChar(2048)
+  description    String?               @db.Text
+  relevanceScore Decimal               @default(0) @map("relevance_score") @db.Decimal(6, 3)
+  status         DiscoveryResultStatus @default(NEW)
+  toolId         String?               @map("tool_id") @db.Uuid
+  metadata       Json                  @default("{}")
+  createdAt      DateTime              @default(now()) @map("created_at")
+  updatedAt      DateTime              @updatedAt @map("updated_at")
+
+  task DiscoveryTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+  @@index([sourceKind])
+  @@index([status])
+  @@index([externalId])
+  @@index([createdAt])
+  @@map("discovery_results")
+}
+
+/// Website change monitor per tool (Commit 082).
+model WebsiteMonitor {
+  id           String                  @id @default(uuid()) @db.Uuid
+  toolId       String                  @map("tool_id") @db.Uuid
+  url          String                  @db.VarChar(2048)
+  status       AutomationMonitorStatus @default(ACTIVE)
+  contentHash  String?                 @map("content_hash") @db.VarChar(128)
+  etag         String?                 @db.VarChar(256)
+  lastCheckedAt DateTime?              @map("last_checked_at")
+  lastChangedAt DateTime?              @map("last_changed_at")
+  metadata     Json                    @default("{}")
+  createdAt    DateTime                @default(now()) @map("created_at")
+  updatedAt    DateTime                @updatedAt @map("updated_at")
+  deletedAt    DateTime?               @map("deleted_at")
+
+  tool   Tool                  @relation(fields: [toolId], references: [id], onDelete: Cascade)
+  events WebsiteMonitorEvent[]
+
+  @@unique([toolId, url])
+  @@index([toolId])
+  @@index([status])
+  @@index([lastCheckedAt])
+  @@index([deletedAt])
+  @@map("website_monitors")
+}
+
+model WebsiteMonitorEvent {
+  id         String   @id @default(uuid()) @db.Uuid
+  monitorId  String   @map("monitor_id") @db.Uuid
+  changeType String   @map("change_type") @db.VarChar(64)
+  beforeHash String?  @map("before_hash") @db.VarChar(128)
+  afterHash  String?  @map("after_hash") @db.VarChar(128)
+  snapshot   Json     @default("{}")
+  metadata   Json     @default("{}")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  monitor WebsiteMonitor @relation(fields: [monitorId], references: [id], onDelete: Cascade)
+
+  @@index([monitorId])
+  @@index([createdAt])
+  @@map("website_monitor_events")
+}
+
+/// Pricing page monitor (Commit 083).
+model PriceMonitor {
+  id            String                  @id @default(uuid()) @db.Uuid
+  toolId        String                  @map("tool_id") @db.Uuid
+  pricingUrl    String                  @map("pricing_url") @db.VarChar(2048)
+  status        AutomationMonitorStatus @default(ACTIVE)
+  lastSnapshot  Json                    @default("{}") @map("last_snapshot")
+  lastCheckedAt DateTime?               @map("last_checked_at")
+  metadata      Json                    @default("{}")
+  createdAt     DateTime                @default(now()) @map("created_at")
+  updatedAt     DateTime                @updatedAt @map("updated_at")
+  deletedAt     DateTime?               @map("deleted_at")
+
+  tool   Tool               @relation(fields: [toolId], references: [id], onDelete: Cascade)
+  events PriceChangeEvent[]
+
+  @@unique([toolId, pricingUrl])
+  @@index([toolId])
+  @@index([status])
+  @@index([lastCheckedAt])
+  @@index([deletedAt])
+  @@map("price_monitors")
+}
+
+model PriceChangeEvent {
+  id         String   @id @default(uuid()) @db.Uuid
+  monitorId  String   @map("monitor_id") @db.Uuid
+  before     Json     @default("{}")
+  after      Json     @default("{}")
+  metadata   Json     @default("{}")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  monitor PriceMonitor @relation(fields: [monitorId], references: [id], onDelete: Cascade)
+
+  @@index([monitorId])
+  @@index([createdAt])
+  @@map("price_change_events")
+}
+
+/// Playwright screenshot capture (Commit 084).
+model ToolScreenshot {
+  id         String            @id @default(uuid()) @db.Uuid
+  toolId     String            @map("tool_id") @db.Uuid
+  variant    ScreenshotVariant
+  targetUrl  String            @map("target_url") @db.VarChar(2048)
+  storageKey String            @map("storage_key") @db.VarChar(512)
+  width      Int               @default(1280)
+  height     Int               @default(720)
+  capturedAt DateTime          @map("captured_at")
+  metadata   Json              @default("{}")
+  createdAt  DateTime          @default(now()) @map("created_at")
+  updatedAt  DateTime          @updatedAt @map("updated_at")
+
+  tool Tool @relation(fields: [toolId], references: [id], onDelete: Cascade)
+
+  @@unique([toolId, variant])
+  @@index([toolId])
+  @@index([variant])
+  @@index([capturedAt])
+  @@map("tool_screenshots")
+}
+
+/// Broken link audit (Commit 085).
+model BrokenLinkCheck {
+  id         String   @id @default(uuid()) @db.Uuid
+  targetType String   @map("target_type") @db.VarChar(64)
+  targetId   String   @map("target_id") @db.Uuid
+  url        String   @db.VarChar(2048)
+  httpStatus Int?     @map("http_status")
+  isHealthy  Boolean  @default(true) @map("is_healthy")
+  checkedAt  DateTime @map("checked_at")
+  metadata   Json     @default("{}")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  issues BrokenLinkIssue[]
+
+  @@index([targetType, targetId])
+  @@index([url])
+  @@index([isHealthy])
+  @@index([checkedAt])
+  @@map("broken_link_checks")
+}
+
+model BrokenLinkIssue {
+  id        String              @id @default(uuid()) @db.Uuid
+  checkId   String              @map("check_id") @db.Uuid
+  issueType BrokenLinkIssueType @map("issue_type")
+  message   String              @db.Text
+  metadata  Json                @default("{}")
+  createdAt DateTime            @default(now()) @map("created_at")
+
+  check BrokenLinkCheck @relation(fields: [checkId], references: [id], onDelete: Cascade)
+
+  @@index([checkId])
+  @@index([issueType])
+  @@index([createdAt])
+  @@map("broken_link_issues")
+}
+
+/// Scheduled AI content refresh (Commit 086).
+model AiRefreshSchedule {
+  id              String   @id @default(uuid()) @db.Uuid
+  toolId          String   @map("tool_id") @db.Uuid
+  contentTypes    AiRefreshContentType[] @default([SUMMARY, FAQ, SEO, GEO]) @map("content_types")
+  intervalDays    Int      @default(30) @map("interval_days")
+  lastRefreshedAt DateTime? @map("last_refreshed_at")
+  nextDueAt       DateTime? @map("next_due_at")
+  isEnabled       Boolean  @default(true) @map("is_enabled")
+  metadata        Json     @default("{}")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  deletedAt       DateTime? @map("deleted_at")
+
+  tool Tool @relation(fields: [toolId], references: [id], onDelete: Cascade)
+
+  @@unique([toolId])
+  @@index([nextDueAt])
+  @@index([isEnabled])
+  @@index([deletedAt])
+  @@map("ai_refresh_schedules")
+}
+
+/// Social post queue (Commit 087).
+model SocialPost {
+  id          String           @id @default(uuid()) @db.Uuid
+  platform    SocialPlatform
+  status      SocialPostStatus @default(DRAFT)
+  content     String           @db.Text
+  toolId      String?          @map("tool_id") @db.Uuid
+  scheduledAt DateTime?        @map("scheduled_at")
+  publishedAt DateTime?        @map("published_at")
+  externalId  String?          @map("external_id") @db.VarChar(256)
+  errorMessage String?         @map("error_message") @db.Text
+  metadata    Json             @default("{}")
+  createdAt   DateTime         @default(now()) @map("created_at")
+  updatedAt   DateTime         @updatedAt @map("updated_at")
+
+  @@index([platform])
+  @@index([status])
+  @@index([scheduledAt])
+  @@index([createdAt])
+  @@map("social_posts")
+}
+
+/// Search engine index submission (Commit 089).
+model IndexSubmission {
+  id           String                @id @default(uuid()) @db.Uuid
+  url          String                @db.VarChar(2048)
+  provider     IndexProvider
+  status       IndexSubmissionStatus @default(PENDING)
+  submittedAt  DateTime?             @map("submitted_at")
+  errorMessage String?               @map("error_message") @db.Text
+  metadata     Json                  @default("{}")
+  createdAt    DateTime              @default(now()) @map("created_at")
+  updatedAt    DateTime              @updatedAt @map("updated_at")
+
+  @@index([url])
+  @@index([provider])
+  @@index([status])
+  @@index([createdAt])
+  @@map("index_submissions")
+}
+
+/// Unified automation run log for Automation Center (Commit 090).
+model AutomationRun {
+  id           String              @id @default(uuid()) @db.Uuid
+  kind         AutomationRunKind
+  status       AutomationRunStatus @default(PENDING)
+  referenceId  String?             @map("reference_id") @db.Uuid
+  startedAt    DateTime?           @map("started_at")
+  finishedAt   DateTime?           @map("finished_at")
+  errorMessage String?             @map("error_message") @db.Text
+  result       Json                @default("{}")
+  metadata     Json                @default("{}")
+  createdAt    DateTime            @default(now()) @map("created_at")
+  updatedAt    DateTime            @updatedAt @map("updated_at")
+
+  @@index([kind])
+  @@index([status])
+  @@index([referenceId])
+  @@index([createdAt])
+  @@map("automation_runs")
+}
+
+// -----------------------------------------------------------------------------
+// Open Ecosystem — Platform (Commits 091–100)
+// -----------------------------------------------------------------------------
+
+enum WorkflowRunStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum PluginStatus {
+  REGISTERED
+  ACTIVE
+  DISABLED
+  ERROR
+}
+
+/// Configurable workflow definition (Commit 097).
+model WorkflowDefinition {
+  id          String    @id @default(uuid()) @db.Uuid
+  slug        String    @unique @db.VarChar(120)
+  name        String    @db.VarChar(200)
+  description String?   @db.Text
+  steps       Json      @default("[]")
+  isEnabled   Boolean   @default(true) @map("is_enabled")
+  metadata    Json      @default("{}")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  runs WorkflowRun[]
+
+  @@index([isEnabled])
+  @@index([deletedAt])
+  @@map("workflow_definitions")
+}
+
+model WorkflowRun {
+  id           String            @id @default(uuid()) @db.Uuid
+  definitionId String            @map("definition_id") @db.Uuid
+  status       WorkflowRunStatus @default(PENDING)
+  context      Json              @default("{}")
+  currentStep  Int               @default(0) @map("current_step")
+  result       Json              @default("{}")
+  errorMessage String?           @map("error_message") @db.Text
+  startedAt    DateTime?         @map("started_at")
+  finishedAt   DateTime?         @map("finished_at")
+  metadata     Json              @default("{}")
+  createdAt    DateTime          @default(now()) @map("created_at")
+  updatedAt    DateTime          @updatedAt @map("updated_at")
+
+  definition WorkflowDefinition @relation(fields: [definitionId], references: [id], onDelete: Cascade)
+
+  @@index([definitionId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("workflow_runs")
+}
+
+/// Plugin registration (Commit 096).
+model PluginRegistration {
+  id        String       @id @default(uuid()) @db.Uuid
+  slug      String       @unique @db.VarChar(120)
+  name      String       @db.VarChar(200)
+  module    String       @db.VarChar(64)
+  version   String       @default("1.0.0") @db.VarChar(32)
+  status    PluginStatus @default(REGISTERED)
+  config    Json         @default("{}")
+  metadata  Json         @default("{}")
+  createdAt DateTime     @default(now()) @map("created_at")
+  updatedAt DateTime     @updatedAt @map("updated_at")
+  deletedAt DateTime?    @map("deleted_at")
+
+  @@index([module])
+  @@index([status])
+  @@index([deletedAt])
+  @@map("plugin_registrations")
+}
+
+/// Feature flag (Commit 098).
+model FeatureFlag {
+  id          String    @id @default(uuid()) @db.Uuid
+  key         String    @unique @db.VarChar(128)
+  name        String    @db.VarChar(200)
+  description String?   @db.Text
+  enabled     Boolean   @default(false)
+  rollout     Int       @default(100)
+  locales     String[]  @default([])
+  regions     String[]  @default([])
+  segments    String[]  @default([])
+  variants    Json      @default("{}")
+  metadata    Json      @default("{}")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  @@index([enabled])
+  @@index([deletedAt])
+  @@map("feature_flags")
+}
+
+// -----------------------------------------------------------------------------
+// Audit & settings
+// -----------------------------------------------------------------------------
+
+/// Immutable audit trail for sensitive actions (append-only in application code).
+model AuditLog {
+  id         String      @id @default(uuid()) @db.Uuid
+  actorId    String?     @map("actor_id") @db.Uuid
+  action     AuditAction
+  entityType String      @map("entity_type") @db.VarChar(64)
+  entityId   String?     @map("entity_id") @db.Uuid
+  entitySlug String?     @map("entity_slug") @db.VarChar(120)
+  ipAddress  String?     @map("ip_address") @db.VarChar(64)
+  userAgent  String?     @map("user_agent") @db.VarChar(512)
+  before     Json?
+  after      Json?
+  metadata   Json        @default("{}")
+  createdAt  DateTime    @default(now()) @map("created_at")
+  updatedAt  DateTime    @updatedAt @map("updated_at")
+  deletedAt  DateTime?   @map("deleted_at")
+
+  actor User? @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([actorId])
+  @@index([entityType, entityId])
+  @@index([entitySlug])
+  @@index([action])
+  @@index([createdAt])
+  @@index([deletedAt])
+  @@index([updatedAt])
+  @@map("audit_logs")
+}
+
+/// Key-value application settings (site config, feature flags).
+model Setting {
+  id          String    @id @default(uuid()) @db.Uuid
+  key         String    @unique @db.VarChar(128)
+  value       Json
+  group       String    @default("general") @db.VarChar(64)
+  description String?   @db.Text
+  isPublic    Boolean   @default(false) @map("is_public")
+  createdById String?   @map("created_by_id") @db.Uuid
+  updatedById String?   @map("updated_by_id") @db.Uuid
+  deletedById String?   @map("deleted_by_id") @db.Uuid
+  metadata    Json      @default("{}")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  @@index([group])
+  @@index([isPublic])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+  @@index([deletedAt])
+  @@index([updatedAt])
+  @@map("settings")
 }

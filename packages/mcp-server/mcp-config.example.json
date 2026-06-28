@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "ai-tool-cms": {
+      "command": "pnpm",
+      "args": ["mcp"],
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "DATABASE_URL": "${DATABASE_URL}",
+        "MEILI_URL": "${MEILI_URL}",
+        "MEILI_MASTER_KEY": "${MEILI_MASTER_KEY}"
+      }
+    }
+  }
+}
