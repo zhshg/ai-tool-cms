@@ -1,47 +1,39 @@
 import { Injectable, LoggerService } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import pino, { type Logger as PinoLogger } from "pino";
+import { createLogger, type Logger } from "@ai-tool-cms/logger";
 
 @Injectable()
 export class AppLoggerService implements LoggerService {
-  private readonly logger: PinoLogger;
+  private readonly logger: Logger;
 
   constructor(private readonly configService: ConfigService) {
-    this.logger = pino({
-      level: this.configService.get<string>("log.level", "info"),
-      base: { service: "api" },
+    this.logger = createLogger({
+      service: "api",
+      level: this.configService.get("log.level"),
     });
   }
 
   log(message: string, context?: string): void {
-    this.write("info", message, context);
+    this.logger.info(message, context ? { context } : undefined);
   }
 
   error(message: string, trace?: string, context?: string): void {
-    this.logger.error({ context, trace }, message);
+    this.logger.error(message, { context, trace });
   }
 
   warn(message: string, context?: string): void {
-    this.write("warn", message, context);
+    this.logger.warn(message, context ? { context } : undefined);
   }
 
   debug(message: string, context?: string): void {
-    this.write("debug", message, context);
+    this.logger.debug(message, context ? { context } : undefined);
   }
 
   verbose(message: string, context?: string): void {
-    this.write("trace", message, context);
+    this.logger.trace(message, context ? { context } : undefined);
   }
 
-  child(bindings: Record<string, unknown>): PinoLogger {
+  child(bindings: Record<string, unknown>): Logger {
     return this.logger.child(bindings);
-  }
-
-  private write(
-    level: "info" | "warn" | "debug" | "trace",
-    message: string,
-    context?: string,
-  ): void {
-    this.logger[level]({ context }, message);
   }
 }
