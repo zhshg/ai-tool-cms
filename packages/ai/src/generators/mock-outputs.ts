@@ -3,6 +3,7 @@ import type {
   FaqItem,
   FeatureExtractionOutput,
   GeoOutput,
+  ProsConsOutput,
   SeoOutput,
   SummaryOutput,
 } from "./index";
@@ -52,6 +53,15 @@ export function mockFaqOutput(ctx: ToolPromptContext): FaqItem[] {
       answer: "Visit the official website and create an account.",
     },
   ];
+}
+
+export function mockProsConsOutput(ctx: ToolPromptContext): ProsConsOutput {
+  const name = ctx.tool_name || "Tool";
+  return {
+    pros: [`${name} is easy to start with`, "Strong feature set for teams", "Regular updates"],
+    cons: ["Premium features require paid plan", "Learning curve for advanced workflows"],
+    verdict: `${name} is a solid choice for teams exploring AI in ${ctx.category || "daily"} work.`,
+  };
 }
 
 export function mockSeoOutput(ctx: ToolPromptContext): SeoOutput {
@@ -112,6 +122,8 @@ export function getMockGeneratorOutput<T>(templateId: string, ctx: ToolPromptCon
       return mockSummaryOutput(ctx) as T;
     case "feature":
       return mockFeatureOutput(ctx) as T;
+    case "pros-cons":
+      return mockProsConsOutput(ctx) as T;
     case "faq":
       return mockFaqOutput(ctx) as T;
     case "seo":

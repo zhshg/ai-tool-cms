@@ -4,6 +4,7 @@ import type {
   FaqItem,
   FeatureExtractionOutput,
   GeoOutput,
+  ProsConsOutput,
   SeoOutput,
   SummaryOutput,
 } from "../generators";
@@ -37,7 +38,7 @@ export async function applyStagePayload(
       break;
     }
     case AiPipelineStage.FEATURE: {
-      const data = payload as FeatureExtractionOutput;
+      const data = payload as FeatureExtractionOutput & Partial<ProsConsOutput>;
       const tool = await tx.tool.findUniqueOrThrow({ where: { id: toolId } });
       const metadata = (tool.metadata ?? {}) as Record<string, unknown>;
       await tx.tool.update({
@@ -52,6 +53,9 @@ export async function applyStagePayload(
             aiTargetUsers: data.targetUsers,
             aiUseCases: data.useCases,
             aiPricingNotes: data.pricing,
+            ...(data.pros ? { aiPros: data.pros } : {}),
+            ...(data.cons ? { aiCons: data.cons } : {}),
+            ...(data.verdict ? { aiVerdict: data.verdict } : {}),
           } as Prisma.InputJsonValue,
           updatedById: actorId,
         },
