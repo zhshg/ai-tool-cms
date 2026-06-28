@@ -1,2 +1,2 @@
-export { initObservability, withSpan, recordMetric } from "./otel";
-export type { SpanAttributes } from "./otel";
+export { initObservability, withSpan, recordMetric } from "./otel.js";
+export type { SpanAttributes } from "./otel.js";
