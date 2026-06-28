@@ -1,13 +1,13 @@
 import { Injectable, LoggerService } from "@nestjs/common";
 import { env } from "@ai-tool-cms/config";
-import { createLogger, type Logger, type LogLevel } from "@ai-tool-cms/logger";
+import { createApiLogger, type Logger, type LogLevel } from "@ai-tool-cms/logger";
 
 @Injectable()
 export class AppLoggerService implements LoggerService {
   private readonly logger: Logger;
 
   constructor() {
-    this.logger = createLogger({
+    this.logger = createApiLogger({
       service: "api",
       level: env.LOG_LEVEL as LogLevel,
     });

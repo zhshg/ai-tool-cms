@@ -1,25 +1,26 @@
 # @ai-tool-cms/logger
 
-Unified structured logging on **Pino** for all apps and workers.
+基于 **Pino** 的统一结构化日志包，覆盖 API、HTTP 请求、后台任务等场景。
 
-**Status:** Infrastructure scaffold — JSON logs with consistent `service` and `kind` bindings.
-
-## Usage
+## 用法
 
 ```typescript
 import {
-  createLogger,
+  logger,
+  createApiLogger,
   createRequestLogger,
   createWorkerLogger,
-  createCrawlerLogger,
   logRequestComplete,
   logJobStart,
-  logCrawlStart,
 } from "@ai-tool-cms/logger";
 
-const logger = createLogger({ service: "api" });
-logger.info("Server ready", { port: 4000 });
+// 默认单例（推荐）
+logger.info("服务已启动");
 
+// API 专用实例（可指定 level）
+const apiLogger = createApiLogger({ service: "api", level: "debug" });
+
+// HTTP 请求日志
 const requestLogger = createRequestLogger({
   requestId: "req-123",
   method: "GET",
@@ -32,45 +33,29 @@ logRequestComplete(requestLogger, {
   statusCode: 200,
   durationMs: 12,
 });
+
+// Worker 任务日志
+const workerLogger = createWorkerLogger({ jobId: "job-1", queueName: "index" });
+logJobStart(workerLogger, { jobId: "job-1", queueName: "index" });
 ```
 
-## Loggers
+## 日志器一览
 
-| Factory | `kind` | Service default | Use case |
+| 导出 | `kind` | 默认 service | 场景 |
 |---|---|---|---|
-| `createLogger()` | `app` | custom | General application logging |
-| `createRequestLogger()` | `request` | `api` | HTTP request lifecycle |
-| `createWorkerLogger()` | `worker` | `worker` | BullMQ / background jobs |
-| `createCrawlerLogger()` | `crawler` | `crawler` | Crawl jobs and ingestion |
+| `logger` | `app` | `app` | 全局默认单例 |
+| `createApiLogger()` | `app` | `api` | NestJS / REST API |
+| `createRequestLogger()` | `request` | `api` | HTTP 请求生命周期 |
+| `createWorkerLogger()` | `worker` | `worker` | BullMQ / 后台任务 |
+| `createCrawlerLogger()` | `crawler` | `crawler` | 爬虫任务 |
 
-## Log level
+## 日志级别
 
 由调用方通过 `LoggerOptions.level` 传入（推荐从 `@ai-tool-cms/config` 的 `env.LOG_LEVEL` 读取）。未指定时默认为 `info`。
 
-## Scripts
+## 脚本
 
 ```bash
 pnpm --filter @ai-tool-cms/logger build
 pnpm --filter @ai-tool-cms/logger typecheck
 ```
-
-## Layout
-
-```
-packages/logger/src/
-├── create-logger.ts
-├── request-logger.ts
-├── worker-logger.ts
-├── crawler-logger.ts
-├── types.ts
-└── index.ts
-```
-
-## Consumers
-
-| Consumer | Integration |
-|---|---|
-| `apps/api` | Nest `AppLoggerService` wraps `createLogger({ service: 'api' })` |
-| `apps/worker` | `createWorkerLogger` + job lifecycle helpers |
-| `apps/crawler` | `createCrawlerLogger` + crawl lifecycle helpers |
-| `apps/web` / `apps/admin` | Server components and route handlers |
