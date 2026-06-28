@@ -83,8 +83,14 @@ export { MockProvider as MockAiProvider } from "./providers/MockProvider";
 export {
   PromptEngine,
   defaultPromptEngine,
+  PromptRegistry,
+  pickWeightedVariant,
+  resolvePromptsRoot,
+  type PromptCatalogConfig,
+  type PromptResolveOptions,
   type PromptTemplateId,
   type PromptVariables,
+  type ResolvedPrompt,
   type ToolPromptContext,
 } from "./prompt-engine/PromptEngine";
 

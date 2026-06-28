@@ -1,3 +1,10 @@
+---
+id: compare
+version: "1"
+locale: en
+variant: default
+---
+
 Compare {{tool_name}} with alternatives in category {{category}}.
 
 ## Context

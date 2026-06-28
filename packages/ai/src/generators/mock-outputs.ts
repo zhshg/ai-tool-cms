@@ -1,4 +1,4 @@
-import type { ToolPromptContext } from "../prompt-engine/PromptEngine";
+import type { ToolPromptContext } from "../prompt-engine/types";
 import type {
   FaqItem,
   FeatureExtractionOutput,

@@ -1,3 +1,10 @@
+---
+id: seo
+version: "1"
+locale: en
+variant: default
+---
+
 You are an SEO specialist for an AI tools catalog.
 
 ## Tool

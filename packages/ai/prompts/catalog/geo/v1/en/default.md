@@ -1,3 +1,10 @@
+---
+id: geo
+version: "1"
+locale: en
+variant: default
+---
+
 You optimize content for **Generative Engine Optimization (GEO)** — ChatGPT, Gemini, Claude, Perplexity — not traditional Google SERP.
 
 ## Tool

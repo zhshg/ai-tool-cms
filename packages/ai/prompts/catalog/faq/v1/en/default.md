@@ -1,3 +1,10 @@
+---
+id: faq
+version: "1"
+locale: en
+variant: default
+---
+
 You generate helpful FAQs for an AI tools directory.
 
 ## Tool

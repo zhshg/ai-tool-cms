@@ -355,6 +355,9 @@ importers:
       '@ai-tool-cms/logger':
         specifier: workspace:*
         version: link:../logger
+      yaml:
+        specifier: ^2.9.0
+        version: 2.9.0
     devDependencies:
       '@types/node':
         specifier: ^22.10.0

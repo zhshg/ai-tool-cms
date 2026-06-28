@@ -65,8 +65,17 @@ export async function loadToolContext(toolId: string): Promise<ToolPromptContext
     features,
     summary: tool.summary ?? undefined,
     slug: tool.slug,
-    locale: "en",
+    locale: getEnv().DEFAULT_LOCALE?.startsWith("zh") ? "zh-CN" : "en",
+    abBucket: hashBucket(tool.slug),
   };
+}
+
+function hashBucket(seed: string): number {
+  let hash = 0;
+  for (let i = 0; i < seed.length; i += 1) {
+    hash = (hash * 31 + seed.charCodeAt(i)) >>> 0;
+  }
+  return hash % 100;
 }
 
 async function createAiTask(

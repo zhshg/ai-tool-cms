@@ -1,3 +1,10 @@
+---
+id: pros-cons
+version: "1"
+locale: en
+variant: default
+---
+
 List pros and cons for {{tool_name}}.
 
 ## Context

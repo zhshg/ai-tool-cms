@@ -56,6 +56,20 @@ const result = await router.generate({ messages: [...] });
 
 Without keys, `AIFactory.createDefault()` uses `mock`.
 
+## Prompt catalog (Markdown, not TypeScript)
+
+All prompts live in `packages/ai/prompts/` — see [prompts/README.md](./prompts/README.md).
+
+- **Versioning** — `catalog/{id}/v1/`, `v2/`
+- **Locales** — `en/`, `zh-CN/`
+- **A/B variants** — weighted in `registry.yaml`
+- **Hot reload** — `PromptEngine.reload()` (admin override: future)
+
+```ts
+const engine = new PromptEngine();
+engine.buildMessages("summary", { tool_name: "X", locale: "zh-CN", abBucket: 42 });
+```
+
 ## Sprint 4 — Auto pipeline
 
 Default (`AI_PIPELINE_AUTO_PUBLISH=true`, unset = enabled):

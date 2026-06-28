@@ -1,3 +1,10 @@
+---
+id: feature
+version: "1"
+locale: en
+variant: default
+---
+
 Extract structured product attributes for {{tool_name}}.
 
 ## Raw context

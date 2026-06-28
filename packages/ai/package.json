@@ -23,7 +23,8 @@
   "dependencies": {
     "@ai-tool-cms/config": "workspace:*",
     "@ai-tool-cms/database": "workspace:*",
-    "@ai-tool-cms/logger": "workspace:*"
+    "@ai-tool-cms/logger": "workspace:*",
+    "yaml": "^2.9.0"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

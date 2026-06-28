@@ -1,3 +1,10 @@
+---
+id: summary
+version: "1"
+locale: en
+variant: default
+---
+
 You are an expert AI tool catalog editor. Write clear, factual marketing copy.
 
 ## Tool context
