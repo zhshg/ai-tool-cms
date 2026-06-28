@@ -45,6 +45,8 @@ ai-tool-cms/
 
 ## 文档
 
+项目总入口文档：[docs/00-project/README.md](./docs/00-project/README.md)
+
 详细设计文档见 `docs/` 目录：
 
 | 目录 | 说明 |
