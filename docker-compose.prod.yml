@@ -56,6 +56,23 @@ services:
       timeout: 5s
       retries: 5
 
+  postgres-bootstrap:
+    image: postgres:16-alpine
+    restart: "no"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB is required}
+      POSTGRES_ADMIN_USER: ${POSTGRES_ADMIN_USER:-}
+      POSTGRES_ADMIN_PASSWORD: ${POSTGRES_ADMIN_PASSWORD:-}
+      POSTGRES_ADMIN_DB: ${POSTGRES_ADMIN_DB:-postgres}
+    volumes:
+      - ./docker/postgres/bootstrap.sh:/bootstrap.sh:ro
+    command: ["sh", "/bootstrap.sh"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   migrate:
     build:
       context: .
@@ -69,6 +86,8 @@ services:
       NODE_ENV: production
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
     depends_on:
+      postgres-bootstrap:
+        condition: service_completed_successfully
       postgres:
         condition: service_healthy
 
@@ -157,6 +176,9 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
       QUEUE_URL: redis://:${REDIS_PASSWORD}@redis:6379/1
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      CORS_ORIGINS: ${CORS_ORIGINS}
       MEILI_URL: http://meilisearch:7700
       MEILI_MASTER_KEY: ${MEILI_MASTER_KEY}
       STORAGE_ENDPOINT: http://minio:9000
@@ -164,6 +186,7 @@ services:
       STORAGE_ACCESS_KEY: ${STORAGE_ACCESS_KEY}
       STORAGE_SECRET_KEY: ${STORAGE_SECRET_KEY}
       STORAGE_REGION: ${STORAGE_REGION}
+      NEWSLETTER_FROM_EMAIL: ${NEWSLETTER_FROM_EMAIL}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       GEMINI_API_KEY: ${GEMINI_API_KEY}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
@@ -202,6 +225,17 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
       QUEUE_URL: redis://:${REDIS_PASSWORD}@redis:6379/1
+      MEILI_URL: http://meilisearch:7700
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY}
+      STORAGE_ENDPOINT: http://minio:9000
+      STORAGE_BUCKET: ${STORAGE_BUCKET}
+      STORAGE_ACCESS_KEY: ${STORAGE_ACCESS_KEY}
+      STORAGE_SECRET_KEY: ${STORAGE_SECRET_KEY}
+      STORAGE_REGION: ${STORAGE_REGION}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      CORS_ORIGINS: ${CORS_ORIGINS}
+      NEWSLETTER_FROM_EMAIL: ${NEWSLETTER_FROM_EMAIL}
       CRAWLER_USER_AGENT: ${CRAWLER_USER_AGENT}
       CRAWLER_CONCURRENCY: ${CRAWLER_CONCURRENCY}
       CRAWLER_TIMEOUT_MS: ${CRAWLER_TIMEOUT_MS}
@@ -234,6 +268,8 @@ services:
       NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      QUEUE_URL: redis://:${REDIS_PASSWORD}@redis:6379/1
       SITE_NAME: ${SITE_NAME}
       SITE_DESCRIPTION: ${SITE_DESCRIPTION}
       DEFAULT_LOCALE: ${DEFAULT_LOCALE}
@@ -242,6 +278,15 @@ services:
       NEXT_PUBLIC_ENABLED_LOCALES: ${NEXT_PUBLIC_ENABLED_LOCALES}
       MEILI_URL: http://meilisearch:7700
       MEILI_MASTER_KEY: ${MEILI_MASTER_KEY}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      CORS_ORIGINS: ${CORS_ORIGINS}
+      STORAGE_ENDPOINT: http://minio:9000
+      STORAGE_BUCKET: ${STORAGE_BUCKET}
+      STORAGE_ACCESS_KEY: ${STORAGE_ACCESS_KEY}
+      STORAGE_SECRET_KEY: ${STORAGE_SECRET_KEY}
+      STORAGE_REGION: ${STORAGE_REGION}
+      NEWSLETTER_FROM_EMAIL: ${NEWSLETTER_FROM_EMAIL}
     depends_on:
       api:
         condition: service_healthy
@@ -273,7 +318,7 @@ services:
       api:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--spider", "http://127.0.0.1:3000/admin"]
+      test: ["CMD", "wget", "--no-verbose", "--spider", "http://127.0.0.1:3000"]
       interval: 15s
       timeout: 5s
       retries: 10

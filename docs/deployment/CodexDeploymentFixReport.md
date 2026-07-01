@@ -101,6 +101,16 @@ Status: fixed for production migration startup path.
 - Prisma Client generation now outputs to `packages/database/generated/client`, avoiding fragile package-manager virtual path resolution.
 - Database package imports now use the generated client path.
 - Generated Prisma client output is ignored in Git.
+- Updated `packages/database/prisma.config.ts` to import dotenv loading through `@ai-tool-cms/config/load-dotenv`, avoiding the config package root export during Prisma CLI startup.
+- Added a `postgres-bootstrap` one-shot service and `docker/postgres/bootstrap.sh` to create or repair the target production role/database/schema grants before migration runs.
+- Added optional `POSTGRES_ADMIN_USER`, `POSTGRES_ADMIN_PASSWORD`, and `POSTGRES_ADMIN_DB` variables for hosts that reuse an existing PostgreSQL volume initialized with a different admin user.
+
+Root cause of the migrate failure:
+
+- Prisma CLI loads `packages/database/prisma.config.ts` before running migrations.
+- That config imported `@ai-tool-cms/config`, whose package root eagerly evaluates `env = getEnv()`.
+- In `NODE_ENV=production`, this required unrelated runtime variables such as Redis, Meilisearch, JWT, storage, CORS, and newsletter settings even though `prisma migrate deploy` only needs `DATABASE_URL`.
+- On the local verification host, the existing PostgreSQL volume had been initialized with an older development role, so the production `POSTGRES_USER` did not exist until bootstrap repaired the role/database grants.
 
 Seed execution was not added to production startup because seed data is not always idempotent production behavior. Production bootstrap should run seed explicitly only when the release process requires it.
 
@@ -133,6 +143,27 @@ Status: fixed for production compose and image startup.
 - Both services use the shared Node production Dockerfile and start from `apps/<service>/dist/main.js`.
 - Both services depend on healthy API startup.
 - Worker now declares `@ai-tool-cms/observability` as a direct dependency because worker source imports it directly.
+- Worker and scheduler production builds now emit CommonJS entrypoints so Node can run `dist/main.js` without ESM extension-resolution failures.
+- Runtime env for worker and scheduler now includes the production variables required by the shared config package.
+
+### Runtime package format alignment
+
+Status: fixed for Node production containers.
+
+- Runtime shared packages used by API, worker, scheduler, and server-side web rendering now build CommonJS artifacts for production Node containers.
+- `@ai-tool-cms/public-api` now exposes a `require` export and no longer marks the package as ESM-only.
+- This fixes production runtime failures such as missing extensionless ESM imports from compiled files:
+  - `packages/growth/dist/loop`
+  - `apps/worker/dist/ai-pipeline`
+  - `packages/crawler-core/dist/Crawler`
+
+### Production compose runtime env and health checks
+
+Status: fixed.
+
+- Web service runtime env now includes Redis, queue, JWT, CORS, storage, and newsletter variables required by server-side shared config validation.
+- Worker and scheduler service env now includes the full production config surface required at startup.
+- Admin health check now targets the container root path, which is the path served by the current standalone admin image.
 
 ## Deployment Workflow
 
@@ -169,11 +200,15 @@ Additional checks:
 - `docker compose --env-file .env.production -f docker-compose.prod.yml config --quiet`: passed
 - `docker compose --env-file .env.production -f docker-compose.prod.yml build worker --no-cache`: passed
 - `docker compose --env-file .env.production -f docker-compose.prod.yml build web --no-cache`: passed
+- `docker compose --env-file .env.production -f docker-compose.prod.yml build api`: passed
+- `docker compose --env-file .env.production -f docker-compose.prod.yml build web worker scheduler`: passed
+- `docker compose --env-file .env.production -f docker-compose.prod.yml up -d`: passed
+- `docker compose --env-file .env.production -f docker-compose.prod.yml ps -a`: passed; `migrate` exited `0`, and API, web, admin, worker, scheduler, PostgreSQL, Redis, Meilisearch, and MinIO were healthy.
+- Migration log verification: passed; Prisma loaded `prisma.config.ts`, found 9 migrations, and reported `No pending migrations to apply`.
 - GitHub Actions YAML parse check: passed
 
 Not executed:
 
-- Docker compose startup: not requested for this fix; running it would start production services locally.
 - Live production health check: requires deployed infrastructure and real secrets.
 
 ## Remaining Non-Code Deployment Tasks

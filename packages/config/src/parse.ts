@@ -86,6 +86,12 @@ export function parseEnv(source?: EnvSource): Env {
     CRAWLER_CONCURRENCY: resolved.CRAWLER_CONCURRENCY,
     CRAWLER_TIMEOUT_MS: resolved.CRAWLER_TIMEOUT_MS,
     AI_PIPELINE_AUTO_PUBLISH: resolved.AI_PIPELINE_AUTO_PUBLISH,
+    OTEL_EXPORTER_OTLP_ENDPOINT: resolved.OTEL_EXPORTER_OTLP_ENDPOINT,
+    SENTRY_DSN: resolved.SENTRY_DSN,
+    CORS_ORIGINS: resolved.CORS_ORIGINS,
+    TRUST_PROXY: resolved.TRUST_PROXY,
+    CACHE_DEFAULT_TTL_SECONDS: resolved.CACHE_DEFAULT_TTL_SECONDS,
+    WRITE_OPENAPI: resolved.WRITE_OPENAPI,
   };
 
   const parsed = envSchema.parse(raw);
