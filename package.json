@@ -27,6 +27,7 @@
     "docker:prod:down": "docker compose --env-file .env.production -f docker-compose.prod.yml down",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "lint-staged": "lint-staged",
     "lint": "turbo run lint",
     "test": "turbo run test",
     "test:unit": "vitest run --config vitest.config.ts tests/unit packages",
