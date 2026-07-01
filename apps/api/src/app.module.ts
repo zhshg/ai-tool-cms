@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 import { APP_GUARD } from "@nestjs/core";
 import { ConfigModule } from "@nestjs/config";
+import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
 import { join } from "node:path";
 import appConfig from "./config/app.config";
 import { AuthModule } from "./auth/auth.module";
@@ -40,6 +41,12 @@ import { SettingsModule } from "./settings/settings.module";
         ".env",
       ],
     }),
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60_000,
+        limit: 300,
+      },
+    ]),
     LoggerModule,
     PrismaModule,
     RbacModule,
@@ -65,6 +72,7 @@ import { SettingsModule } from "./settings/settings.module";
   ],
   providers: [
     PlatformBootstrapService,
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: PermissionsGuard },
   ],

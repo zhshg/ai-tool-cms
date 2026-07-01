@@ -1,5 +1,6 @@
 import { Controller, Get, Param, Query, UseGuards, UseInterceptors } from "@nestjs/common";
 import { ApiHeader, ApiOperation, ApiSecurity, ApiTags } from "@nestjs/swagger";
+import { Throttle } from "@nestjs/throttler";
 import { Public } from "../common/decorators/auth.decorator";
 import { ApiKeyAuth } from "../common/decorators/api-key.decorator";
 import { ApiKeyGuard } from "../common/guards/api-key.guard";
@@ -15,6 +16,7 @@ import { PublicApiService } from "./public-api.service";
 @ApiHeader({ name: "X-Api-Key", description: "API key (atcms_...)" })
 @Controller("api/v1")
 @Public()
+@Throttle({ default: { ttl: 60_000, limit: 120 } })
 @UseGuards(ApiKeyGuard)
 @UseInterceptors(ApiKeyUsageInterceptor, PublicCacheInterceptor)
 export class PublicApiController {

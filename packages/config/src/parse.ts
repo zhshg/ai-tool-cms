@@ -149,22 +149,84 @@ function validateProductionEnv(env: Env): void {
     "replace-with-smtp-user",
     "replace-with-smtp-password",
     "replace-with-webhook-signing-secret",
+    "change-me",
+    "changeme",
+    "placeholder",
   ];
 
   const placeholderKeys = required.filter((key) => {
     const value = env[key];
-    return typeof value === "string" && placeholders.some((placeholder) => value.includes(placeholder));
+    return typeof value === "string" && isUnsafeProductionValue(value, placeholders);
   });
 
-  if (missing.length > 0 || placeholderKeys.length > 0) {
+  const securitySecrets: Array<keyof Env> = [
+    "JWT_SECRET",
+    "JWT_REFRESH_SECRET",
+    "STORAGE_SECRET_KEY",
+    "WEBHOOK_SIGNING_SECRET",
+  ];
+
+  const weakSecrets = securitySecrets.filter((key) => {
+    const value = env[key];
+    return typeof value !== "string" || isUnsafeProductionSecret(value, placeholders);
+  });
+
+  const corsOrigins = env.CORS_ORIGINS
+    ?.split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
+  const invalidCors =
+    !corsOrigins?.length ||
+    corsOrigins.some(
+      (origin) =>
+        origin === "*" ||
+        origin.includes("*") ||
+        origin.toLowerCase() === "true" ||
+        origin.toLowerCase() === "false" ||
+        !isValidCorsOrigin(origin),
+    );
+
+  if (missing.length > 0 || placeholderKeys.length > 0 || weakSecrets.length > 0 || invalidCors) {
     const details = [
       missing.length > 0 ? `missing: ${missing.join(", ")}` : undefined,
       placeholderKeys.length > 0 ? `placeholder: ${placeholderKeys.join(", ")}` : undefined,
+      weakSecrets.length > 0 ? `weak secret: ${weakSecrets.join(", ")}` : undefined,
+      invalidCors ? "invalid CORS_ORIGINS: explicit non-wildcard origins are required" : undefined,
     ]
       .filter(Boolean)
       .join("; ");
 
     // 生产环境必须快速失败，避免服务带默认密钥或缺失依赖启动。
     throw new Error(`Invalid production environment configuration (${details})`);
+  }
+}
+
+function isUnsafeProductionValue(value: string, placeholders: string[]): boolean {
+  const normalized = value.trim().toLowerCase();
+  return placeholders.some((placeholder) => normalized.includes(placeholder));
+}
+
+function isUnsafeProductionSecret(value: string, placeholders: string[]): boolean {
+  const secretPlaceholders = [...placeholders, "generate-", "do-not-use", "example", "secret"];
+  const normalized = value.trim();
+  if (normalized.length < 32) {
+    return true;
+  }
+
+  const lower = normalized.toLowerCase();
+  if (secretPlaceholders.some((placeholder) => lower.includes(placeholder))) {
+    return true;
+  }
+
+  return /^(.)\1+$/.test(normalized);
+}
+
+function isValidCorsOrigin(origin: string): boolean {
+  try {
+    const parsed = new URL(origin);
+    return parsed.origin === origin && (parsed.protocol === "https:" || parsed.hostname === "localhost");
+  } catch {
+    return false;
   }
 }

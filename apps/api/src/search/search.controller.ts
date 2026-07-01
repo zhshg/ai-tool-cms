@@ -1,5 +1,6 @@
 import { Controller, Get, Param, Query } from "@nestjs/common";
 import { ApiOperation, ApiTags } from "@nestjs/swagger";
+import { Throttle } from "@nestjs/throttler";
 import { PermissionCode } from "@ai-tool-cms/auth";
 import { Public, RequirePermission } from "../common/decorators";
 import {
@@ -11,6 +12,7 @@ import { SearchApiService } from "./search.service";
 
 @ApiTags("search")
 @Controller()
+@Throttle({ default: { ttl: 60_000, limit: 60 } })
 export class SearchController {
   constructor(private readonly searchService: SearchApiService) {}
 

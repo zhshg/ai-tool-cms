@@ -1,5 +1,6 @@
 import { Body, Controller, Get, Post } from "@nestjs/common";
 import { ApiOkResponse, ApiOperation, ApiTags } from "@nestjs/swagger";
+import { Throttle } from "@nestjs/throttler";
 import { CurrentUser, Public, type RequestUser } from "../common/decorators";
 import { AuthService } from "./auth.service";
 import { AuthUserResponseDto, TokenResponseDto } from "./dto/auth-response.dto";
@@ -13,6 +14,7 @@ export class AuthController {
 
   @Public()
   @Post("login")
+  @Throttle({ default: { ttl: 60_000, limit: 10 } })
   @ApiOperation({ summary: "Login with email and password" })
   @ApiOkResponse({ type: TokenResponseDto })
   login(@Body() dto: LoginDto): Promise<TokenResponseDto> {
@@ -21,6 +23,7 @@ export class AuthController {
 
   @Public()
   @Post("refresh")
+  @Throttle({ default: { ttl: 60_000, limit: 20 } })
   @ApiOperation({ summary: "Refresh access token" })
   @ApiOkResponse({ type: TokenResponseDto })
   refresh(@Body() dto: RefreshTokenDto): Promise<TokenResponseDto> {

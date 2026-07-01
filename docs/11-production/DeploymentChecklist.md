@@ -22,6 +22,15 @@
 - [ ] `CORS_ORIGINS` set for production
 - [ ] `OTEL_EXPORTER_OTLP_ENDPOINT` / `SENTRY_DSN` configured
 
+## Security Gate
+
+- [ ] `JWT_SECRET` and `JWT_REFRESH_SECRET` are unique production secrets with at least 32 characters.
+- [ ] `STORAGE_SECRET_KEY` is a real MinIO/S3 secret, not an example or generated placeholder.
+- [ ] `WEBHOOK_SIGNING_SECRET` is a unique production secret with at least 32 characters.
+- [ ] `CORS_ORIGINS` is explicitly configured with trusted origins only.
+- [ ] `CORS_ORIGINS` does not contain `*`, wildcard subdomains, `true`, or `false`.
+- [ ] API rate limiting is enabled for authentication, search, public API, and admin API traffic.
+
 ## Deploy
 
 - [ ] Docker image built (`docker build --build-arg APP_NAME=api`)

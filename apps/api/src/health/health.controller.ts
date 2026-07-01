@@ -1,5 +1,6 @@
 import { Controller, Get, Header, HttpCode, HttpStatus, Res } from "@nestjs/common";
 import { ApiOperation, ApiTags } from "@nestjs/swagger";
+import { SkipThrottle } from "@nestjs/throttler";
 import type { Response } from "express";
 import { env } from "@ai-tool-cms/config";
 import { redisPing } from "@ai-tool-cms/cache";
@@ -19,6 +20,7 @@ function serviceStatus(url?: string): string {
 
 @ApiTags("health")
 @Controller("health")
+@SkipThrottle()
 export class HealthController {
   constructor(private readonly prisma: PrismaService) {}
 
@@ -79,6 +81,7 @@ export class HealthController {
 
 @ApiTags("health")
 @Controller("api")
+@SkipThrottle()
 export class LegacyHealthController {
   constructor(private readonly prisma: PrismaService) {}
 
