@@ -76,3 +76,55 @@ export class HealthController {
     res.send(renderPrometheusMetrics());
   }
 }
+
+@ApiTags("health")
+@Controller("api")
+export class LegacyHealthController {
+  constructor(private readonly prisma: PrismaService) {}
+
+  @Public()
+  @Get("health")
+  @ApiOperation({ summary: "Backward-compatible service health check" })
+  health(): HealthResponseDto {
+    incrementCounter("health_checks_total", { endpoint: "legacy-health" });
+    return {
+      status: "ok",
+      timestamp: new Date().toISOString(),
+      services: {
+        database: this.prisma.isConnected(),
+        redis: serviceStatus(env.REDIS_URL),
+        meilisearch: serviceStatus(env.MEILI_URL),
+        storage: serviceStatus(env.STORAGE_ENDPOINT),
+        mail: serviceStatus(env.SMTP_HOST),
+      },
+    };
+  }
+
+  @Public()
+  @Get("live")
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: "Backward-compatible liveness probe" })
+  live() {
+    return { status: "alive", timestamp: new Date().toISOString() };
+  }
+
+  @Public()
+  @Get("ready")
+  @ApiOperation({ summary: "Backward-compatible readiness probe" })
+  async ready() {
+    const probes = await Promise.all([
+      runProbe("database", async () => {
+        await this.prisma.client.$queryRaw`SELECT 1`;
+        return true;
+      }),
+      runProbe("redis", redisPing),
+    ]);
+    const status = aggregateHealth(probes);
+    incrementCounter("health_checks_total", { endpoint: "legacy-ready", status });
+    return {
+      status,
+      timestamp: new Date().toISOString(),
+      probes,
+    };
+  }
+}

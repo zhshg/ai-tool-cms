@@ -1,4 +1,4 @@
-import { ValidationPipe } from "@nestjs/common";
+import { RequestMethod, ValidationPipe } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import compression from "compression";
@@ -25,7 +25,13 @@ async function bootstrap() {
   app.use(compression());
   applySecurityHeaders(app);
 
-  app.setGlobalPrefix("v1");
+  app.setGlobalPrefix("v1", {
+    exclude: [
+      { path: "api/health", method: RequestMethod.GET },
+      { path: "api/ready", method: RequestMethod.GET },
+      { path: "api/live", method: RequestMethod.GET },
+    ],
+  });
 
   app.useGlobalPipes(
     new ValidationPipe({
