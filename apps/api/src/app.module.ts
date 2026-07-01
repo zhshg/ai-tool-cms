@@ -26,6 +26,8 @@ import { WebhookHubModule } from "./webhook-hub/webhook-hub.module";
 import { WorkflowModule } from "./workflow/workflow.module";
 import { PluginsModule } from "./plugins/plugins.module";
 import { PlatformBootstrapService } from "./platform-bootstrap.service";
+import { UsersModule } from "./users/users.module";
+import { SettingsModule } from "./settings/settings.module";
 
 @Module({
   imports: [
@@ -58,6 +60,8 @@ import { PlatformBootstrapService } from "./platform-bootstrap.service";
     WebhookHubModule,
     WorkflowModule,
     PluginsModule,
+    UsersModule,
+    SettingsModule,
   ],
   providers: [
     PlatformBootstrapService,

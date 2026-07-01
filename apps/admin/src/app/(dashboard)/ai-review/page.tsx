@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Bot, CheckCircle2, RefreshCw, XCircle } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { RequirePermission } from "@/components/rbac/require-permission";
+import { fetchAiRevisions, type AiRevision, type ApiError } from "@/lib/api";
 import { Permission } from "@/lib/permissions";
 
 type ReviewTab = "PENDING" | "APPROVED" | "REJECTED";
@@ -16,13 +17,29 @@ const tabs: { key: ReviewTab; label: string; icon: typeof Bot }[] = [
 
 export default function AiReviewPage() {
   const [activeTab, setActiveTab] = useState<ReviewTab>("PENDING");
+  const [items, setItems] = useState<AiRevision[]>([]);
+  const [total, setTotal] = useState(0);
+  const [error, setError] = useState<ApiError | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    setIsLoading(true);
+    setError(null);
+    fetchAiRevisions(activeTab)
+      .then((data) => {
+        setItems(data.items);
+        setTotal(data.total);
+      })
+      .catch((err: ApiError) => setError(err))
+      .finally(() => setIsLoading(false));
+  }, [activeTab]);
 
   return (
     <RequirePermission permission={Permission.AiRead}>
       <div>
         <PageHeader
           title="AI Review"
-          description="Sprint 4 默认全自动：爬虫 → AI 生成 → 质量评分 → 自动发布。人工审核为可选（AI_PIPELINE_AUTO_PUBLISH=false）。"
+          description="Review AI-generated content revisions before publication."
         />
 
         <div className="flex flex-wrap gap-2">
@@ -47,51 +64,84 @@ export default function AiReviewPage() {
           })}
         </div>
 
-        <div className="mt-6 rounded-lg border bg-card p-6 text-card-foreground shadow-sm">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-medium">Content Revisions — {activeTab}</h2>
+        <div className="mt-6 mb-4 grid gap-4 md:grid-cols-3">
+          <div className="rounded-lg border bg-card p-4 text-card-foreground shadow-sm">
+            <p className="text-sm text-muted-foreground">Current status</p>
+            <p className="mt-2 text-2xl font-semibold">{activeTab}</p>
+          </div>
+          <div className="rounded-lg border bg-card p-4 text-card-foreground shadow-sm">
+            <p className="text-sm text-muted-foreground">Total revisions</p>
+            <p className="mt-2 text-2xl font-semibold">{total}</p>
+          </div>
+          <div className="rounded-lg border bg-card p-4 text-card-foreground shadow-sm">
+            <p className="text-sm text-muted-foreground">Average quality</p>
+            <p className="mt-2 text-2xl font-semibold">
+              {items.length
+                ? Math.round(
+                    items.reduce((sum, item) => sum + (item.qualityScore ?? 0), 0) / items.length,
+                  )
+                : 0}
+            </p>
+          </div>
+        </div>
+
+        <div className="overflow-hidden rounded-lg border bg-card text-card-foreground shadow-sm">
+          <div className="flex items-center justify-between border-b px-4 py-3">
+            <h2 className="text-sm font-medium">Content revisions</h2>
             <button
               type="button"
+              onClick={() => {
+                setIsLoading(true);
+                fetchAiRevisions(activeTab)
+                  .then((data) => {
+                    setItems(data.items);
+                    setTotal(data.total);
+                    setError(null);
+                  })
+                  .catch((err: ApiError) => setError(err))
+                  .finally(() => setIsLoading(false));
+              }}
               className="inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm hover:bg-muted"
             >
               <RefreshCw className="h-4 w-4" />
-              Regenerate
+              Refresh
             </button>
           </div>
-          <p className="mt-3 text-sm text-muted-foreground">
-            当前视图：<strong>{activeTab}</strong>。API 端点：
-            <code className="ml-1 text-xs">GET /v1/ai/revisions?status={activeTab}</code>
-          </p>
-          <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
-            <div>
-              <dt className="text-muted-foreground">审批</dt>
-              <dd className="font-medium">POST /v1/ai/revisions/:id/approve</dd>
-            </div>
-            <div>
-              <dt className="text-muted-foreground">拒绝</dt>
-              <dd className="font-medium">POST /v1/ai/revisions/:id/reject</dd>
-            </div>
-            <div>
-              <dt className="text-muted-foreground">重新 AI</dt>
-              <dd className="font-medium">POST /v1/ai/tools/:toolId/regenerate</dd>
-            </div>
-            <div>
-              <dt className="text-muted-foreground">自动发布</dt>
-              <dd className="font-medium">
-                AI_PIPELINE_AUTO_PUBLISH=true（默认）→ Tool.status=PUBLISHED
-              </dd>
-            </div>
-            <div>
-              <dt className="text-muted-foreground">Pipeline</dt>
-              <dd className="font-medium">
-                Crawler → Normalize → Summary → Feature → FAQ → SEO → GEO → Quality → Publish
-              </dd>
-            </div>
-            <div>
-              <dt className="text-muted-foreground">质量门控</dt>
-              <dd className="font-medium">评分低于 80 自动从 Summary 重试（最多 3 次）</dd>
-            </div>
-          </dl>
+          {isLoading ? (
+            <p className="p-6 text-sm text-muted-foreground">Loading revisions...</p>
+          ) : null}
+          {error ? (
+            <p className="p-6 text-sm text-destructive">
+              API error {error.status}: {error.message}
+            </p>
+          ) : null}
+          {!isLoading && !error && items.length === 0 ? (
+            <p className="p-6 text-sm text-muted-foreground">No revisions found.</p>
+          ) : null}
+          {!isLoading && !error && items.length > 0 ? (
+            <table className="w-full text-sm">
+              <thead className="border-b bg-muted/50 text-left text-muted-foreground">
+                <tr>
+                  <th className="px-4 py-3 font-medium">Tool</th>
+                  <th className="px-4 py-3 font-medium">Stage</th>
+                  <th className="px-4 py-3 font-medium">Quality</th>
+                  <th className="px-4 py-3 font-medium">Created</th>
+                </tr>
+              </thead>
+              <tbody>
+                {items.map((revision) => (
+                  <tr key={revision.id} className="border-b last:border-0">
+                    <td className="px-4 py-3 font-medium">{revision.tool?.name ?? "Unknown"}</td>
+                    <td className="px-4 py-3">{revision.stage}</td>
+                    <td className="px-4 py-3">{revision.qualityScore ?? "N/A"}</td>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {new Date(revision.createdAt).toLocaleString()}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : null}
         </div>
       </div>
     </RequirePermission>

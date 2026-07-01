@@ -53,10 +53,152 @@ export type SearchConsoleResponse = {
   bing: Record<string, unknown>;
 };
 
+export type PaginatedResponse<T> = {
+  items: T[];
+  total: number;
+  page: number;
+  pageSize: number;
+};
+
+export type AdminTool = {
+  id: string;
+  name: string;
+  slug: string;
+  website: string;
+  status: string;
+  pricingModel: string;
+  createdAt: string;
+  updatedAt: string;
+  categories?: Array<{ category: { id: string; name: string; slug: string } }>;
+};
+
+export type AdminCategory = {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string | null;
+  sortOrder: number;
+  parentId?: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type AdminUser = {
+  id: string;
+  email: string;
+  displayName?: string | null;
+  status: string;
+  emailVerifiedAt?: string | null;
+  lastLoginAt?: string | null;
+  createdAt: string;
+  roles: Array<{ id: string; code: string; name: string }>;
+};
+
+export type UsersSummary = {
+  total: number;
+  active: number;
+  inactive: number;
+  suspended: number;
+  roles: number;
+};
+
+export type AdminSetting = {
+  id: string;
+  key: string;
+  value: unknown;
+  group: string;
+  description?: string | null;
+  isPublic: boolean;
+  updatedAt: string;
+};
+
+export type SettingsSummary = {
+  total: number;
+  publicSettings: number;
+  privateSettings: number;
+  groups: Array<{ name: string; count: number }>;
+};
+
+export type AiRevision = {
+  id: string;
+  stage: string;
+  status: string;
+  qualityScore?: number | null;
+  reviewNote?: string | null;
+  createdAt: string;
+  tool?: { id: string; name: string; slug: string };
+};
+
+export type CrawlerDashboard = {
+  todayCrawl: number;
+  success: number;
+  failed: number;
+  pending: number;
+  enabledSources: number;
+  queue: {
+    total: number;
+    byName: Record<string, { waiting: number; active: number; completed: number; failed: number; delayed: number; total: number }>;
+  };
+  averageTimeMs: number;
+  newTools: number;
+  updatedTools: number;
+};
+
+export type CrawlSource = {
+  id: string;
+  name: string;
+  slug: string;
+  baseUrl: string;
+  adapterType: string;
+  status: string;
+  schedule: string;
+  priority: number;
+  lastRunAt?: string | null;
+  nextRunAt?: string | null;
+};
+
 export function fetchSeoDashboard() {
   return apiFetch<SeoDashboardResponse>("/seo/dashboard");
 }
 
 export function fetchSearchConsole() {
   return apiFetch<SearchConsoleResponse>("/seo/search-console");
+}
+
+export function fetchTools() {
+  return apiFetch<PaginatedResponse<AdminTool>>("/tools?pageSize=50");
+}
+
+export function fetchCategories() {
+  return apiFetch<PaginatedResponse<AdminCategory>>("/categories?pageSize=50");
+}
+
+export function fetchUsers() {
+  return apiFetch<PaginatedResponse<AdminUser>>("/users?pageSize=50");
+}
+
+export function fetchUsersSummary() {
+  return apiFetch<UsersSummary>("/users/summary");
+}
+
+export function fetchSettings() {
+  return apiFetch<PaginatedResponse<AdminSetting>>("/settings?pageSize=50");
+}
+
+export function fetchSettingsSummary() {
+  return apiFetch<SettingsSummary>("/settings/summary");
+}
+
+export function fetchAiRevisions(status: string) {
+  return apiFetch<PaginatedResponse<AiRevision>>(
+    `/ai/revisions?status=${encodeURIComponent(status)}&pageSize=50`,
+  );
+}
+
+export function fetchCrawlerDashboard() {
+  return apiFetch<CrawlerDashboard>("/crawler/dashboard");
+}
+
+export function fetchCrawlSources() {
+  return apiFetch<PaginatedResponse<CrawlSource>>("/crawler/sources?pageSize=50");
 }
