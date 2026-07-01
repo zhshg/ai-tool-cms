@@ -196,6 +196,18 @@ export class SeoService {
 
     const entries: SitemapEntry[] = [
       { url: `/${locale}`, lastModified: new Date(), changeFrequency: "daily", priority: 1 },
+      {
+        url: `/${locale}/tools`,
+        lastModified: new Date(),
+        changeFrequency: "daily",
+        priority: 0.85,
+      },
+      {
+        url: `/${locale}/search`,
+        lastModified: new Date(),
+        changeFrequency: "weekly",
+        priority: 0.6,
+      },
       ...tools.map((t) => ({
         url: `/${locale}/tools/${t.slug}`,
         lastModified: t.updatedAt,

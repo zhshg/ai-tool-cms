@@ -21,6 +21,26 @@ export type CatalogTool = {
   summary: string | null;
 };
 
+export type CatalogSearchTool = CatalogTool & {
+  id: string;
+  website?: string;
+  pricingModel?: string;
+  categorySlugs: string[];
+  categoryNames: string[];
+  tagSlugs: string[];
+  tagNames: string[];
+};
+
+export type CatalogSearchResult = {
+  query: string;
+  hits: Array<{ document: CatalogSearchTool; score: number }>;
+  page: number;
+  pageSize: number;
+  totalHits: number;
+  totalPages: number;
+  processingTimeMs: number;
+};
+
 type CategoryWithCount = {
   slug: string;
   name: string;
@@ -53,6 +73,40 @@ async function fetchPublishedTools(limit = 12): Promise<CatalogTool[]> {
     select: { slug: true, name: true, summary: true },
   });
   return tools;
+}
+
+function getInternalApiUrl() {
+  return process.env.INTERNAL_API_URL ?? process.env.API_URL ?? "http://localhost:4000";
+}
+
+export async function searchCatalogTools(input: {
+  locale: string;
+  query?: string;
+  page?: number;
+  pageSize?: number;
+}): Promise<CatalogSearchResult> {
+  const page = Math.max(1, input.page ?? 1);
+  const pageSize = Math.min(50, Math.max(1, input.pageSize ?? 12));
+  const params = new URLSearchParams({
+    page: String(page),
+    pageSize: String(pageSize),
+    sort: input.query ? "relevance" : "newest",
+  });
+
+  if (input.query?.trim()) {
+    params.set("q", input.query.trim());
+  }
+
+  const response = await fetch(`${getInternalApiUrl()}/v1/search?${params.toString()}`, {
+    next: { revalidate: 300 },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Search API returned ${response.status}`);
+  }
+
+  void input.locale;
+  return response.json() as Promise<CatalogSearchResult>;
 }
 
 function buildCategoryFaqs(categoryName: string, tools: CatalogTool[]): CatalogFaq[] {
