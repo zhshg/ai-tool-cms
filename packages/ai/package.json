@@ -14,7 +14,7 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "scripts": {
-    "build": "tsc -p tsconfig.build.json && cp -r prompts dist/",
+    "build": "tsc -p tsconfig.build.json && node ../../scripts/copy-dir.mjs prompts dist/prompts",
     "lint": "eslint \"src/**/*.ts\" --config ../../eslint.config.mjs",
     "test": "vitest run --config ../../vitest.config.ts",
     "typecheck": "tsc --noEmit",

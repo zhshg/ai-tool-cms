@@ -1,0 +1,39 @@
+FROM node:20-alpine AS base
+RUN corepack enable && corepack prepare pnpm@9.15.4 --activate
+WORKDIR /app
+
+FROM base AS deps
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
+COPY apps ./apps
+COPY packages ./packages
+COPY prisma ./prisma
+RUN pnpm install --frozen-lockfile
+
+FROM base AS builder
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+ARG APP_NAME=web
+ARG ADMIN_BASE_PATH=
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV ADMIN_BASE_PATH=${ADMIN_BASE_PATH}
+ENV NEXT_STANDALONE=true
+RUN pnpm --filter @ai-tool-cms/${APP_NAME} build
+
+FROM node:20-alpine AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV HOSTNAME=0.0.0.0
+
+RUN addgroup --system --gid 1001 nodejs \
+  && adduser --system --uid 1001 nextjs
+
+ARG APP_NAME=web
+ENV APP_NAME=${APP_NAME}
+
+COPY --from=builder --chown=nextjs:nodejs /app/apps/${APP_NAME}/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/apps/${APP_NAME}/.next/static ./apps/${APP_NAME}/.next/static
+
+USER nextjs
+EXPOSE 3000
+CMD ["sh", "-c", "node apps/${APP_NAME}/server.js"]

@@ -43,6 +43,8 @@ Desktop.ini
 prisma/*.db
 prisma/*.db-journal
 packages/database/src/generated/
+packages/database/generated/
+.build-home/
 
 # Docker
 docker/data/

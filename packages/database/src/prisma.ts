@@ -1,4 +1,4 @@
-import type { PrismaClient } from "@prisma/client";
+import type { PrismaClient } from "../generated/client";
 import { env } from "@ai-tool-cms/config";
 import { createPrismaClient } from "./client";
 

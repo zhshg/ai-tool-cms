@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import type { PrismaClient } from "@ai-tool-cms/database";
+import type { FeatureFlag, PrismaClient } from "@ai-tool-cms/database";
 
 export type FlagContext = {
   locale?: string;
@@ -40,7 +40,7 @@ function hashBucket(key: string, subject: string): number {
   return (hash[0]! / 255) * 100;
 }
 
-export async function listFeatureFlags(prisma: PrismaClient) {
+export async function listFeatureFlags(prisma: PrismaClient): Promise<FeatureFlag[]> {
   return prisma.featureFlag.findMany({
     where: { deletedAt: null },
     orderBy: { key: "asc" },
@@ -58,7 +58,7 @@ export async function upsertFeatureFlag(
     regions?: string[];
     description?: string;
   },
-) {
+): Promise<FeatureFlag> {
   return prisma.featureFlag.upsert({
     where: { key: input.key },
     create: {

@@ -1,35 +1,150 @@
-name: Deploy Staging
+name: Deploy
 
 on:
   workflow_dispatch:
+    inputs:
+      environment:
+        description: "Deployment environment"
+        required: true
+        default: "staging"
+        type: choice
+        options:
+          - staging
+          - production
+      image_tag:
+        description: "Image tag to publish"
+        required: false
+        default: ""
   push:
     tags:
       - "v*.*.*"
 
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAMESPACE: ${{ github.repository_owner }}
+  PNPM_VERSION: 9.15.4
+  NODE_VERSION: 20
+
 jobs:
-  deploy-staging:
+  build-and-push:
     runs-on: ubuntu-latest
-    environment: staging
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - app: api
+            dockerfile: docker/Dockerfile.node
+            image: ai-tool-cms-api
+          - app: worker
+            dockerfile: docker/Dockerfile.node
+            image: ai-tool-cms-worker
+          - app: scheduler
+            dockerfile: docker/Dockerfile.node
+            image: ai-tool-cms-scheduler
+          - app: web
+            dockerfile: docker/Dockerfile.next
+            image: ai-tool-cms-web
+          - app: admin
+            dockerfile: docker/Dockerfile.next
+            image: ai-tool-cms-admin
+    outputs:
+      image_tag: ${{ steps.vars.outputs.image_tag }}
     steps:
       - uses: actions/checkout@v4
+
       - uses: pnpm/action-setup@v4
         with:
-          version: 9.15.4
+          version: ${{ env.PNPM_VERSION }}
+
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
+
       - run: pnpm install --frozen-lockfile
       - run: pnpm db:generate
-      - run: pnpm build
-      - name: Health check (staging)
+      - run: pnpm --filter @ai-tool-cms/${{ matrix.app }} build
+
+      - name: Resolve image tag
+        id: vars
+        shell: bash
         run: |
-          echo "Deploy staging via your orchestrator (K8s / ECS / VM)"
-          echo "Post-deploy: curl -f \$STAGING_API_URL/v1/health/ready"
+          if [ -n "${{ inputs.image_tag }}" ]; then
+            echo "image_tag=${{ inputs.image_tag }}" >> "$GITHUB_OUTPUT"
+          elif [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            echo "image_tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          else
+            echo "image_tag=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          build-args: APP_NAME=${{ matrix.app }}
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/${{ matrix.image }}:${{ steps.vars.outputs.image_tag }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/${{ matrix.image }}:${{ github.sha }}
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    environment: ${{ inputs.environment || 'production' }}
+    steps:
+      - name: Require deployment hook
+        shell: bash
+        run: |
+          if [ -z "${{ secrets.DEPLOY_WEBHOOK_URL }}" ]; then
+            echo "DEPLOY_WEBHOOK_URL is required for deployment."
+            exit 1
+          fi
+
+      - name: Trigger deployment
+        shell: bash
+        run: |
+          curl --fail --show-error --silent \
+            --request POST \
+            --header "Authorization: Bearer ${{ secrets.DEPLOY_WEBHOOK_TOKEN }}" \
+            --header "Content-Type: application/json" \
+            --data '{"imageTag":"${{ needs.build-and-push.outputs.image_tag }}","environment":"${{ inputs.environment || 'production' }}","sha":"${{ github.sha }}"}' \
+            "${{ secrets.DEPLOY_WEBHOOK_URL }}"
+
+      - name: Health check
+        shell: bash
+        run: |
+          if [ -z "${{ secrets.DEPLOY_HEALTHCHECK_URL }}" ]; then
+            echo "DEPLOY_HEALTHCHECK_URL is required for post-deploy verification."
+            exit 1
+          fi
+
+          for attempt in $(seq 1 30); do
+            if curl --fail --show-error --silent "${{ secrets.DEPLOY_HEALTHCHECK_URL }}"; then
+              exit 0
+            fi
+            echo "Health check attempt ${attempt} failed; retrying in 10s."
+            sleep 10
+          done
+
+          echo "Deployment health check failed."
+          exit 1
 
   notify:
     runs-on: ubuntu-latest
-    needs: deploy-staging
+    needs:
+      - build-and-push
+      - deploy
     if: always()
     steps:
-      - run: echo "CI/CD pipeline finished with status ${{ needs.deploy-staging.result }}"
+      - run: echo "Deploy workflow finished with status ${{ needs.deploy.result }}"

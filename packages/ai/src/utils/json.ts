@@ -4,7 +4,7 @@ export function parseJsonFromLlm<T>(text: string): T {
   const fenceMatch = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/i);
   const candidate = fenceMatch?.[1]?.trim() ?? trimmed;
 
-  const start = candidate.search(/[\[{]/);
+  const start = candidate.search(/[[{]/);
   if (start < 0) {
     throw new Error("No JSON found in LLM response");
   }

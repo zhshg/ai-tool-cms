@@ -21,6 +21,16 @@ export type CatalogTool = {
   summary: string | null;
 };
 
+type CategoryWithCount = {
+  slug: string;
+  name: string;
+  _count: { tools: number };
+};
+
+type ToolLinkWithTool = {
+  tool: CatalogTool;
+};
+
 export type CatalogFaq = {
   question: string;
   answer: string;
@@ -109,7 +119,7 @@ export async function getHomePageData(locale: string): Promise<{
   void locale;
 
   return {
-    categories: categories.map((c) => ({
+    categories: categories.map((c: CategoryWithCount) => ({
       slug: c.slug,
       name: c.name,
       toolCount: c._count.tools,
@@ -144,7 +154,7 @@ export async function getCategoryLanding(
     take: 12,
   });
 
-  const tools = toolLinks.map((link) => link.tool);
+  const tools = toolLinks.map((link: ToolLinkWithTool) => link.tool);
   const trending = await fetchPublishedTools(6);
   const config = getSiteConfig();
   const path = `/${locale}/category/${slug}`;
@@ -155,7 +165,7 @@ export async function getCategoryLanding(
     `Discover the best ${category.name} AI tools. Compare features, pricing, and alternatives in one place.`;
 
   const faqs = buildCategoryFaqs(category.name, tools);
-  const relatedTools = tools.slice(0, 8).map((t) => ({
+  const relatedTools = tools.slice(0, 8).map((t: CatalogTool) => ({
     slug: t.slug,
     name: t.name,
     summary: t.summary,
@@ -166,7 +176,7 @@ export async function getCategoryLanding(
       name: `Best ${category.name} AI Tools`,
       url,
       description: aiSummary,
-      items: relatedTools.map((t) => ({
+      items: relatedTools.map((t: CatalogTool) => ({
         name: t.name,
         url: joinUrl(config.siteUrl, `/${locale}/tools/${t.slug}`),
       })),
@@ -212,7 +222,7 @@ export async function getTagLanding(
     take: 12,
   });
 
-  const tools = toolTags.map((link) => link.tool);
+  const tools = toolTags.map((link: ToolLinkWithTool) => link.tool);
   const trending = await fetchPublishedTools(6);
   const config = getSiteConfig();
   const path = `/${locale}/tag/${slug}`;
@@ -220,7 +230,7 @@ export async function getTagLanding(
 
   const aiSummary = `AI tools tagged "${tag.name}" — reviews, pricing, and alternatives.`;
   const faqs = buildTagFaqs(tag.name);
-  const relatedTools = tools.slice(0, 8).map((t) => ({
+  const relatedTools = tools.slice(0, 8).map((t: CatalogTool) => ({
     slug: t.slug,
     name: t.name,
     summary: t.summary,
@@ -230,7 +240,7 @@ export async function getTagLanding(
     buildItemListJsonLd({
       name: `${tag.name} AI Tools`,
       url,
-      items: relatedTools.map((t, index) => ({
+      items: relatedTools.map((t: CatalogTool, index: number) => ({
         name: t.name,
         url: joinUrl(config.siteUrl, `/${locale}/tools/${t.slug}`),
         position: index + 1,
@@ -292,7 +302,7 @@ export async function getCompareLanding(
         include: { tool: { select: { slug: true, name: true, summary: true } } },
         take: 10,
       });
-      relatedTools = links.map((l) => l.tool);
+      relatedTools = links.map((l: ToolLinkWithTool) => l.tool);
     }
   }
 

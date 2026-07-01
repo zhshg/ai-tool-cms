@@ -1,6 +1,6 @@
 export { connectPrisma, disconnectPrisma, prisma } from "./prisma";
-export type { PrismaClient } from "@prisma/client";
-export type * from "@prisma/client";
+export type { PrismaClient } from "../generated/client";
+export type * from "../generated/client";
 export {
   ContentRevisionStatus,
   AiPipelineStage,
@@ -21,4 +21,4 @@ export {
   SeoEntityType,
   ToolStatus,
   UserStatus,
-} from "@prisma/client";
+} from "../generated/client";

@@ -29,7 +29,7 @@ export async function completeToolPublishWorkflow(
   });
   if (!run) return { completed: false };
 
-  let currentRunId = run.id;
+  const currentRunId = run.id;
   let completed = false;
   let stepResult = result;
   while (!completed) {

@@ -6,9 +6,9 @@
     "predev": "pnpm --filter @ai-tool-cms/config build && pnpm --filter @ai-tool-cms/database build && pnpm --filter @ai-tool-cms/geo build && pnpm --filter @ai-tool-cms/seo build",
     "dev": "next dev --port 3000 --hostname 0.0.0.0",
     "prebuild": "pnpm --filter @ai-tool-cms/config build && pnpm --filter @ai-tool-cms/database build && pnpm --filter @ai-tool-cms/geo build && pnpm --filter @ai-tool-cms/seo build",
-    "build": "next build",
+    "build": "node ../../scripts/next-build.mjs",
     "start": "next start --port 3000",
-    "lint": "next lint",
+    "lint": "eslint \"src/**/*.{ts,tsx}\" --config eslint.config.mjs",
     "test": "vitest run --passWithNoTests --config ../../vitest.config.ts",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf .next"

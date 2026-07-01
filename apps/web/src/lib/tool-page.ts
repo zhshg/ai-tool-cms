@@ -16,6 +16,17 @@ export type ToolPageLink = {
   type: string;
 };
 
+type ToolFaqRow = {
+  question: string;
+  answer: string;
+};
+
+type ToolInternalLinkRow = {
+  anchorText: string;
+  href: string;
+  linkType: string;
+};
+
 export type ToolPageData = {
   slug: string;
   name: string;
@@ -63,7 +74,7 @@ export async function getToolPage(
 
   const config = getSiteConfig();
   const primaryCategory = tool.categories[0]?.category;
-  const faqs = tool.faqs.map((f) => ({ question: f.question, answer: f.answer }));
+  const faqs = tool.faqs.map((f: ToolFaqRow) => ({ question: f.question, answer: f.answer }));
 
   const jsonLd = buildToolPageJsonLd({
     baseUrl: config.siteUrl,
@@ -100,7 +111,7 @@ export async function getToolPage(
       cons,
       useCases: useCases.length ? useCases : (features ?? []).slice(0, 5),
       faqs,
-      internalLinks: tool.internalLinks.map((link) => ({
+      internalLinks: tool.internalLinks.map((link: ToolInternalLinkRow) => ({
         anchor: link.anchorText,
         href: link.href,
         type: link.linkType,

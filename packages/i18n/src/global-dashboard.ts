@@ -1,4 +1,4 @@
-import type { PrismaClient } from "@ai-tool-cms/database";
+import type { CountryAnalyticsSnapshot, PrismaClient } from "@ai-tool-cms/database";
 import { SUPPORTED_LOCALES } from "./locales";
 
 export type GlobalDashboardMetrics = {
@@ -97,7 +97,10 @@ export async function getGlobalDashboardMetrics(
   };
 }
 
-export async function getCountryAnalytics(prisma: PrismaClient, periodKey?: string) {
+export async function getCountryAnalytics(
+  prisma: PrismaClient,
+  periodKey?: string,
+): Promise<CountryAnalyticsSnapshot[]> {
   const key = periodKey ?? new Date().toISOString().slice(0, 10);
   return prisma.countryAnalyticsSnapshot.findMany({
     where: { periodKey: key },

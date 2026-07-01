@@ -83,11 +83,82 @@ export function parseEnv(source?: EnvSource): Env {
     NEWSLETTER_FROM_EMAIL: resolved.NEWSLETTER_FROM_EMAIL,
     WEBHOOK_SIGNING_SECRET: resolved.WEBHOOK_SIGNING_SECRET,
     CRAWLER_ENABLE_PRODUCTION_ADAPTERS: resolved.CRAWLER_ENABLE_PRODUCTION_ADAPTERS,
+    CRAWLER_CONCURRENCY: resolved.CRAWLER_CONCURRENCY,
+    CRAWLER_TIMEOUT_MS: resolved.CRAWLER_TIMEOUT_MS,
     AI_PIPELINE_AUTO_PUBLISH: resolved.AI_PIPELINE_AUTO_PUBLISH,
   };
 
-  return envSchema.parse(raw);
+  const parsed = envSchema.parse(raw);
+  validateProductionEnv(parsed);
+  return parsed;
 }
 
 /** @deprecated Use `parseEnv` instead. */
 export const parseConfig = parseEnv;
+
+function validateProductionEnv(env: Env): void {
+  if (process.env.BUILD_SKIP_ENV_VALIDATION === "true") {
+    return;
+  }
+
+  if (env.NODE_ENV !== "production") {
+    return;
+  }
+
+  const required: Array<keyof Env> = [
+    "DATABASE_URL",
+    "REDIS_URL",
+    "QUEUE_URL",
+    "MEILI_URL",
+    "MEILI_MASTER_KEY",
+    "JWT_SECRET",
+    "JWT_REFRESH_SECRET",
+    "CORS_ORIGINS",
+    "APP_URL",
+    "ADMIN_URL",
+    "API_URL",
+    "NEXT_PUBLIC_APP_URL",
+    "STORAGE_ENDPOINT",
+    "STORAGE_ACCESS_KEY",
+    "STORAGE_SECRET_KEY",
+    "SMTP_HOST",
+    "NEWSLETTER_FROM_EMAIL",
+  ];
+
+  const missing = required.filter((key) => {
+    const value = env[key];
+    return value === undefined || value === null || String(value).trim() === "";
+  });
+
+  const placeholders = [
+    "your-jwt-secret-change-in-production",
+    "your-jwt-refresh-secret-change-in-production",
+    "replace-with-strong-jwt-secret",
+    "replace-with-strong-refresh-secret",
+    "replace-with-strong-postgres-password",
+    "replace-with-strong-redis-password",
+    "replace-with-strong-meilisearch-key",
+    "replace-with-storage-access-key",
+    "replace-with-storage-secret-key",
+    "replace-with-smtp-user",
+    "replace-with-smtp-password",
+    "replace-with-webhook-signing-secret",
+  ];
+
+  const placeholderKeys = required.filter((key) => {
+    const value = env[key];
+    return typeof value === "string" && placeholders.some((placeholder) => value.includes(placeholder));
+  });
+
+  if (missing.length > 0 || placeholderKeys.length > 0) {
+    const details = [
+      missing.length > 0 ? `missing: ${missing.join(", ")}` : undefined,
+      placeholderKeys.length > 0 ? `placeholder: ${placeholderKeys.join(", ")}` : undefined,
+    ]
+      .filter(Boolean)
+      .join("; ");
+
+    // 生产环境必须快速失败，避免服务带默认密钥或缺失依赖启动。
+    throw new Error(`Invalid production environment configuration (${details})`);
+  }
+}

@@ -1,40 +1,140 @@
 # AGENTS.md
 
-## Cursor Cloud specific instructions
+## Codex instructions for this repository
 
-This is the **AI Tool CMS** monorepo — a pnpm + Turborepo workspace (Node ≥ 20, pnpm 9.15.4) for an AI-tools directory CMS. Surfaces: `web` (public site, Next.js, :3000), `admin` (Next.js, :3001), `api` (NestJS, :4000), plus `worker`/`scheduler` (BullMQ) and a `mcp-server`. Standard commands live in `package.json` and `docs/GettingStarted.md` — reference those rather than re-deriving them.
+This repository is the AI Tool CMS monorepo. It uses pnpm, Turborepo, Node.js 20+, Next.js, NestJS, Prisma, PostgreSQL, Redis, Meilisearch, MinIO, BullMQ, and related internal packages.
 
-### Infrastructure must be started manually each session
-The update script only refreshes JS deps; it does **not** start services. Infra (Postgres, Redis, Meilisearch, MinIO, Mailpit, nginx) runs via Docker Compose, and **the Docker daemon does not auto-start** in this VM. At session start:
+Primary apps:
+
+- `apps/web`: public website, Next.js, port 3000.
+- `apps/admin`: admin console, Next.js, port 3001.
+- `apps/api`: API service, NestJS, port 4000.
+- `apps/worker`: background workers.
+- `apps/scheduler`: scheduled jobs.
+- `packages/*`: shared platform packages.
+- `prisma`: schema, migrations, and seed data.
+
+## Working rules
+
+- Prefer reading the existing implementation and documentation before changing code.
+- Keep changes scoped to the requested task.
+- Do not overwrite user changes unless the user explicitly asks for that.
+- Use `rg` when available. On Windows, PowerShell commands are acceptable when `rg` is unavailable or blocked.
+- Use `apply_patch` for manual file edits.
+- Keep code identifiers, filenames, package names, and commit messages in English.
+- User-facing explanations should be in Simplified Chinese unless the user requests otherwise.
+- New or changed code comments should be in Chinese.
+
+## Common commands
+
+Install dependencies:
 
 ```bash
-sudo dockerd > /tmp/dockerd.log 2>&1 &   # if `docker info` fails
-sudo docker compose up -d --wait          # or: pnpm docker:up (needs sudo for docker here)
+pnpm install --frozen-lockfile
 ```
 
-Docker was installed with the `fuse-overlayfs` storage driver and legacy iptables (see `/etc/docker/daemon.json`); this is required for Docker-in-Docker to work in the Cloud VM. The `docker` CLI needs `sudo`. The Postgres/Redis defaults in `.env.example` already match `docker-compose.yml`, so `cp .env.example .env` is sufficient — no secrets needed for local dev (AI providers, embeddings, and crawlers all default to mock).
-
-### Database setup is not idempotent-free
-After infra is healthy, build first (Prisma config + seed depend on built internal packages), then migrate and seed:
+Generate Prisma client:
 
 ```bash
-pnpm build                 # or at least build @ai-tool-cms/config, database, auth, common
+pnpm db:generate
+```
+
+Build:
+
+```bash
+pnpm build
+```
+
+Lint:
+
+```bash
+pnpm lint
+```
+
+Typecheck:
+
+```bash
+pnpm typecheck
+```
+
+Unit tests:
+
+```bash
+pnpm test:unit
+```
+
+All tests:
+
+```bash
+pnpm test
+```
+
+Start local infrastructure:
+
+```bash
+pnpm docker:up
+```
+
+Stop local infrastructure:
+
+```bash
+pnpm docker:down
+```
+
+Run dev stack:
+
+```bash
+pnpm dev:stack
+```
+
+Run individual apps:
+
+```bash
+pnpm dev:web
+pnpm dev:admin
+pnpm dev:api
+```
+
+## Local infrastructure
+
+`docker-compose.yml` starts supporting services such as PostgreSQL, Redis, Meilisearch, MinIO, Mailpit, and nginx. It does not currently start all application services as containers.
+
+Default local ports:
+
+- Web: `http://localhost:3000`
+- Admin: `http://localhost:3001`
+- API: `http://localhost:4000`
+- PostgreSQL: `localhost:5432`
+- Redis: `localhost:6379`
+- Meilisearch: `localhost:7700`
+- MinIO API: `localhost:9000`
+- MinIO console: `localhost:9001`
+- Mailpit UI: `localhost:8025`
+
+## Database setup
+
+After dependencies and infrastructure are ready:
+
+```bash
+pnpm db:generate
 pnpm db:migrate:deploy
-pnpm db:seed               # seeds admin + demo data (5 categories, 10 tools)
+pnpm db:seed
 ```
 
-`pnpm db:migrate:deploy` / `pnpm db:seed` fail with "Cannot find module @ai-tool-cms/config/dist/index.js" if packages aren't built yet — run `pnpm build` (or the targeted package builds) first. Seed admin creds come from `.env` (`SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD`, default `admin@ai-tool-cms.local` / `Admin123!`).
+Seed credentials are configured through environment variables documented in `.env.example`.
 
-### Running the apps (dev)
-- `pnpm dev:stack` → web (:3000) + api (:4000) via turbo. `pnpm dev:web` / `pnpm dev:api` / `pnpm dev:admin` run individually.
-- The public site browses fine on :3000 reading Postgres directly via Prisma (no API needed for browsing).
-- Next.js dev compiles routes on-demand; the first hit to a route can be slow.
+## Deployment notes
 
-### Known pre-existing issues (NOT environment problems — do not "fix" as setup)
-- **`api` fails to boot**: `packages/growth/dist/index.js` uses extensionless relative ESM imports (`from "./loop"`), which Node ESM rejects (`ERR_MODULE_NOT_FOUND`). The repo is mid-migration to `.js` extensions (see commit `2d1894d`); `growth` (and possibly other packages) are unfixed. This blocks `pnpm dev:api` / `dev:stack`'s api process and the production `web` build path that imports it.
-- **`@ai-tool-cms/worker` typecheck fails**: it imports `@ai-tool-cms/observability` but does not declare it in `apps/worker/package.json` dependencies, so pnpm doesn't link it. Build (different tsconfig) and `tsx` dev runtime tolerate it; `pnpm typecheck` does not.
-- **`@ai-tool-cms/workflow` lint fails**: `prefer-const` error in `packages/workflow/src/runner.ts`. The lint tooling itself is fine.
-- **`web` tool-detail route** (`/[locale]/tools/[slug]`) renders without the site layout/CSS while sharing the same `[locale]/layout.tsx` as the (correctly styled) homepage and category pages — an app-code quirk, not an env/CSS-pipeline issue.
+Before production deployment work, inspect:
 
-### Tests
-- `pnpm test:unit` (vitest) — passes (66 tests). `pnpm test:integration` has no test files. `pnpm test:e2e` is Playwright and needs the dev stack running.
+- `docs/Deployment.md`
+- `docs/11-production/DeploymentChecklist.md`
+- `docs/11-production/ProductionAcceptance.md`
+- `docs/12-release/KnownLimitations.md`
+- `.github/workflows/ci.yml`
+- `.github/workflows/deploy.yml`
+- `docker-compose.yml`
+- `docker/Dockerfile`
+- `docker/nginx/conf.d/default.conf`
+
+Current deployment materials should be treated as incomplete until the deployment gap report is resolved.

@@ -6,9 +6,9 @@
     "predev": "pnpm --filter @ai-tool-cms/config build",
     "dev": "next dev --port 3001 --hostname 0.0.0.0",
     "prebuild": "pnpm --filter @ai-tool-cms/config build",
-    "build": "next build",
+    "build": "node ../../scripts/next-build.mjs",
     "start": "next start --port 3001",
-    "lint": "next lint",
+    "lint": "eslint \"src/**/*.{ts,tsx}\" --config eslint.config.mjs",
     "test": "vitest run --passWithNoTests --config ../../vitest.config.ts",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf .next"
