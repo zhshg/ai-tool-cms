@@ -66,12 +66,20 @@ Follow-up worker Docker build fixes:
 - Added `.dockerignore` so host `node_modules`, package-level `node_modules`, `dist`, `.next`, `.turbo`, coverage, generated Prisma client output, and local env files do not pollute Docker build context.
 - Updated `docker/Dockerfile.node` builder stage to copy the full deps-stage `/app` tree before overlaying source, preserving pnpm workspace package-level `node_modules` links created inside Linux.
 - Updated `docker/Dockerfile.node` build command to use Turbo topology: `pnpm turbo run build --filter=@ai-tool-cms/${APP_NAME}`.
+- Updated `docker/Dockerfile.next` with the same pnpm workspace install preservation and Turbo topology build command for web/admin images.
 
 Root cause of the worker failure:
 
 - The Docker context originally included host workspace artifacts because `.dockerignore` was missing.
 - The builder stage originally copied only root `node_modules`, but pnpm workspaces also require package/app-level `node_modules` links.
 - Worker directly imported `@ai-tool-cms/observability` without declaring it as a dependency, which fails in a clean pnpm workspace.
+
+Root cause of the web failure:
+
+- `docker/Dockerfile.next` copied only root `node_modules` into the builder stage.
+- pnpm workspace package-level `node_modules` links were missing in packages such as `packages/config`.
+- The first failed package was `@ai-tool-cms/config`, where TypeScript could not resolve Node types, `dotenv`, and `zod`.
+- Running Next builds through Turbo ensures workspace dependencies are built in dependency order before `@ai-tool-cms/web`.
 
 ### Missing health checks
 
@@ -113,6 +121,7 @@ Status: fixed.
 - Web locale layout no longer performs build-time static locale enumeration that requires database availability.
 - Web TypeScript include/exclude rules now avoid build cache artifacts.
 - Docker Next.js builds enable standalone output through `NEXT_STANDALONE=true`.
+- Docker Next.js builds now preserve pnpm workspace links and use Turbo dependency ordering.
 - Admin supports `ADMIN_BASE_PATH=/admin` for production reverse-proxy routing.
 
 ### Worker/scheduler startup issues
@@ -159,6 +168,7 @@ Additional checks:
 - `docker compose --env-file .env.production.example -f docker-compose.prod.yml config`: passed
 - `docker compose --env-file .env.production -f docker-compose.prod.yml config --quiet`: passed
 - `docker compose --env-file .env.production -f docker-compose.prod.yml build worker --no-cache`: passed
+- `docker compose --env-file .env.production -f docker-compose.prod.yml build web --no-cache`: passed
 - GitHub Actions YAML parse check: passed
 
 Not executed:

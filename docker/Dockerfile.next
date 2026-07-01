@@ -10,14 +10,14 @@ COPY prisma ./prisma
 RUN pnpm install --frozen-lockfile
 
 FROM base AS builder
-COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app ./
 COPY . .
 ARG APP_NAME=web
 ARG ADMIN_BASE_PATH=
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV ADMIN_BASE_PATH=${ADMIN_BASE_PATH}
 ENV NEXT_STANDALONE=true
-RUN pnpm --filter @ai-tool-cms/${APP_NAME} build
+RUN pnpm turbo run build --filter=@ai-tool-cms/${APP_NAME}
 
 FROM node:20-alpine AS runner
 WORKDIR /app
