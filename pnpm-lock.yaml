@@ -429,6 +429,9 @@ importers:
       '@ai-tool-cms/monitoring':
         specifier: workspace:*
         version: link:../../packages/monitoring
+      '@ai-tool-cms/observability':
+        specifier: workspace:*
+        version: link:../../packages/observability
       '@ai-tool-cms/plugins':
         specifier: workspace:*
         version: link:../../packages/plugins

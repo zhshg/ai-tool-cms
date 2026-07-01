@@ -13,6 +13,7 @@ out/
 
 # 环境变量
 .env
+.env.production
 .env.local
 .env.*.local
 

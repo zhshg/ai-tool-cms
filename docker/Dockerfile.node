@@ -10,10 +10,10 @@ COPY prisma ./prisma
 RUN pnpm install --frozen-lockfile
 
 FROM base AS builder
-COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app ./
 COPY . .
 ARG APP_NAME=api
-RUN pnpm --filter @ai-tool-cms/${APP_NAME} build
+RUN pnpm turbo run build --filter=@ai-tool-cms/${APP_NAME}
 
 FROM base AS runner
 WORKDIR /app

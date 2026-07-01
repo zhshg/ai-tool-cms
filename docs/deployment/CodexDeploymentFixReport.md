@@ -61,7 +61,17 @@ Status: fixed at configuration level.
   - `docker:prod:up`
   - `docker:prod:down`
 
-Docker daemon was not available in the current environment, so image build and container startup could not be executed locally. `docker compose config` was verified successfully.
+Follow-up worker Docker build fixes:
+
+- Added `.dockerignore` so host `node_modules`, package-level `node_modules`, `dist`, `.next`, `.turbo`, coverage, generated Prisma client output, and local env files do not pollute Docker build context.
+- Updated `docker/Dockerfile.node` builder stage to copy the full deps-stage `/app` tree before overlaying source, preserving pnpm workspace package-level `node_modules` links created inside Linux.
+- Updated `docker/Dockerfile.node` build command to use Turbo topology: `pnpm turbo run build --filter=@ai-tool-cms/${APP_NAME}`.
+
+Root cause of the worker failure:
+
+- The Docker context originally included host workspace artifacts because `.dockerignore` was missing.
+- The builder stage originally copied only root `node_modules`, but pnpm workspaces also require package/app-level `node_modules` links.
+- Worker directly imported `@ai-tool-cms/observability` without declaring it as a dependency, which fails in a clean pnpm workspace.
 
 ### Missing health checks
 
@@ -113,6 +123,7 @@ Status: fixed for production compose and image startup.
 - Both services receive required queue, database, crawler, logging, and external URL configuration.
 - Both services use the shared Node production Dockerfile and start from `apps/<service>/dist/main.js`.
 - Both services depend on healthy API startup.
+- Worker now declares `@ai-tool-cms/observability` as a direct dependency because worker source imports it directly.
 
 ## Deployment Workflow
 
@@ -146,12 +157,13 @@ Required commands:
 Additional checks:
 
 - `docker compose --env-file .env.production.example -f docker-compose.prod.yml config`: passed
+- `docker compose --env-file .env.production -f docker-compose.prod.yml config --quiet`: passed
+- `docker compose --env-file .env.production -f docker-compose.prod.yml build worker --no-cache`: passed
 - GitHub Actions YAML parse check: passed
 
 Not executed:
 
-- Docker image build: blocked because Docker daemon was not running in the local environment.
-- Docker compose startup: blocked because Docker daemon was not running in the local environment.
+- Docker compose startup: not requested for this fix; running it would start production services locally.
 - Live production health check: requires deployed infrastructure and real secrets.
 
 ## Remaining Non-Code Deployment Tasks
