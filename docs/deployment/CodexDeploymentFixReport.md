@@ -163,7 +163,18 @@ Status: fixed.
 
 - Web service runtime env now includes Redis, queue, JWT, CORS, storage, and newsletter variables required by server-side shared config validation.
 - Worker and scheduler service env now includes the full production config surface required at startup.
-- Admin health check now targets the container root path, which is the path served by the current standalone admin image.
+- Admin health check now targets `/admin`, matching the production base path.
+
+### Admin production routing
+
+Status: fixed.
+
+- Admin now defaults to `basePath: "/admin"` when `NODE_ENV=production`, while still allowing `ADMIN_BASE_PATH` to override it.
+- `docker/Dockerfile.next` now carries `ADMIN_BASE_PATH` into the standalone runner stage so the production server has the same routing context as the build.
+- Nginx now resolves Docker service names through Docker DNS at request time, preventing stale upstream IPs after admin/web/api containers are recreated.
+- Nginx now handles both `/admin` and `/admin/` explicitly and forwards them to the admin app's `/admin` base path.
+- API routing remains unchanged through `/api` and `/v1`.
+- Web routing remains unchanged through `/`.
 
 ## Deployment Workflow
 
@@ -202,9 +213,13 @@ Additional checks:
 - `docker compose --env-file .env.production -f docker-compose.prod.yml build web --no-cache`: passed
 - `docker compose --env-file .env.production -f docker-compose.prod.yml build api`: passed
 - `docker compose --env-file .env.production -f docker-compose.prod.yml build web worker scheduler`: passed
+- `docker compose --env-file .env.production -f docker-compose.prod.yml build admin nginx`: passed
 - `docker compose --env-file .env.production -f docker-compose.prod.yml up -d`: passed
 - `docker compose --env-file .env.production -f docker-compose.prod.yml ps -a`: passed; `migrate` exited `0`, and API, web, admin, worker, scheduler, PostgreSQL, Redis, Meilisearch, and MinIO were healthy.
 - Migration log verification: passed; Prisma loaded `prisma.config.ts`, found 9 migrations, and reported `No pending migrations to apply`.
+- `curl -I http://localhost/admin`: passed with `HTTP/1.1 200 OK`.
+- `curl -I http://localhost/admin/`: passed with `HTTP/1.1 200 OK`.
+- `curl -I http://localhost`: passed without hitting admin; web returned `HTTP/1.1 307 Temporary Redirect` to `/en`.
 - GitHub Actions YAML parse check: passed
 
 Not executed:

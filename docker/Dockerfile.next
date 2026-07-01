@@ -29,7 +29,9 @@ RUN addgroup --system --gid 1001 nodejs \
   && adduser --system --uid 1001 nextjs
 
 ARG APP_NAME=web
+ARG ADMIN_BASE_PATH=
 ENV APP_NAME=${APP_NAME}
+ENV ADMIN_BASE_PATH=${ADMIN_BASE_PATH}
 
 COPY --from=builder --chown=nextjs:nodejs /app/apps/${APP_NAME}/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/apps/${APP_NAME}/.next/static ./apps/${APP_NAME}/.next/static
