@@ -3,6 +3,8 @@ import { getEnv } from "@ai-tool-cms/config";
 import type { SearchToolDocument } from "./types";
 
 export const TOOLS_INDEX = "tools";
+export const CATEGORIES_INDEX = "categories";
+export const TAGS_INDEX = "tags";
 
 let client: MeiliSearch | null = null;
 
@@ -24,17 +26,7 @@ export function isMeiliConfigured(): boolean {
 }
 
 export async function ensureToolsIndex(): Promise<void> {
-  const meili = getMeiliClient();
-  if (!meili) return;
-
-  try {
-    await meili.getIndex(TOOLS_INDEX);
-  } catch {
-    await meili.createIndex(TOOLS_INDEX, { primaryKey: "id" });
-  }
-
-  const index = meili.index(TOOLS_INDEX);
-  await index.updateSettings({
+  await ensureIndex(TOOLS_INDEX, "id", {
     searchableAttributes: [
       "name",
       "summary",
@@ -58,6 +50,44 @@ export async function ensureToolsIndex(): Promise<void> {
       "popularityScore:desc",
     ],
   });
+}
+
+export async function ensureCategoriesIndex(): Promise<void> {
+  await ensureIndex(CATEGORIES_INDEX, "id", {
+    searchableAttributes: ["name", "slug", "description", "searchableText"],
+    filterableAttributes: ["parentId"],
+    sortableAttributes: ["sortOrder", "updatedAt"],
+  });
+}
+
+export async function ensureTagsIndex(): Promise<void> {
+  await ensureIndex(TAGS_INDEX, "id", {
+    searchableAttributes: ["name", "slug", "description", "searchableText"],
+    sortableAttributes: ["updatedAt"],
+  });
+}
+
+export async function ensureSearchIndexes(): Promise<void> {
+  await Promise.all([ensureToolsIndex(), ensureCategoriesIndex(), ensureTagsIndex()]);
+}
+
+async function ensureIndex(
+  indexName: string,
+  primaryKey: string,
+  settings: Record<string, unknown>,
+): Promise<void> {
+  const meili = getMeiliClient();
+  if (!meili) return;
+
+  try {
+    await meili.getIndex(indexName);
+  } catch {
+    const task = await meili.createIndex(indexName, { primaryKey });
+    await meili.waitForTask(task.taskUid);
+  }
+
+  const task = await meili.index(indexName).updateSettings(settings);
+  await meili.waitForTask(task.taskUid);
 }
 
 export async function upsertToolDocument(document: SearchToolDocument): Promise<void> {

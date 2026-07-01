@@ -39,18 +39,24 @@ export class SearchService {
               ? ["reviewScore:desc"]
               : undefined;
 
-      const response = await meili.index(TOOLS_INDEX).search(normalizedQuery, {
-        filter,
-        limit: semantic ? Math.min(100, pageSize * 5) : pageSize,
-        offset: semantic ? 0 : offset,
-        sort,
-      });
+      try {
+        const response = await meili.index(TOOLS_INDEX).search(normalizedQuery, {
+          filter,
+          limit: semantic ? Math.min(100, pageSize * 5) : pageSize,
+          offset: semantic ? 0 : offset,
+          sort,
+        });
 
-      hits = response.hits.map((hit) => ({
-        document: hit as unknown as SearchToolDocument,
-        score: hit._rankingScore ?? 1,
-      }));
-      totalHits = response.estimatedTotalHits ?? hits.length;
+        hits = response.hits.map((hit) => ({
+          document: hit as unknown as SearchToolDocument,
+          score: hit._rankingScore ?? 1,
+        }));
+        totalHits = response.estimatedTotalHits ?? hits.length;
+      } catch {
+        const prismaHits = await this.prismaFallbackSearch(keyword, filters, pageSize, offset);
+        hits = prismaHits.hits;
+        totalHits = prismaHits.total;
+      }
     } else {
       const prismaHits = await this.prismaFallbackSearch(keyword, filters, pageSize, offset);
       hits = prismaHits.hits;

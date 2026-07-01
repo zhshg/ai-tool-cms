@@ -91,6 +91,47 @@ services:
       postgres:
         condition: service_healthy
 
+  search-bootstrap:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.node
+      args:
+        APP_NAME: api
+    image: ${IMAGE_REGISTRY:-ghcr.io/zhshg}/ai-tool-cms-api:${IMAGE_TAG:-latest}
+    restart: "no"
+    command:
+      [
+        "sh",
+        "-c",
+        "node -e \"require('/app/packages/search/dist').bootstrapSearch().then((result)=>{console.log(JSON.stringify(result));}).catch((error)=>{console.error(error);process.exit(1);})\"",
+      ]
+    environment:
+      NODE_ENV: production
+      APP_URL: ${APP_URL}
+      ADMIN_URL: ${ADMIN_URL}
+      API_URL: ${API_URL}
+      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      QUEUE_URL: redis://:${REDIS_PASSWORD}@redis:6379/1
+      MEILI_URL: http://meilisearch:7700
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY}
+      STORAGE_ENDPOINT: http://minio:9000
+      STORAGE_ACCESS_KEY: ${STORAGE_ACCESS_KEY}
+      STORAGE_SECRET_KEY: ${STORAGE_SECRET_KEY}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      CORS_ORIGINS: ${CORS_ORIGINS}
+      SMTP_HOST: ${SMTP_HOST}
+      NEWSLETTER_FROM_EMAIL: ${NEWSLETTER_FROM_EMAIL}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      meilisearch:
+        condition: service_healthy
+
   api:
     build:
       context: .
@@ -145,7 +186,7 @@ services:
       SENTRY_DSN: ${SENTRY_DSN}
       CACHE_DEFAULT_TTL_SECONDS: ${CACHE_DEFAULT_TTL_SECONDS}
     depends_on:
-      migrate:
+      search-bootstrap:
         condition: service_completed_successfully
       postgres:
         condition: service_healthy

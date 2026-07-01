@@ -12,10 +12,16 @@ export type {
 
 export { SearchService, createSearchService } from "./search-service";
 export { Indexer, indexTool } from "./indexer";
+export { bootstrapSearch } from "./bootstrap";
 export { enqueueSearchIndex } from "./enqueue";
 export {
+  CATEGORIES_INDEX,
+  TAGS_INDEX,
   TOOLS_INDEX,
   deleteToolDocument,
+  ensureCategoriesIndex,
+  ensureSearchIndexes,
+  ensureTagsIndex,
   ensureToolsIndex,
   getMeiliClient,
   isMeiliConfigured,
