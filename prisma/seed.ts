@@ -8,11 +8,11 @@
  */
 import { prisma } from "./seeds/context";
 import { seedBulkData } from "./seeds/bulk";
+import { seedCuratedTools } from "./seeds/curated-tools";
 import { seedCrawlSources } from "./seeds/crawl-sources";
 import { seedRolesAndPermissions } from "./seeds/rbac";
 import { seedDefaultTaxonomy } from "./seeds/taxonomy";
 import { seedPlatform } from "./seeds/platform";
-import { seedPublicCatalog } from "./seeds/public-catalog";
 
 async function main(): Promise<void> {
   const profile = process.env.SEED_PROFILE ?? "demo";
@@ -28,7 +28,7 @@ async function main(): Promise<void> {
   console.info("[seed] platform: workflows, plugins, feature flags");
 
   if (profile === "demo" || profile === "all") {
-    const publicCatalog = await seedPublicCatalog(adminUserId);
+    const publicCatalog = await seedCuratedTools(adminUserId);
     console.info(
       `[seed] public catalog: ${publicCatalog.categoryIds.length} categories, ${publicCatalog.tagIds.length} tags, ${publicCatalog.toolIds.length} tools`,
     );

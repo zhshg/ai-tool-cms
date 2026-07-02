@@ -1,0 +1,1373 @@
+[
+  {
+    "name": "ChatGPT",
+    "slug": "chatgpt",
+    "website": "https://chatgpt.com",
+    "summary": "General-purpose AI assistant for writing, analysis, coding, and everyday knowledge work.",
+    "description": "ChatGPT is a general-purpose assistant from OpenAI that helps people draft content, reason through questions, analyze documents, write and debug code, and explore ideas through a conversational workflow built for daily work.",
+    "primary_category": "Productivity",
+    "secondary_categories": ["Writing", "Research", "Code"],
+    "tags": ["Conversational AI", "Document Analysis", "Coding", "Multimodal", "Knowledge Work"],
+    "pricing": "Freemium",
+    "features": ["Conversation", "Document analysis", "Code help", "Image understanding"],
+    "use_cases": ["Draft content", "Research questions", "Debug code", "Summarize files"],
+    "target_users": ["Knowledge Workers", "Students", "Developers", "Marketers"],
+    "languages": ["English", "Multilingual"],
+    "platform": ["Web", "iOS", "Android", "Desktop"],
+    "seo_title": "ChatGPT Review: AI Assistant for Writing, Research, and Code",
+    "seo_description": "Explore ChatGPT for writing, research, coding, and document analysis with a flexible AI workflow for everyday professional use."
+  },
+  {
+    "name": "Claude",
+    "slug": "claude",
+    "website": "https://claude.ai",
+    "summary": "Long-context AI assistant for writing, reasoning, documents, and thoughtful knowledge work.",
+    "description": "Claude is Anthropic's AI assistant for writing, analysis, and document-based work. It is especially useful when teams need long-context reasoning, careful drafting, and readable outputs for reports, planning, and review tasks.",
+    "primary_category": "Writing",
+    "secondary_categories": ["Research", "Productivity", "Code"],
+    "tags": ["Long Context", "Document Review", "Drafting", "Reasoning", "Knowledge Work"],
+    "pricing": "Freemium",
+    "features": ["Long context", "File analysis", "Structured writing", "Reasoning support"],
+    "use_cases": ["Review documents", "Draft reports", "Summarize research", "Plan projects"],
+    "target_users": ["Writers", "Analysts", "Product Teams", "Researchers"],
+    "languages": ["English", "Multilingual"],
+    "platform": ["Web", "API"],
+    "seo_title": "Claude Review: Long-Context AI Assistant for Writing and Analysis",
+    "seo_description": "Learn how Claude supports writing, reasoning, and document analysis with long-context workflows for teams and knowledge workers."
+  },
+  {
+    "name": "Gemini",
+    "slug": "gemini",
+    "website": "https://gemini.google.com",
+    "summary": "Google AI assistant for search-linked reasoning, writing, and multimodal productivity.",
+    "description": "Gemini is Google's AI assistant for questions, drafting, summarization, and multimodal workflows. It fits people who work across Google products and want an assistant that supports everyday planning, exploration, and content tasks.",
+    "primary_category": "Productivity",
+    "secondary_categories": ["Research", "Writing", "Education"],
+    "tags": ["Google Workspace", "Conversational AI", "Multimodal", "Search", "Summarization"],
+    "pricing": "Freemium",
+    "features": ["Conversation", "Multimodal prompts", "Google integration", "Reasoning support"],
+    "use_cases": ["Summarize information", "Draft messages", "Explore topics", "Plan work"],
+    "target_users": ["Students", "Knowledge Workers", "Teams", "Researchers"],
+    "languages": ["English", "Multilingual"],
+    "platform": ["Web", "Android", "iOS"],
+    "seo_title": "Gemini Review: Google AI Assistant for Research and Productivity",
+    "seo_description": "See how Gemini supports writing, multimodal search, and daily productivity for users working across Google services."
+  },
+  {
+    "name": "Perplexity",
+    "slug": "perplexity",
+    "website": "https://www.perplexity.ai",
+    "summary": "AI answer engine that combines conversational search with source-based research workflows.",
+    "description": "Perplexity is an answer engine designed for research-oriented discovery. It helps users ask questions, compare sources, summarize findings, and move from search results to readable answers with cited references.",
+    "primary_category": "Research",
+    "secondary_categories": ["Education", "Productivity", "Writing"],
+    "tags": ["Answer Engine", "Citations", "Source Discovery", "Search", "Summarization"],
+    "pricing": "Freemium",
+    "features": ["Cited answers", "Follow-up search", "Collections", "Research summaries"],
+    "use_cases": ["Research topics", "Compare sources", "Summarize findings", "Explore trends"],
+    "target_users": ["Researchers", "Students", "Analysts", "Writers"],
+    "languages": ["English", "Multilingual"],
+    "platform": ["Web", "iOS", "Android"],
+    "seo_title": "Perplexity Review: AI Research and Answer Engine with Citations",
+    "seo_description": "Explore Perplexity for cited answers, source comparison, and research workflows built around conversational search."
+  },
+  {
+    "name": "Midjourney",
+    "slug": "midjourney",
+    "website": "https://www.midjourney.com",
+    "summary": "Creative image generation platform known for stylized visuals and concept exploration.",
+    "description": "Midjourney helps creators generate original images from prompts and iterate on visual directions quickly. It is widely used for concept work, mood boards, stylistic experiments, and creative image ideation.",
+    "primary_category": "Image",
+    "secondary_categories": ["Design", "Marketing"],
+    "tags": [
+      "Image Generation",
+      "Concept Art",
+      "Creative Visuals",
+      "Prompting",
+      "Style Exploration"
+    ],
+    "pricing": "Paid",
+    "features": ["Prompt-based generation", "Image variations", "Upscaling", "Style control"],
+    "use_cases": [
+      "Create concept art",
+      "Explore art direction",
+      "Build mood boards",
+      "Generate visuals"
+    ],
+    "target_users": ["Designers", "Creators", "Artists", "Marketing Teams"],
+    "languages": ["English"],
+    "platform": ["Web"],
+    "seo_title": "Midjourney Review: AI Image Generation for Creative Visual Work",
+    "seo_description": "See how Midjourney helps creators generate concept art, visual ideas, and stylized imagery for design and marketing."
+  },
+  {
+    "name": "Runway",
+    "slug": "runway",
+    "website": "https://runwayml.com",
+    "summary": "AI video creation platform for generation, editing, and visual content production.",
+    "description": "Runway is an AI video platform for generating footage, editing scenes, and exploring visual effects in modern content workflows. It is useful for creators and teams building short-form video, campaigns, and experimental visual content.",
+    "primary_category": "Video",
+    "secondary_categories": ["Design", "Image", "Marketing"],
+    "tags": [
+      "Video Generation",
+      "Editing",
+      "Creative Production",
+      "Visual Effects",
+      "Content Creation"
+    ],
+    "pricing": "Freemium",
+    "features": ["Video generation", "Video editing", "Scene tools", "Creative effects"],
+    "use_cases": [
+      "Create promo videos",
+      "Edit short-form content",
+      "Prototype visual ideas",
+      "Generate scenes"
+    ],
+    "target_users": ["Creators", "Design Teams", "Marketing Teams", "Studios"],
+    "languages": ["English"],
+    "platform": ["Web"],
+    "seo_title": "Runway Review: AI Video Generation and Editing Platform",
+    "seo_description": "Explore Runway for AI video generation, editing, and creative production workflows across content, campaigns, and design."
+  },
+  {
+    "name": "ElevenLabs",
+    "slug": "elevenlabs",
+    "website": "https://elevenlabs.io",
+    "summary": "Voice AI platform for realistic speech generation, dubbing, and voice workflows.",
+    "description": "ElevenLabs provides AI voice tools for speech generation, voice cloning, and multilingual dubbing. It serves teams that need high-quality spoken audio for media, education, product experiences, and localization work.",
+    "primary_category": "Audio",
+    "secondary_categories": ["Video", "Education", "Customer Support"],
+    "tags": ["Text to Speech", "Voice Cloning", "Dubbing", "Localization", "Audio Production"],
+    "pricing": "Freemium",
+    "features": ["Voice generation", "Voice cloning", "Dubbing", "Multilingual support"],
+    "use_cases": ["Create voiceovers", "Dub videos", "Build audio products", "Localize content"],
+    "target_users": ["Creators", "Media Teams", "Developers", "Educators"],
+    "languages": ["English", "Multilingual"],
+    "platform": ["Web", "API"],
+    "seo_title": "ElevenLabs Review: AI Voice Generation and Dubbing Platform",
+    "seo_description": "Learn how ElevenLabs supports voice generation, dubbing, and multilingual audio workflows for creators, developers, and teams."
+  },
+  {
+    "name": "Cursor",
+    "slug": "cursor",
+    "website": "https://cursor.com",
+    "summary": "AI-native code editor built for code generation, refactoring, and codebase assistance.",
+    "description": "Cursor is an AI code editor that combines editing, codebase understanding, and generation workflows inside a desktop development environment. It is designed for developers who want fast iteration, refactoring help, and contextual assistance.",
+    "primary_category": "Code",
+    "secondary_categories": ["Productivity", "Data"],
+    "tags": ["Code Editor", "Code Generation", "Refactoring", "Developer Tools", "AI Coding"],
+    "pricing": "Freemium",
+    "features": ["Code generation", "Codebase context", "Refactoring help", "Integrated chat"],
+    "use_cases": [
+      "Write code faster",
+      "Refactor code",
+      "Understand codebases",
+      "Prototype features"
+    ],
+    "target_users": ["Developers", "Engineering Teams", "Founders", "Technical Builders"],
+    "languages": ["English"],
+    "platform": ["Desktop"],
+    "seo_title": "Cursor Review: AI Code Editor for Faster Software Development",
+    "seo_description": "See how Cursor helps developers write, refactor, and understand code with an AI-native editing workflow."
+  },
+  {
+    "name": "GitHub Copilot",
+    "slug": "github-copilot",
+    "website": "https://github.com/features/copilot",
+    "summary": "AI coding assistant for inline suggestions, chat, and developer workflow support.",
+    "description": "GitHub Copilot helps developers move faster with inline code suggestions, chat-based help, and coding support integrated into common developer environments. It fits teams that want AI assistance during day-to-day software work.",
+    "primary_category": "Code",
+    "secondary_categories": ["Productivity", "Education"],
+    "tags": ["Code Suggestions", "IDE", "Developer Tools", "Pair Programming", "AI Coding"],
+    "pricing": "Paid",
+    "features": ["Inline suggestions", "Coding chat", "Developer workflows", "Repo assistance"],
+    "use_cases": ["Complete code", "Explain code", "Start new functions", "Accelerate development"],
+    "target_users": ["Developers", "Engineering Teams", "Students", "Technical Teams"],
+    "languages": ["English"],
+    "platform": ["Desktop", "Web"],
+    "seo_title": "GitHub Copilot Review: AI Coding Assistant for Developers",
+    "seo_description": "Explore GitHub Copilot for code suggestions, chat-based coding help, and faster software development workflows."
+  },
+  {
+    "name": "Notion AI",
+    "slug": "notion-ai",
+    "website": "https://www.notion.so/product/ai",
+    "summary": "Workspace AI for drafting, summarizing, and finding information inside Notion.",
+    "description": "Notion AI adds drafting, summarization, and information assistance to the Notion workspace. It is useful for teams organizing internal knowledge, preparing documents, and keeping project work connected in one place.",
+    "primary_category": "Productivity",
+    "secondary_categories": ["Writing", "Business", "Research"],
+    "tags": ["Workspace", "Knowledge Management", "Summarization", "Team Collaboration", "Notes"],
+    "pricing": "Paid",
+    "features": ["Drafting help", "Workspace Q&A", "Summaries", "Knowledge retrieval"],
+    "use_cases": [
+      "Create internal docs",
+      "Summarize notes",
+      "Search workspace knowledge",
+      "Draft plans"
+    ],
+    "target_users": ["Teams", "Product Managers", "Operations", "Writers"],
+    "languages": ["English", "Japanese", "Korean"],
+    "platform": ["Web", "Desktop", "Mobile"],
+    "seo_title": "Notion AI Review: Workspace Assistant for Docs and Knowledge",
+    "seo_description": "Learn how Notion AI supports drafting, summaries, and workspace knowledge management for teams using Notion."
+  },
+  {
+    "name": "Canva AI",
+    "slug": "canva-ai",
+    "website": "https://www.canva.com/magic-studio/",
+    "summary": "Canva's AI design layer for generating visuals, copy, and editing creative assets.",
+    "description": "Canva AI brings generation and editing tools into Canva's design workflow, helping teams create visuals, presentations, and brand assets more quickly. It fits non-designers and marketers who need speed without a complex production process.",
+    "primary_category": "Design",
+    "secondary_categories": ["Image", "Marketing", "Productivity"],
+    "tags": [
+      "Graphic Design",
+      "Brand Assets",
+      "Presentation Design",
+      "Image Editing",
+      "Creative Workflow"
+    ],
+    "pricing": "Freemium",
+    "features": ["Visual generation", "Design editing", "Brand workflows", "Presentation support"],
+    "use_cases": [
+      "Create social graphics",
+      "Edit marketing assets",
+      "Build decks",
+      "Design brand visuals"
+    ],
+    "target_users": ["Marketers", "Creators", "Small Teams", "Non-Designers"],
+    "languages": ["English", "Multilingual"],
+    "platform": ["Web", "iOS", "Android", "Desktop"],
+    "seo_title": "Canva AI Review: Design and Visual Creation for Teams",
+    "seo_description": "Explore Canva AI for visual creation, editing, and presentation workflows across marketing, design, and brand work."
+  },
+  {
+    "name": "Leonardo AI",
+    "slug": "leonardo-ai",
+    "website": "https://leonardo.ai",
+    "summary": "AI image generation platform for creative assets, concept visuals, and design exploration.",
+    "description": "Leonardo AI helps creators and teams generate images for concepts, product visuals, and creative experimentation. It is designed for people who want controlled visual output across design, gaming, and marketing workflows.",
+    "primary_category": "Image",
+    "secondary_categories": ["Design", "Marketing"],
+    "tags": [
+      "Image Generation",
+      "Creative Assets",
+      "Design Exploration",
+      "Prompting",
+      "Visual Concepts"
+    ],
+    "pricing": "Freemium",
+    "features": ["Image generation", "Visual controls", "Asset creation", "Creative variations"],
+    "use_cases": [
+      "Generate concept visuals",
+      "Create marketing imagery",
+      "Prototype art directions",
+      "Design assets"
+    ],
+    "target_users": ["Designers", "Creators", "Game Teams", "Marketers"],
+    "languages": ["English"],
+    "platform": ["Web"],
+    "seo_title": "Leonardo AI Review: Image Generation for Creative Asset Work",
+    "seo_description": "See how Leonardo AI supports image generation, concept design, and creative asset workflows for design and marketing teams."
+  },
+  {
+    "name": "Lovable",
+    "slug": "lovable",
+    "website": "https://lovable.dev",
+    "summary": "AI product builder focused on turning prompts into working web application experiences.",
+    "description": "Lovable helps users describe an application idea and move toward a working web product quickly. It fits founders, product builders, and teams that want to prototype interfaces, flows, and simple apps without a long setup cycle.",
+    "primary_category": "Code",
+    "secondary_categories": ["Design", "Business", "Automation"],
+    "tags": ["App Builder", "Prototyping", "Prompt to App", "Frontend", "Product Building"],
+    "pricing": "Freemium",
+    "features": [
+      "Prompt-based app building",
+      "Rapid prototyping",
+      "Frontend generation",
+      "Iteration support"
+    ],
+    "use_cases": ["Prototype products", "Build MVPs", "Test ideas", "Create internal tools"],
+    "target_users": ["Founders", "Product Builders", "Designers", "Developers"],
+    "languages": ["English"],
+    "platform": ["Web"],
+    "seo_title": "Lovable Review: Prompt-Based AI App Builder for MVPs",
+    "seo_description": "Explore Lovable for prompt-based product prototyping and fast web app creation for founders and builders."
+  },
+  {
+    "name": "Bolt.new",
+    "slug": "bolt-new",
+    "website": "https://bolt.new",
+    "summary": "In-browser AI coding environment for generating and iterating on full-stack web projects.",
+    "description": "Bolt.new is designed for building applications directly in the browser with AI assistance. It helps users move from prompt to project structure, edit code in context, and test ideas without a traditional local setup.",
+    "primary_category": "Code",
+    "secondary_categories": ["Productivity", "Design", "Automation"],
+    "tags": ["Browser IDE", "Full Stack", "Prompt to Code", "Rapid Prototyping", "Web Apps"],
+    "pricing": "Freemium",
+    "features": [
+      "Browser development",
+      "Prompt-based coding",
+      "Project scaffolding",
+      "Fast iteration"
+    ],
+    "use_cases": [
+      "Start apps quickly",
+      "Prototype full-stack ideas",
+      "Build demos",
+      "Test product concepts"
+    ],
+    "target_users": ["Developers", "Founders", "Product Builders", "Students"],
+    "languages": ["English"],
+    "platform": ["Web"],
+    "seo_title": "Bolt.new Review: In-Browser AI Coding for Web Projects",
+    "seo_description": "Learn how Bolt.new helps builders create and iterate on web apps directly in the browser with AI assistance."
+  },
+  {
+    "name": "v0",
+    "slug": "v0",
+    "website": "https://v0.dev",
+    "summary": "AI interface builder for generating UI components and frontend screens from prompts.",
+    "description": "v0 helps teams generate user interface components and frontend layouts from natural language prompts. It is useful for design-minded developers who want to move quickly from an idea to a working UI starting point.",
+    "primary_category": "Code",
+    "secondary_categories": ["Design", "Productivity"],
+    "tags": ["UI Generation", "Frontend", "Design Systems", "Prompting", "Rapid Prototyping"],
+    "pricing": "Freemium",
+    "features": [
+      "UI generation",
+      "Prompt to component",
+      "Frontend starting points",
+      "Fast iteration"
+    ],
+    "use_cases": [
+      "Build UI screens",
+      "Prototype interfaces",
+      "Generate components",
+      "Speed up frontend work"
+    ],
+    "target_users": ["Frontend Developers", "Design Engineers", "Product Teams", "Founders"],
+    "languages": ["English"],
+    "platform": ["Web"],
+    "seo_title": "v0 Review: AI UI Generator for Frontend and Product Teams",
+    "seo_description": "See how v0 generates UI components and frontend layouts from prompts for faster prototyping and product design."
+  },
+  {
+    "name": "Replit AI",
+    "slug": "replit-ai",
+    "website": "https://replit.com/ai",
+    "summary": "AI coding support inside Replit for building, learning, and iterating on software projects.",
+    "description": "Replit AI helps users write, explain, and improve code inside Replit's cloud development environment. It works well for learners, solo builders, and teams that want an all-in-one browser-based coding workflow.",
+    "primary_category": "Code",
+    "secondary_categories": ["Education", "Productivity"],
+    "tags": ["Cloud IDE", "Code Help", "Learning", "Prompting", "Web Development"],
+    "pricing": "Freemium",
+    "features": ["Code generation", "Code explanation", "Cloud development", "Project assistance"],
+    "use_cases": ["Learn coding", "Build apps online", "Prototype software", "Fix code faster"],
+    "target_users": ["Students", "Developers", "Educators", "Indie Builders"],
+    "languages": ["English"],
+    "platform": ["Web"],
+    "seo_title": "Replit AI Review: Cloud Coding Assistant for Builders and Learners",
+    "seo_description": "Explore Replit AI for browser-based coding, learning support, and faster software prototyping in the cloud."
+  },
+  {
+    "name": "Zapier AI",
+    "slug": "zapier-ai",
+    "website": "https://zapier.com/ai",
+    "summary": "Automation tools and AI workflow features for connecting apps and operational processes.",
+    "description": "Zapier AI extends workflow automation with AI steps, natural language workflow creation, and task orchestration across connected apps. It is useful for teams building operational automations without heavy engineering work.",
+    "primary_category": "Automation",
+    "secondary_categories": ["Business", "Marketing", "Sales"],
+    "tags": ["Workflow Automation", "Integrations", "No-Code", "Operations", "AI Agents"],
+    "pricing": "Freemium",
+    "features": ["Workflow automation", "AI actions", "App integrations", "Operational triggers"],
+    "use_cases": [
+      "Automate marketing ops",
+      "Connect SaaS tools",
+      "Route leads",
+      "Build internal automations"
+    ],
+    "target_users": ["Operations Teams", "Marketers", "Sales Teams", "No-Code Builders"],
+    "languages": ["English"],
+    "platform": ["Web"],
+    "seo_title": "Zapier AI Review: Workflow Automation with AI-Powered Steps",
+    "seo_description": "Learn how Zapier AI helps teams automate workflows, connect apps, and add AI actions to operational processes."
+  },
+  {
+    "name": "n8n",
+    "slug": "n8n",
+    "website": "https://n8n.io",
+    "summary": "Workflow automation platform for building flexible integrations and AI-enabled process flows.",
+    "description": "n8n gives technical teams a flexible way to build automation workflows, connect tools, and orchestrate multi-step processes. It is often used when teams want more control over automation logic and deployment choices.",
+    "primary_category": "Automation",
+    "secondary_categories": ["Data", "Business", "Code"],
+    "tags": [
+      "Workflow Automation",
+      "Open Source",
+      "Integrations",
+      "Technical Automation",
+      "AI Agents"
+    ],
+    "pricing": "Open Source",
+    "features": ["Workflow builder", "Custom logic", "Integrations", "Self-hosting options"],
+    "use_cases": [
+      "Automate data flows",
+      "Connect internal systems",
+      "Build AI workflows",
+      "Run backend automations"
+    ],
+    "target_users": ["Developers", "Operations Teams", "Data Teams", "Technical Builders"],
+    "languages": ["English"],
+    "platform": ["Web", "Self-Hosted", "Cloud"],
+    "seo_title": "n8n Review: Flexible Workflow Automation for Technical Teams",
+    "seo_description": "Explore n8n for flexible automation, integrations, and AI-enabled workflows with technical control and deployment options."
+  },
+  {
+    "name": "Make",
+    "slug": "make",
+    "website": "https://www.make.com",
+    "summary": "Visual automation platform for connecting apps and designing process workflows at scale.",
+    "description": "Make helps teams automate operational tasks through a visual workflow builder and broad app connectivity. It works well for marketing, sales, and operations teams that need multi-step automation without custom backend development.",
+    "primary_category": "Automation",
+    "secondary_categories": ["Marketing", "Sales", "Business"],
+    "tags": ["Workflow Automation", "Visual Builder", "Integrations", "Operations", "No-Code"],
+    "pricing": "Freemium",
+    "features": [
+      "Visual scenarios",
+      "App integrations",
+      "Multi-step flows",
+      "Operational automation"
+    ],
+    "use_cases": [
+      "Automate lead routing",
+      "Sync SaaS tools",
+      "Run marketing workflows",
+      "Connect operations systems"
+    ],
+    "target_users": ["Operations Teams", "Marketers", "Sales Teams", "No-Code Builders"],
+    "languages": ["English"],
+    "platform": ["Web"],
+    "seo_title": "Make Review: Visual Automation Platform for Connected Workflows",
+    "seo_description": "See how Make helps teams design and run visual automation workflows across marketing, sales, and operations."
+  },
+  {
+    "name": "HeyGen",
+    "slug": "heygen",
+    "website": "https://www.heygen.com",
+    "summary": "AI video platform for avatar videos, localization, and marketing-friendly content production.",
+    "description": "HeyGen helps teams create presenter-style videos, avatar content, and localized media without a full video production setup. It is useful for marketing, training, sales enablement, and multilingual communication workflows.",
+    "primary_category": "Video",
+    "secondary_categories": ["Marketing", "Sales", "Education"],
+    "tags": [
+      "Avatar Video",
+      "Localization",
+      "Video Creation",
+      "Training Content",
+      "Marketing Video"
+    ],
+    "pricing": "Freemium",
+    "features": [
+      "Avatar video",
+      "Localization",
+      "Talking presenter format",
+      "Template-based creation"
+    ],
+    "use_cases": [
+      "Create training videos",
+      "Localize campaigns",
+      "Build sales videos",
+      "Produce explainers"
+    ],
+    "target_users": ["Marketing Teams", "Sales Teams", "Educators", "Operations Teams"],
+    "languages": ["English", "Multilingual"],
+    "platform": ["Web"],
+    "seo_title": "HeyGen Review: AI Avatar Video Platform for Teams",
+    "seo_description": "Explore HeyGen for avatar video creation, localization, and fast video production for training, marketing, and sales."
+  },
+  {
+    "name": "Suno",
+    "slug": "suno",
+    "website": "https://suno.com",
+    "summary": "AI music generation platform for creating songs, demos, and audio ideas from prompts.",
+    "description": "Suno helps users generate music from text prompts and experiment with song structure, style, and creative direction. It is used for ideation, content experiments, and fast creation of original musical drafts.",
+    "primary_category": "Audio",
+    "secondary_categories": ["Marketing", "Video", "Design"],
+    "tags": ["Music Generation", "Audio Creation", "Prompting", "Creative Audio", "Song Drafting"],
+    "pricing": "Freemium",
+    "features": [
+      "Music generation",
+      "Song creation",
+      "Prompt-based audio",
+      "Creative experimentation"
+    ],
+    "use_cases": [
+      "Create songs",
+      "Prototype audio ideas",
+      "Add music to content",
+      "Experiment with styles"
+    ],
+    "target_users": ["Creators", "Musicians", "Content Teams", "Experimenters"],
+    "languages": ["English"],
+    "platform": ["Web"],
+    "seo_title": "Suno Review: AI Music Generator for Creative Audio Work",
+    "seo_description": "See how Suno helps creators generate songs and explore music ideas with prompt-based AI audio workflows."
+  },
+  {
+    "name": "Udio",
+    "slug": "udio",
+    "website": "https://www.udio.com",
+    "summary": "AI music creation platform for generating songs and iterating on audio direction.",
+    "description": "Udio helps users generate music and refine creative direction through prompt-led workflows. It is useful for creators who want fast musical ideas, experimentation, and early-stage audio production without a full studio process.",
+    "primary_category": "Audio",
+    "secondary_categories": ["Marketing", "Video"],
+    "tags": [
+      "Music Generation",
+      "Prompting",
+      "Creative Audio",
+      "Song Drafting",
+      "Audio Experimentation"
+    ],
+    "pricing": "Freemium",
+    "features": [
+      "Music generation",
+      "Prompt-based creation",
+      "Style exploration",
+      "Audio iteration"
+    ],
+    "use_cases": [
+      "Generate songs",
+      "Explore styles",
+      "Create content soundtracks",
+      "Prototype music ideas"
+    ],
+    "target_users": ["Creators", "Musicians", "Content Teams", "Indie Builders"],
+    "languages": ["English"],
+    "platform": ["Web"],
+    "seo_title": "Udio Review: AI Music Creation for Song and Audio Ideas",
+    "seo_description": "Explore Udio for AI-driven music generation, creative experimentation, and fast song ideation workflows."
+  },
+  {
+    "name": "Jasper",
+    "slug": "jasper",
+    "website": "https://www.jasper.ai",
+    "summary": "AI content platform for marketing teams producing campaigns, copy, and brand-aligned writing.",
+    "description": "Jasper is built for marketing teams that need faster campaign production, reusable brand guidance, and scalable content workflows. It supports copy drafting, campaign execution, and collaborative content creation.",
+    "primary_category": "Marketing",
+    "secondary_categories": ["Writing", "SEO", "Sales"],
+    "tags": ["Marketing Copy", "Brand Voice", "Campaigns", "Content Production", "Team Workflows"],
+    "pricing": "Paid",
+    "features": ["Marketing copy", "Brand support", "Campaign workflows", "Team collaboration"],
+    "use_cases": [
+      "Write campaigns",
+      "Draft landing copy",
+      "Scale content production",
+      "Support brand messaging"
+    ],
+    "target_users": ["Marketing Teams", "Content Teams", "Agencies", "Growth Teams"],
+    "languages": ["English"],
+    "platform": ["Web"],
+    "seo_title": "Jasper Review: AI Marketing Writing Platform for Teams",
+    "seo_description": "Learn how Jasper helps marketing teams create campaigns, copy, and brand-aligned content at scale."
+  },
+  {
+    "name": "Copy.ai",
+    "slug": "copy-ai",
+    "website": "https://www.copy.ai",
+    "summary": "AI writing platform for go-to-market teams creating copy, messaging, and workflow content.",
+    "description": "Copy.ai supports marketing and sales teams with AI-assisted writing for messaging, campaign ideas, and go-to-market workflows. It is useful when teams need structured content production across multiple revenue-facing functions.",
+    "primary_category": "Marketing",
+    "secondary_categories": ["Sales", "Writing", "Business"],
+    "tags": ["Go-to-Market", "Sales Content", "Marketing Copy", "Workflow Content", "Messaging"],
+    "pricing": "Freemium",
+    "features": [
+      "Copy generation",
+      "Messaging workflows",
+      "Team content support",
+      "GTM assistance"
+    ],
+    "use_cases": [
+      "Write marketing copy",
+      "Create sales messaging",
+      "Draft outreach",
+      "Support GTM workflows"
+    ],
+    "target_users": ["Marketing Teams", "Sales Teams", "Revenue Teams", "Startups"],
+    "languages": ["English"],
+    "platform": ["Web"],
+    "seo_title": "Copy.ai Review: AI Writing for Marketing and Sales Teams",
+    "seo_description": "Explore Copy.ai for marketing copy, sales messaging, and go-to-market workflows powered by AI writing tools."
+  },
+  {
+    "name": "Grammarly",
+    "slug": "grammarly",
+    "website": "https://www.grammarly.com/ai",
+    "summary": "Writing assistant for grammar, clarity, rewriting, and communication improvement across work.",
+    "description": "Grammarly helps users improve writing quality, tone, and clarity across emails, documents, and professional communication. Its AI features support rewriting, drafting assistance, and day-to-day communication polish.",
+    "primary_category": "Writing",
+    "secondary_categories": ["Productivity", "Business", "Education"],
+    "tags": ["Writing Assistant", "Editing", "Grammar", "Clarity", "Professional Communication"],
+    "pricing": "Freemium",
+    "features": ["Grammar help", "Rewriting", "Tone guidance", "Drafting support"],
+    "use_cases": ["Improve emails", "Edit documents", "Rewrite text", "Polish communication"],
+    "target_users": ["Professionals", "Students", "Writers", "Teams"],
+    "languages": ["English"],
+    "platform": ["Web", "Desktop", "Browser Extension", "Mobile"],
+    "seo_title": "Grammarly Review: AI Writing and Editing Assistant",
+    "seo_description": "See how Grammarly helps users improve grammar, clarity, and professional writing with AI-assisted editing tools."
+  },
+  {
+    "name": "Writesonic",
+    "slug": "writesonic",
+    "website": "https://writesonic.com",
+    "summary": "AI writing platform for blogs, marketing copy, and content workflows tied to growth teams.",
+    "description": "Writesonic helps teams create blog drafts, marketing content, and AI-assisted writing outputs for growth work. It is often used for scalable content creation where speed and repeatability matter.",
+    "primary_category": "Writing",
+    "secondary_categories": ["Marketing", "SEO"],
+    "tags": [
+      "Blog Writing",
+      "Marketing Copy",
+      "Content Production",
+      "Growth Content",
+      "AI Writing"
+    ],
+    "pricing": "Freemium",
+    "features": ["Content drafting", "Blog writing", "Marketing copy", "Workflow support"],
+    "use_cases": [
+      "Write blog drafts",
+      "Create marketing text",
+      "Scale content",
+      "Support growth campaigns"
+    ],
+    "target_users": ["Content Teams", "Marketers", "Agencies", "Founders"],
+    "languages": ["English", "Multilingual"],
+    "platform": ["Web"],
+    "seo_title": "Writesonic Review: AI Writing for Blogs and Marketing Content",
+    "seo_description": "Explore Writesonic for blog drafting, marketing copy, and scalable AI writing workflows for growth teams."
+  },
+  {
+    "name": "Surfer",
+    "slug": "surfer",
+    "website": "https://surferseo.com",
+    "summary": "SEO content optimization platform for planning, improving, and scaling search-focused content.",
+    "description": "Surfer helps content teams research topics, optimize drafts, and improve alignment with search-oriented content goals. It is useful for editorial teams, agencies, and marketers working on organic growth programs.",
+    "primary_category": "SEO",
+    "secondary_categories": ["Marketing", "Writing", "Research"],
+    "tags": [
+      "SEO Research",
+      "Content Optimization",
+      "Editorial Workflow",
+      "Organic Growth",
+      "Content Strategy"
+    ],
+    "pricing": "Paid",
+    "features": ["Content optimization", "Research support", "Workflow guidance", "SEO planning"],
+    "use_cases": [
+      "Optimize articles",
+      "Plan search content",
+      "Improve on-page content",
+      "Scale editorial work"
+    ],
+    "target_users": ["SEO Teams", "Content Teams", "Agencies", "Marketers"],
+    "languages": ["English"],
+    "platform": ["Web"],
+    "seo_title": "Surfer Review: SEO Content Optimization for Organic Growth",
+    "seo_description": "Learn how Surfer supports SEO research, content optimization, and editorial workflows for search growth teams."
+  },
+  {
+    "name": "Frase",
+    "slug": "frase",
+    "website": "https://www.frase.io",
+    "summary": "SEO and content research platform for building briefs, drafts, and optimization workflows.",
+    "description": "Frase helps writers and SEO teams move from research to draft creation and optimization with a connected workflow. It is useful for building content briefs, aligning articles to search intent, and speeding up editorial preparation.",
+    "primary_category": "SEO",
+    "secondary_categories": ["Research", "Writing", "Marketing"],
+    "tags": [
+      "Content Briefs",
+      "SEO Research",
+      "Draft Support",
+      "Search Intent",
+      "Editorial Workflow"
+    ],
+    "pricing": "Paid",
+    "features": ["Content briefs", "Research support", "Optimization guidance", "Draft workflows"],
+    "use_cases": [
+      "Build briefs",
+      "Research SERP topics",
+      "Write SEO drafts",
+      "Improve content structure"
+    ],
+    "target_users": ["SEO Teams", "Writers", "Agencies", "Content Strategists"],
+    "languages": ["English"],
+    "platform": ["Web"],
+    "seo_title": "Frase Review: SEO Research and Content Brief Platform",
+    "seo_description": "See how Frase helps content teams research topics, create briefs, and improve SEO writing workflows."
+  },
+  {
+    "name": "Descript",
+    "slug": "descript",
+    "website": "https://www.descript.com",
+    "summary": "Audio and video editing platform with AI features for spoken content and media workflows.",
+    "description": "Descript helps teams edit spoken media through text-based workflows and AI-assisted audio and video tools. It is a strong fit for podcasts, interviews, tutorials, and creator-led content production.",
+    "primary_category": "Audio",
+    "secondary_categories": ["Video", "Marketing", "Education"],
+    "tags": ["Audio Editing", "Video Editing", "Transcription", "Podcasting", "Content Production"],
+    "pricing": "Freemium",
+    "features": ["Text-based editing", "Audio cleanup", "Video editing", "Transcription"],
+    "use_cases": [
+      "Edit podcasts",
+      "Trim interview videos",
+      "Transcribe recordings",
+      "Produce tutorials"
+    ],
+    "target_users": ["Creators", "Podcast Teams", "Educators", "Marketing Teams"],
+    "languages": ["English"],
+    "platform": ["Web", "Desktop"],
+    "seo_title": "Descript Review: AI Editing for Audio and Video Content",
+    "seo_description": "Explore Descript for text-based audio and video editing, transcription, and streamlined spoken content workflows."
+  },
+  {
+    "name": "Synthesia",
+    "slug": "synthesia",
+    "website": "https://www.synthesia.io",
+    "summary": "AI video platform for creating training, internal communication, and presenter-led video content.",
+    "description": "Synthesia helps organizations create presenter-style videos for training, internal updates, product education, and communication. It is built for teams that need repeatable video production without a full filming process.",
+    "primary_category": "Video",
+    "secondary_categories": ["Education", "Business", "Sales"],
+    "tags": [
+      "Presenter Video",
+      "Training",
+      "Internal Communication",
+      "Video Creation",
+      "Localization"
+    ],
+    "pricing": "Paid",
+    "features": ["Presenter videos", "Templates", "Localization support", "Team workflows"],
+    "use_cases": [
+      "Create training videos",
+      "Explain products",
+      "Share company updates",
+      "Localize communication"
+    ],
+    "target_users": ["L&D Teams", "Operations", "Sales Enablement", "Marketing Teams"],
+    "languages": ["English", "Multilingual"],
+    "platform": ["Web"],
+    "seo_title": "Synthesia Review: AI Video Creation for Training and Communication",
+    "seo_description": "Learn how Synthesia helps teams create training and communication videos with AI-powered presenter workflows."
+  },
+  {
+    "name": "Pictory",
+    "slug": "pictory",
+    "website": "https://pictory.ai",
+    "summary": "Video creation tool for turning scripts and long-form content into shorter visual assets.",
+    "description": "Pictory helps users repurpose text and long-form content into shorter video assets for marketing and social distribution. It is useful when teams want a lightweight path from written material to video content.",
+    "primary_category": "Video",
+    "secondary_categories": ["Marketing", "Writing", "Productivity"],
+    "tags": [
+      "Content Repurposing",
+      "Short Video",
+      "Script to Video",
+      "Marketing Content",
+      "Video Editing"
+    ],
+    "pricing": "Paid",
+    "features": [
+      "Script to video",
+      "Repurposing workflows",
+      "Visual assembly",
+      "Content adaptation"
+    ],
+    "use_cases": [
+      "Repurpose blog content",
+      "Create short videos",
+      "Turn scripts into assets",
+      "Support social content"
+    ],
+    "target_users": ["Marketing Teams", "Creators", "Content Teams", "Small Businesses"],
+    "languages": ["English"],
+    "platform": ["Web"],
+    "seo_title": "Pictory Review: Script-to-Video Tool for Content Repurposing",
+    "seo_description": "See how Pictory helps teams turn scripts and long-form content into short-form video assets for marketing."
+  },
+  {
+    "name": "VEED",
+    "slug": "veed",
+    "website": "https://www.veed.io",
+    "summary": "Online video editing platform with AI features for quick editing and content production.",
+    "description": "VEED gives creators and teams browser-based video editing with AI-assisted tools that simplify subtitles, trimming, and publishing workflows. It is built for fast social, marketing, and instructional video production.",
+    "primary_category": "Video",
+    "secondary_categories": ["Marketing", "Education", "Audio"],
+    "tags": ["Video Editing", "Subtitles", "Browser-Based", "Content Production", "Social Video"],
+    "pricing": "Freemium",
+    "features": ["Online editing", "Subtitle tools", "Fast publishing", "AI-assisted workflows"],
+    "use_cases": [
+      "Edit social videos",
+      "Add subtitles",
+      "Create explainers",
+      "Produce training clips"
+    ],
+    "target_users": ["Creators", "Marketing Teams", "Educators", "Small Teams"],
+    "languages": ["English", "Multilingual"],
+    "platform": ["Web"],
+    "seo_title": "VEED Review: Browser-Based AI Video Editing for Fast Content",
+    "seo_description": "Explore VEED for browser-based video editing, subtitles, and quick content production workflows."
+  },
+  {
+    "name": "CapCut",
+    "slug": "capcut",
+    "website": "https://www.capcut.com",
+    "summary": "Creative editing platform for short-form video production with AI-assisted editing features.",
+    "description": "CapCut helps creators and teams edit short-form video with accessible tools, templates, and AI-assisted workflows. It is commonly used for social content, creator publishing, and fast media iteration.",
+    "primary_category": "Video",
+    "secondary_categories": ["Marketing", "Design", "Audio"],
+    "tags": ["Short-Form Video", "Templates", "Editing", "Creator Tools", "Social Content"],
+    "pricing": "Freemium",
+    "features": ["Video editing", "Templates", "Audio tools", "Creator workflows"],
+    "use_cases": [
+      "Edit short clips",
+      "Create social content",
+      "Publish creator videos",
+      "Repurpose media"
+    ],
+    "target_users": ["Creators", "Marketing Teams", "Small Businesses", "Social Teams"],
+    "languages": ["English", "Multilingual"],
+    "platform": ["Web", "Desktop", "iOS", "Android"],
+    "seo_title": "CapCut Review: AI-Assisted Video Editing for Short-Form Content",
+    "seo_description": "Learn how CapCut supports short-form video editing, creator workflows, and fast social content production."
+  },
+  {
+    "name": "Murf",
+    "slug": "murf",
+    "website": "https://murf.ai",
+    "summary": "AI voice generation platform for voiceovers, narration, and business audio production.",
+    "description": "Murf helps teams create voiceovers and spoken audio for presentations, training, and marketing assets. It is useful for organizations that need polished narration without a traditional recording process.",
+    "primary_category": "Audio",
+    "secondary_categories": ["Marketing", "Education", "Business"],
+    "tags": [
+      "Voice Generation",
+      "Narration",
+      "Text to Speech",
+      "Training Audio",
+      "Business Content"
+    ],
+    "pricing": "Freemium",
+    "features": [
+      "Voiceover creation",
+      "Narration support",
+      "Audio production",
+      "Business-ready output"
+    ],
+    "use_cases": [
+      "Create voiceovers",
+      "Narrate presentations",
+      "Build training audio",
+      "Support marketing assets"
+    ],
+    "target_users": ["Marketing Teams", "Educators", "Operations Teams", "Creators"],
+    "languages": ["English", "Multilingual"],
+    "platform": ["Web"],
+    "seo_title": "Murf Review: AI Voice Generation for Narration and Training",
+    "seo_description": "Explore Murf for voiceover generation, narration, and spoken content workflows across business and education."
+  },
+  {
+    "name": "Speechify",
+    "slug": "speechify",
+    "website": "https://speechify.com",
+    "summary": "Text-to-speech platform for listening workflows, reading support, and spoken content access.",
+    "description": "Speechify helps people turn written content into audio for reading support, accessibility, and productive listening. It is useful for students, professionals, and people who prefer to consume long-form text through audio.",
+    "primary_category": "Audio",
+    "secondary_categories": ["Education", "Productivity"],
+    "tags": [
+      "Text to Speech",
+      "Reading Support",
+      "Accessibility",
+      "Listening Workflows",
+      "Study Tools"
+    ],
+    "pricing": "Freemium",
+    "features": [
+      "Text to speech",
+      "Listening support",
+      "Cross-device access",
+      "Reading assistance"
+    ],
+    "use_cases": [
+      "Listen to documents",
+      "Study with audio",
+      "Support accessibility",
+      "Consume long-form text"
+    ],
+    "target_users": ["Students", "Professionals", "Readers", "Accessibility Users"],
+    "languages": ["English", "Multilingual"],
+    "platform": ["Web", "iOS", "Android", "Browser Extension"],
+    "seo_title": "Speechify Review: Text-to-Speech for Reading and Productivity",
+    "seo_description": "See how Speechify supports text-to-speech listening, study workflows, and accessible content consumption."
+  },
+  {
+    "name": "Otter",
+    "slug": "otter",
+    "website": "https://otter.ai",
+    "summary": "Meeting assistant for transcription, note capture, and searchable conversation records.",
+    "description": "Otter helps teams capture meetings through transcription, searchable notes, and conversation summaries. It is useful for keeping records, sharing takeaways, and making spoken discussions easier to review later.",
+    "primary_category": "Productivity",
+    "secondary_categories": ["Research", "Audio", "Business"],
+    "tags": [
+      "Meeting Notes",
+      "Transcription",
+      "Summaries",
+      "Searchable Conversations",
+      "Team Workflows"
+    ],
+    "pricing": "Freemium",
+    "features": ["Transcription", "Meeting summaries", "Search", "Shared notes"],
+    "use_cases": ["Capture meetings", "Review conversations", "Share notes", "Track decisions"],
+    "target_users": ["Teams", "Operations", "Researchers", "Managers"],
+    "languages": ["English"],
+    "platform": ["Web", "iOS", "Android"],
+    "seo_title": "Otter Review: AI Meeting Notes and Transcription Assistant",
+    "seo_description": "Learn how Otter helps teams transcribe meetings, capture notes, and search conversations after calls."
+  },
+  {
+    "name": "Fireflies",
+    "slug": "fireflies",
+    "website": "https://fireflies.ai",
+    "summary": "Conversation intelligence and meeting assistant for notes, transcripts, and follow-up visibility.",
+    "description": "Fireflies helps teams record meetings, extract notes, and make conversations easier to revisit across sales, support, and operations workflows. It is often used to reduce manual note-taking and improve follow-up quality.",
+    "primary_category": "Productivity",
+    "secondary_categories": ["Sales", "Customer Support", "Business"],
+    "tags": [
+      "Meeting Assistant",
+      "Conversation Intelligence",
+      "Transcription",
+      "Follow-Up",
+      "Team Collaboration"
+    ],
+    "pricing": "Freemium",
+    "features": ["Meeting capture", "Transcripts", "Conversation summaries", "Follow-up support"],
+    "use_cases": [
+      "Record calls",
+      "Review conversations",
+      "Support follow-up",
+      "Share meeting context"
+    ],
+    "target_users": ["Sales Teams", "Support Teams", "Operations", "Managers"],
+    "languages": ["English"],
+    "platform": ["Web"],
+    "seo_title": "Fireflies Review: AI Meeting Assistant for Team Follow-Up",
+    "seo_description": "Explore Fireflies for meeting capture, transcripts, and conversation workflows across sales, support, and operations."
+  },
+  {
+    "name": "Gamma",
+    "slug": "gamma",
+    "website": "https://gamma.app",
+    "summary": "AI presentation and document builder for fast storytelling, summaries, and shareable content.",
+    "description": "Gamma helps people turn ideas into presentations, docs, and visual explanations with an AI-assisted workflow. It works well for product updates, internal communication, and fast narrative building.",
+    "primary_category": "Productivity",
+    "secondary_categories": ["Design", "Education", "Sales"],
+    "tags": ["Presentations", "Storytelling", "Docs", "Visual Content", "Knowledge Sharing"],
+    "pricing": "Freemium",
+    "features": [
+      "Presentation generation",
+      "Document creation",
+      "Visual storytelling",
+      "Sharing workflows"
+    ],
+    "use_cases": [
+      "Build presentations",
+      "Create summaries",
+      "Share updates",
+      "Explain ideas visually"
+    ],
+    "target_users": ["Product Teams", "Educators", "Sales Teams", "Founders"],
+    "languages": ["English"],
+    "platform": ["Web"],
+    "seo_title": "Gamma Review: AI Presentation and Document Builder",
+    "seo_description": "See how Gamma helps teams create presentations, visual docs, and shareable narratives with AI assistance."
+  },
+  {
+    "name": "Tome",
+    "slug": "tome",
+    "website": "https://tome.app",
+    "summary": "AI storytelling workspace for creating narrative presentations and polished visual communication.",
+    "description": "Tome is built for narrative communication, helping users shape ideas into visually structured stories and presentations. It suits founders, sales teams, and product teams that need a strong narrative layer around information.",
+    "primary_category": "Productivity",
+    "secondary_categories": ["Design", "Sales", "Marketing"],
+    "tags": [
+      "Storytelling",
+      "Presentations",
+      "Narrative Design",
+      "Visual Communication",
+      "Pitch Content"
+    ],
+    "pricing": "Freemium",
+    "features": [
+      "Narrative presentation building",
+      "Visual structure",
+      "Content generation",
+      "Sharing workflows"
+    ],
+    "use_cases": [
+      "Build pitch decks",
+      "Tell product stories",
+      "Present ideas",
+      "Share narrative updates"
+    ],
+    "target_users": ["Founders", "Sales Teams", "Product Teams", "Marketers"],
+    "languages": ["English"],
+    "platform": ["Web"],
+    "seo_title": "Tome Review: AI Storytelling Workspace for Presentations",
+    "seo_description": "Explore Tome for AI-assisted storytelling, visual presentation building, and narrative communication at work."
+  },
+  {
+    "name": "Beautiful.ai",
+    "slug": "beautiful-ai",
+    "website": "https://www.beautiful.ai",
+    "summary": "Presentation design platform that helps teams create cleaner slides and business-ready decks.",
+    "description": "Beautiful.ai helps teams produce structured presentations with design assistance and easier slide building. It is a strong fit for business presentations, sales decks, and internal reporting where speed and polish both matter.",
+    "primary_category": "Design",
+    "secondary_categories": ["Productivity", "Sales", "Business"],
+    "tags": [
+      "Presentations",
+      "Slide Design",
+      "Business Decks",
+      "Reporting",
+      "Visual Communication"
+    ],
+    "pricing": "Paid",
+    "features": [
+      "Slide design",
+      "Presentation building",
+      "Template support",
+      "Business communication"
+    ],
+    "use_cases": [
+      "Build sales decks",
+      "Create reports",
+      "Present strategies",
+      "Share internal updates"
+    ],
+    "target_users": ["Sales Teams", "Executives", "Operations", "Founders"],
+    "languages": ["English"],
+    "platform": ["Web"],
+    "seo_title": "Beautiful.ai Review: Presentation Design for Business Teams",
+    "seo_description": "Learn how Beautiful.ai helps teams create polished presentations, business decks, and reporting slides more efficiently."
+  },
+  {
+    "name": "Figma AI",
+    "slug": "figma-ai",
+    "website": "https://www.figma.com/ai/",
+    "summary": "Design workflow features inside Figma for faster interface creation and creative iteration.",
+    "description": "Figma AI supports interface work inside Figma through features that help teams move faster on design tasks and iteration. It fits designers and product teams working on digital products, interfaces, and collaborative design systems.",
+    "primary_category": "Design",
+    "secondary_categories": ["Productivity", "Code", "Business"],
+    "tags": ["UI Design", "Product Design", "Collaboration", "Design Systems", "Interface Work"],
+    "pricing": "Paid",
+    "features": [
+      "Design assistance",
+      "Faster interface work",
+      "Collaborative workflows",
+      "Iteration support"
+    ],
+    "use_cases": [
+      "Design product interfaces",
+      "Collaborate on flows",
+      "Iterate screens",
+      "Support design systems"
+    ],
+    "target_users": ["Design Teams", "Product Teams", "Design Engineers", "Startups"],
+    "languages": ["English"],
+    "platform": ["Web", "Desktop"],
+    "seo_title": "Figma AI Review: Design Workflow Support for Product Teams",
+    "seo_description": "Explore Figma AI for interface design, collaboration, and faster product design workflows inside Figma."
+  },
+  {
+    "name": "Adobe Firefly",
+    "slug": "adobe-firefly",
+    "website": "https://www.adobe.com/products/firefly.html",
+    "summary": "Adobe's generative AI layer for creating and editing images and creative design assets.",
+    "description": "Adobe Firefly helps creative teams generate and edit visual assets inside Adobe-oriented workflows. It is useful for marketers and designers who need fast visual ideation, asset expansion, and production support.",
+    "primary_category": "Image",
+    "secondary_categories": ["Design", "Marketing"],
+    "tags": [
+      "Image Generation",
+      "Creative Editing",
+      "Adobe Workflow",
+      "Visual Assets",
+      "Design Production"
+    ],
+    "pricing": "Freemium",
+    "features": [
+      "Generative image tools",
+      "Editing support",
+      "Creative workflows",
+      "Asset iteration"
+    ],
+    "use_cases": [
+      "Generate creative visuals",
+      "Edit image assets",
+      "Support campaigns",
+      "Explore design ideas"
+    ],
+    "target_users": ["Design Teams", "Marketers", "Creative Professionals", "Agencies"],
+    "languages": ["English"],
+    "platform": ["Web"],
+    "seo_title": "Adobe Firefly Review: Generative AI for Visual Asset Creation",
+    "seo_description": "See how Adobe Firefly supports image generation, creative editing, and visual asset workflows for design teams."
+  },
+  {
+    "name": "Luma AI",
+    "slug": "luma-ai",
+    "website": "https://lumalabs.ai",
+    "summary": "Generative media platform for visual capture, 3D-oriented creation, and video experimentation.",
+    "description": "Luma AI helps creators produce visual outputs that blend generative media, capture workflows, and creative experimentation. It fits teams exploring next-generation visual production and immersive media ideas.",
+    "primary_category": "Video",
+    "secondary_categories": ["Image", "Design"],
+    "tags": [
+      "Generative Media",
+      "Visual Creation",
+      "3D Capture",
+      "Video Generation",
+      "Creative Production"
+    ],
+    "pricing": "Freemium",
+    "features": [
+      "Generative visuals",
+      "Capture workflows",
+      "Media experimentation",
+      "Creative output tools"
+    ],
+    "use_cases": [
+      "Prototype visual media",
+      "Create generative clips",
+      "Explore immersive content",
+      "Build creative assets"
+    ],
+    "target_users": ["Creators", "Studios", "Design Teams", "Media Teams"],
+    "languages": ["English"],
+    "platform": ["Web", "iOS"],
+    "seo_title": "Luma AI Review: Generative Visual Media for Creative Teams",
+    "seo_description": "Explore Luma AI for generative visual creation, media experimentation, and next-generation creative production."
+  },
+  {
+    "name": "Photoroom",
+    "slug": "photoroom",
+    "website": "https://www.photoroom.com",
+    "summary": "Image editing and asset creation platform for product photos and commerce-friendly visuals.",
+    "description": "Photoroom helps teams create cleaner product imagery, remove backgrounds, and prepare visual assets for catalogs, ads, and marketplaces. It works especially well for commerce teams and small businesses producing many images quickly.",
+    "primary_category": "Image",
+    "secondary_categories": ["Marketing", "Design", "Business"],
+    "tags": [
+      "Image Editing",
+      "Product Photos",
+      "Commerce Visuals",
+      "Background Removal",
+      "Asset Production"
+    ],
+    "pricing": "Freemium",
+    "features": [
+      "Background removal",
+      "Product image editing",
+      "Template support",
+      "Fast asset creation"
+    ],
+    "use_cases": [
+      "Edit product photos",
+      "Create ads",
+      "Prepare catalog visuals",
+      "Speed up image production"
+    ],
+    "target_users": ["E-commerce Teams", "Marketers", "Small Businesses", "Creators"],
+    "languages": ["English", "Multilingual"],
+    "platform": ["Web", "iOS", "Android"],
+    "seo_title": "Photoroom Review: AI Product Photo Editing for Commerce Teams",
+    "seo_description": "Learn how Photoroom helps teams edit product photos and create commerce-ready visual assets more quickly."
+  },
+  {
+    "name": "Opus Clip",
+    "slug": "opus-clip",
+    "website": "https://www.opus.pro",
+    "summary": "Video repurposing platform focused on turning long-form recordings into shorter clips.",
+    "description": "Opus Clip helps teams convert longer video recordings into shorter highlight clips that fit social and demand-generation workflows. It is useful when organizations want faster repurposing from webinars, podcasts, and interviews.",
+    "primary_category": "Video",
+    "secondary_categories": ["Marketing", "Productivity", "Audio"],
+    "tags": [
+      "Video Repurposing",
+      "Short Clips",
+      "Content Production",
+      "Webinars",
+      "Social Distribution"
+    ],
+    "pricing": "Freemium",
+    "features": [
+      "Clip extraction",
+      "Repurposing workflows",
+      "Social-ready output",
+      "Highlight generation"
+    ],
+    "use_cases": [
+      "Repurpose webinars",
+      "Create social clips",
+      "Edit interviews",
+      "Scale video output"
+    ],
+    "target_users": ["Marketing Teams", "Creators", "Media Teams", "Demand Gen Teams"],
+    "languages": ["English"],
+    "platform": ["Web"],
+    "seo_title": "Opus Clip Review: AI Video Repurposing for Short-Form Content",
+    "seo_description": "See how Opus Clip turns long-form video into short clips for social, marketing, and distribution workflows."
+  },
+  {
+    "name": "NotebookLM",
+    "slug": "notebooklm",
+    "website": "https://notebooklm.google",
+    "summary": "Research notebook for working with source materials, summaries, and question-driven understanding.",
+    "description": "NotebookLM helps users organize source materials and ask grounded questions against them in a notebook-style workflow. It is especially useful for study, synthesis, and research-heavy work where source context matters.",
+    "primary_category": "Research",
+    "secondary_categories": ["Education", "Productivity", "Writing"],
+    "tags": [
+      "Source-Based Research",
+      "Notebook Workflow",
+      "Summaries",
+      "Study Support",
+      "Knowledge Synthesis"
+    ],
+    "pricing": "Free",
+    "features": ["Source grounding", "Notebook workflow", "Summaries", "Question answering"],
+    "use_cases": [
+      "Study source materials",
+      "Summarize research",
+      "Prepare notes",
+      "Synthesize information"
+    ],
+    "target_users": ["Students", "Researchers", "Writers", "Knowledge Workers"],
+    "languages": ["English"],
+    "platform": ["Web"],
+    "seo_title": "NotebookLM Review: Source-Grounded AI Notebook for Research",
+    "seo_description": "Explore NotebookLM for research, study, and source-grounded summarization inside a notebook-based AI workflow."
+  },
+  {
+    "name": "Harvey",
+    "slug": "harvey",
+    "website": "https://www.harvey.ai",
+    "summary": "AI platform for legal and professional services work involving research, drafting, and review.",
+    "description": "Harvey is built for legal and professional services teams that need help with research, drafting, and structured review. It fits high-context work where professional judgment, documentation, and repeatable analysis are important.",
+    "primary_category": "Business",
+    "secondary_categories": ["Research", "Writing", "Customer Support"],
+    "tags": ["Legal Workflows", "Professional Services", "Matter Analysis", "Drafting", "Review"],
+    "pricing": "Custom",
+    "features": [
+      "Research support",
+      "Drafting assistance",
+      "Review workflows",
+      "Professional knowledge work"
+    ],
+    "use_cases": [
+      "Support legal drafting",
+      "Research issues",
+      "Review documents",
+      "Improve professional workflows"
+    ],
+    "target_users": [
+      "Legal Teams",
+      "Professional Services Firms",
+      "Knowledge Workers",
+      "Enterprise Teams"
+    ],
+    "languages": ["English"],
+    "platform": ["Web"],
+    "seo_title": "Harvey Review: AI Platform for Legal and Professional Work",
+    "seo_description": "Learn how Harvey supports legal research, drafting, and review workflows for professional services teams."
+  },
+  {
+    "name": "Glean",
+    "slug": "glean",
+    "website": "https://www.glean.com",
+    "summary": "Enterprise search and knowledge platform for finding internal information across company systems.",
+    "description": "Glean helps organizations search across internal apps, documents, and knowledge sources to make information easier to find and use. It is useful for larger teams dealing with fragmented tools and internal knowledge sprawl.",
+    "primary_category": "Research",
+    "secondary_categories": ["Business", "Productivity", "Customer Support"],
+    "tags": [
+      "Enterprise Search",
+      "Knowledge Management",
+      "Internal Search",
+      "Workplace Information",
+      "Company Knowledge"
+    ],
+    "pricing": "Custom",
+    "features": [
+      "Enterprise search",
+      "Knowledge discovery",
+      "Cross-tool retrieval",
+      "Internal information access"
+    ],
+    "use_cases": [
+      "Find internal knowledge",
+      "Search company systems",
+      "Answer team questions",
+      "Reduce information friction"
+    ],
+    "target_users": ["Enterprise Teams", "Operations", "Support Teams", "Knowledge Workers"],
+    "languages": ["English"],
+    "platform": ["Web"],
+    "seo_title": "Glean Review: Enterprise Search for Internal Knowledge Access",
+    "seo_description": "Explore Glean for enterprise search, internal knowledge discovery, and faster access to workplace information."
+  },
+  {
+    "name": "Airtable AI",
+    "slug": "airtable-ai",
+    "website": "https://www.airtable.com/ai",
+    "summary": "AI features inside Airtable for structured work, records, summaries, and database-like workflows.",
+    "description": "Airtable AI helps teams work with structured records, summarize fields, and automate repeatable tasks inside Airtable. It fits operations, marketing, and project teams managing process-heavy work with flexible data tables.",
+    "primary_category": "Data",
+    "secondary_categories": ["Productivity", "Automation", "Business"],
+    "tags": [
+      "Structured Data",
+      "Database Workflows",
+      "Summaries",
+      "Operations",
+      "Project Management"
+    ],
+    "pricing": "Paid",
+    "features": ["Field summaries", "Structured workflows", "AI actions", "Database support"],
+    "use_cases": [
+      "Manage records",
+      "Summarize structured data",
+      "Automate operations",
+      "Support project workflows"
+    ],
+    "target_users": ["Operations Teams", "Project Teams", "Marketers", "Business Teams"],
+    "languages": ["English"],
+    "platform": ["Web", "Mobile"],
+    "seo_title": "Airtable AI Review: Structured Work and Data Workflow Assistant",
+    "seo_description": "See how Airtable AI supports structured work, summaries, and automation inside flexible database workflows."
+  },
+  {
+    "name": "Intercom Fin",
+    "slug": "intercom-fin",
+    "website": "https://www.intercom.com/fin",
+    "summary": "AI customer support assistant for handling common questions and helping support teams scale.",
+    "description": "Intercom Fin is designed to answer customer questions and support service teams with AI-powered assistance. It is useful for businesses that want faster responses, better coverage, and support automation tied to a help experience.",
+    "primary_category": "Customer Support",
+    "secondary_categories": ["Business", "Productivity", "Automation"],
+    "tags": [
+      "Support Automation",
+      "Customer Service",
+      "Knowledge Base",
+      "Response Workflows",
+      "AI Assistant"
+    ],
+    "pricing": "Custom",
+    "features": [
+      "Customer question handling",
+      "Support assistance",
+      "Knowledge workflows",
+      "Operational scale"
+    ],
+    "use_cases": [
+      "Answer common questions",
+      "Deflect repetitive tickets",
+      "Support agents",
+      "Scale service operations"
+    ],
+    "target_users": ["Support Teams", "Operations", "Customer Experience Teams", "Businesses"],
+    "languages": ["English"],
+    "platform": ["Web"],
+    "seo_title": "Intercom Fin Review: AI Customer Support Assistant for Teams",
+    "seo_description": "Learn how Intercom Fin helps support teams answer common questions, automate service workflows, and scale customer support."
+  }
+]
