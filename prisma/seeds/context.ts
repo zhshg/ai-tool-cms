@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient } from "../../packages/database/generated/client";
 import { loadRootDotenv } from "@ai-tool-cms/config";
 
 loadRootDotenv();

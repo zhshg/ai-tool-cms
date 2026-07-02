@@ -1,4 +1,4 @@
-import { BillingPeriod, PricingModel, ToolStatus } from "@prisma/client";
+import { BillingPeriod, PricingModel, ToolStatus } from "../../packages/database/generated/client";
 import { slugify } from "@ai-tool-cms/common";
 import { readFileSync } from "node:fs";
 import path from "node:path";
