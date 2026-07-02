@@ -1,12 +1,35 @@
 import Link from "next/link";
-import { getTranslations } from "next-intl/server";
 
 type SiteFooterProps = {
   locale: string;
 };
 
 export async function SiteFooter({ locale }: SiteFooterProps) {
-  const t = await getTranslations("landing.footer");
+  const labels =
+    locale === "zh"
+      ? {
+          tagline: "发现、比较并追踪值得使用的 AI 工具。",
+          directory: "目录",
+          allTools: "全部工具",
+          categories: "热门分类",
+          search: "搜索工具",
+          content: "内容",
+          blog: "博客与指南",
+          updates: "更新",
+          weekly: "每周精选",
+        }
+      : {
+          tagline: "Discover, compare, and track AI tools worth using.",
+          directory: "Directory",
+          allTools: "All tools",
+          categories: "Popular categories",
+          search: "Search tools",
+          content: "Content",
+          blog: "Blog and guides",
+          updates: "Updates",
+          weekly: "Weekly picks",
+        };
+
   const year = new Date().getFullYear();
 
   return (
@@ -14,83 +37,70 @@ export async function SiteFooter({ locale }: SiteFooterProps) {
       <div className="mx-auto max-w-6xl px-6 py-12">
         <div className="grid gap-8 md:grid-cols-4">
           <div className="space-y-2">
-            <p className="font-semibold">AI Tool CMS</p>
-            <p className="text-sm text-muted-foreground">{t("tagline")}</p>
+            <p className="font-semibold">AI Tool Directory</p>
+            <p className="text-sm text-muted-foreground">{labels.tagline}</p>
           </div>
+
           <div>
-            <p className="text-sm font-medium">{t("product")}</p>
+            <p className="text-sm font-medium">{labels.directory}</p>
             <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
               <li>
-                <Link href={`/${locale}/pricing`} className="hover:text-foreground">
-                  {t("pricing")}
+                <Link href={`/${locale}/tools`} className="hover:text-foreground">
+                  {labels.allTools}
                 </Link>
               </li>
               <li>
-                <Link href={`/${locale}/showcase`} className="hover:text-foreground">
-                  {t("showcase")}
+                <Link href={`/${locale}#categories`} className="hover:text-foreground">
+                  {labels.categories}
                 </Link>
               </li>
               <li>
-                <Link href={`/${locale}/changelog`} className="hover:text-foreground">
-                  {t("changelog")}
+                <Link href={`/${locale}/search`} className="hover:text-foreground">
+                  {labels.search}
                 </Link>
               </li>
             </ul>
           </div>
+
           <div>
-            <p className="text-sm font-medium">{t("resources")}</p>
+            <p className="text-sm font-medium">{labels.content}</p>
             <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
-              <li>
-                <Link href={`/${locale}/docs`} className="hover:text-foreground">
-                  {t("docs")}
-                </Link>
-              </li>
-              <li>
-                <a
-                  href="https://github.com/zhshg/ai-tool-cms"
-                  className="hover:text-foreground"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  GitHub
-                </a>
-              </li>
               <li>
                 <Link href={`/${locale}/blog`} className="hover:text-foreground">
-                  {t("blog")}
+                  {labels.blog}
+                </Link>
+              </li>
+              <li>
+                <Link href={`/${locale}/category/ai-writing`} className="hover:text-foreground">
+                  AI Writing
+                </Link>
+              </li>
+              <li>
+                <Link href={`/${locale}/category/code-assistant`} className="hover:text-foreground">
+                  Code Assistant
                 </Link>
               </li>
             </ul>
           </div>
+
           <div>
-            <p className="text-sm font-medium">{t("community")}</p>
+            <p className="text-sm font-medium">{labels.updates}</p>
             <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
               <li>
-                <a
-                  href="https://github.com/zhshg/ai-tool-cms/discussions"
-                  className="hover:text-foreground"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Discussions
-                </a>
+                <Link href="/feed/rss" className="hover:text-foreground">
+                  RSS
+                </Link>
               </li>
               <li>
-                <a
-                  href="https://github.com/zhshg/ai-tool-cms/issues"
-                  className="hover:text-foreground"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Issues
-                </a>
+                <Link href={`/${locale}#newsletter`} className="hover:text-foreground">
+                  {labels.weekly}
+                </Link>
               </li>
             </ul>
           </div>
         </div>
-        <p className="mt-8 text-center text-xs text-muted-foreground">
-          © {year} AI Tool CMS · MIT License · v1.0.0
-        </p>
+
+        <p className="mt-8 text-center text-xs text-muted-foreground">{`© ${year} AI Tool Directory`}</p>
       </div>
     </footer>
   );

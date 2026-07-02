@@ -1,4 +1,4 @@
-import { prisma, ToolStatus } from "@ai-tool-cms/database";
+import { prisma, PricingModel, ToolStatus } from "@ai-tool-cms/database";
 import type { ComparePageSpec } from "@ai-tool-cms/seo";
 import {
   buildBreadcrumbJsonLd,
@@ -19,6 +19,22 @@ export type CatalogTool = {
   slug: string;
   name: string;
   summary: string | null;
+};
+
+export type HomePageCategory = {
+  slug: string;
+  name: string;
+  description: string | null;
+  toolCount: number;
+};
+
+export type HomePageTool = CatalogTool & {
+  id: string;
+  website: string;
+  pricingModel: PricingModel;
+  publishedAt: string | null;
+  category: { slug: string; name: string } | null;
+  tagSlugs: string[];
 };
 
 export type CatalogSearchTool = CatalogTool & {
@@ -44,6 +60,7 @@ export type CatalogSearchResult = {
 type CategoryWithCount = {
   slug: string;
   name: string;
+  description: string | null;
   _count: { tools: number };
 };
 
@@ -73,6 +90,70 @@ async function fetchPublishedTools(limit = 12): Promise<CatalogTool[]> {
     select: { slug: true, name: true, summary: true },
   });
   return tools;
+}
+
+async function fetchHomePageTools(input: {
+  take: number;
+  skip?: number;
+  pricingModels?: PricingModel[];
+  excludeIds?: string[];
+}): Promise<HomePageTool[]> {
+  const tools = await prisma.tool.findMany({
+    where: {
+      status: ToolStatus.PUBLISHED,
+      ...activeOnly,
+      ...(input.pricingModels?.length ? { pricingModel: { in: input.pricingModels } } : {}),
+      ...(input.excludeIds?.length ? { id: { notIn: input.excludeIds } } : {}),
+    },
+    orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }, { createdAt: "desc" }],
+    skip: input.skip ?? 0,
+    take: input.take,
+    select: {
+      id: true,
+      slug: true,
+      name: true,
+      summary: true,
+      website: true,
+      pricingModel: true,
+      publishedAt: true,
+      categories: {
+        where: activeOnly,
+        orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }],
+        take: 1,
+        select: {
+          category: {
+            select: {
+              slug: true,
+              name: true,
+            },
+          },
+        },
+      },
+      tags: {
+        where: activeOnly,
+        take: 4,
+        select: {
+          tag: {
+            select: {
+              slug: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  return tools.map((tool) => ({
+    id: tool.id,
+    slug: tool.slug,
+    name: tool.name,
+    summary: tool.summary,
+    website: tool.website,
+    pricingModel: tool.pricingModel,
+    publishedAt: tool.publishedAt?.toISOString() ?? null,
+    category: tool.categories[0]?.category ?? null,
+    tagSlugs: tool.tags.map((tag) => tag.tag.slug),
+  }));
 }
 
 function getInternalApiUrl() {
@@ -146,13 +227,20 @@ function buildTagFaqs(tagName: string): CatalogFaq[] {
 }
 
 export async function getHomePageData(locale: string): Promise<{
-  categories: { slug: string; name: string; toolCount: number }[];
-  latestTools: CatalogTool[];
-  trendingTools: CatalogTool[];
+  categories: HomePageCategory[];
+  featuredTools: HomePageTool[];
+  trendingTools: HomePageTool[];
+  latestTools: HomePageTool[];
+  freeTools: HomePageTool[];
+  stats: {
+    toolCount: number;
+    categoryCount: number;
+    freeToTryCount: number;
+  };
 }> {
   const categories = await prisma.category.findMany({
     where: activeOnly,
-    orderBy: { name: "asc" },
+    orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
     take: 12,
     include: {
       _count: {
@@ -165,21 +253,90 @@ export async function getHomePageData(locale: string): Promise<{
     },
   });
 
-  const [latestTools, trendingTools] = await Promise.all([
-    fetchPublishedTools(8),
-    fetchPublishedTools(6),
-  ]);
+  const [latestTools, freeOnlyTools, freemiumTools, toolCount, categoryCount, freeToTryCount] =
+    await Promise.all([
+      fetchHomePageTools({ take: 8 }),
+      fetchHomePageTools({ take: 6, pricingModels: [PricingModel.FREE] }),
+      fetchHomePageTools({ take: 6, pricingModels: [PricingModel.FREEMIUM] }),
+      prisma.tool.count({
+        where: { status: ToolStatus.PUBLISHED, ...activeOnly },
+      }),
+      prisma.category.count({
+        where: activeOnly,
+      }),
+      prisma.tool.count({
+        where: {
+          status: ToolStatus.PUBLISHED,
+          ...activeOnly,
+          pricingModel: { in: [PricingModel.FREE, PricingModel.FREEMIUM] },
+        },
+      }),
+    ]);
+
+  const featuredTools = latestTools.slice(0, 4);
+  const trendingTools = latestTools
+    .filter((tool) => tool.pricingModel !== PricingModel.FREE || tool.tagSlugs.includes("multimodal"))
+    .slice(0, 6);
+  const freeTools = [
+    ...freeOnlyTools,
+    ...freemiumTools.filter((tool) => !freeOnlyTools.some((freeTool) => freeTool.id === tool.id)),
+  ].slice(0, 6);
+
+  const sortedCategories = categories
+    .map((category: CategoryWithCount) => ({
+      slug: category.slug,
+      name: category.name,
+      description: category.description ?? null,
+      toolCount: category._count.tools,
+    }))
+    .sort((left, right) => right.toolCount - left.toolCount || left.name.localeCompare(right.name));
 
   void locale;
 
   return {
-    categories: categories.map((c: CategoryWithCount) => ({
-      slug: c.slug,
-      name: c.name,
-      toolCount: c._count.tools,
-    })),
-    latestTools,
+    categories: sortedCategories,
+    featuredTools,
     trendingTools,
+    latestTools,
+    freeTools,
+    stats: {
+      toolCount,
+      categoryCount,
+      freeToTryCount,
+    },
+  };
+}
+
+export async function getHomePageSeoData(locale: string): Promise<{
+  jsonLd: Record<string, unknown>[];
+}> {
+  const config = getSiteConfig();
+  const url = joinUrl(config.siteUrl, `/${locale}`);
+  const featuredTools = await fetchHomePageTools({ take: 6 });
+
+  return {
+    jsonLd: [
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        name: "AI Tool Directory",
+        url,
+        potentialAction: {
+          "@type": "SearchAction",
+          target: joinUrl(config.siteUrl, `/${locale}/search?q={search_term_string}`),
+          "query-input": "required name=search_term_string",
+        },
+      },
+      buildItemListJsonLd({
+        name: "Featured AI Tools",
+        url,
+        items: featuredTools.map((tool, index) => ({
+          name: tool.name,
+          url: joinUrl(config.siteUrl, `/${locale}/tools/${tool.slug}`),
+          position: index + 1,
+        })),
+      }),
+    ],
   };
 }
 
