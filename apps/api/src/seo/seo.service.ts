@@ -25,6 +25,13 @@ import { activeOnly } from "../common/prisma.util";
 export class SeoService {
   constructor(private readonly prisma: PrismaService) {}
 
+  private readonly collectionPaths = [
+    "best-ai-tools",
+    "free-ai-tools",
+    "new-ai-tools",
+    "trending-ai-tools",
+  ] as const;
+
   async getSitemapIndexXml(): Promise<string> {
     const config = getSiteConfig();
     const localeChunks = config.locales.map((locale) => ({
@@ -208,6 +215,12 @@ export class SeoService {
         changeFrequency: "weekly",
         priority: 0.6,
       },
+      ...this.collectionPaths.map((path) => ({
+        url: `/${locale}/${path}`,
+        lastModified: new Date(),
+        changeFrequency: "weekly" as const,
+        priority: 0.72,
+      })),
       ...tools.map((t) => ({
         url: `/${locale}/tools/${t.slug}`,
         lastModified: t.updatedAt,

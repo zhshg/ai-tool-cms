@@ -1,6 +1,7 @@
 import { prisma, PricingModel, ToolStatus } from "@ai-tool-cms/database";
 import type { ComparePageSpec } from "@ai-tool-cms/seo";
 import {
+  buildMetadata,
   buildBreadcrumbJsonLd,
   buildCategoryLandingMetadata,
   buildCollectionPageJsonLd,
@@ -55,6 +56,11 @@ export type CatalogSearchResult = {
   totalHits: number;
   totalPages: number;
   processingTimeMs: number;
+  category?: string;
+  pricing?: string;
+  tag?: string;
+  degraded?: boolean;
+  error?: string | null;
 };
 
 export type ToolsDirectorySort = "latest" | "popular" | "name";
@@ -76,6 +82,11 @@ export type ToolsDirectoryCategory = {
   toolCount: number;
 };
 
+export type CatalogSearchFilterOption = {
+  slug: string;
+  name: string;
+};
+
 export type ToolsDirectoryResult = {
   query: string;
   page: number;
@@ -87,6 +98,11 @@ export type ToolsDirectoryResult = {
   pricing: PricingModel | "";
   categories: ToolsDirectoryCategory[];
   tools: ToolsDirectoryTool[];
+};
+
+export type SearchPageFilters = {
+  categories: CatalogSearchFilterOption[];
+  tags: CatalogSearchFilterOption[];
 };
 
 type CategoryWithCount = {
@@ -114,10 +130,30 @@ export type LandingPageData = {
   jsonLd: Record<string, unknown>[];
 };
 
+type CollectionPageSlug =
+  | "best-ai-tools"
+  | "free-ai-tools"
+  | "new-ai-tools"
+  | "trending-ai-tools";
+
 async function fetchPublishedTools(limit = 12): Promise<CatalogTool[]> {
   const tools = await prisma.tool.findMany({
     where: { status: ToolStatus.PUBLISHED, ...activeOnly },
     orderBy: { publishedAt: "desc" },
+    take: limit,
+    select: { slug: true, name: true, summary: true },
+  });
+  return tools;
+}
+
+async function fetchPopularTools(limit = 12): Promise<CatalogTool[]> {
+  const tools = await prisma.tool.findMany({
+    where: { status: ToolStatus.PUBLISHED, ...activeOnly },
+    orderBy: [
+      { popularitySnapshots: { _count: "desc" } },
+      { publishedAt: "desc" },
+      { name: "asc" },
+    ],
     take: limit,
     select: { slug: true, name: true, summary: true },
   });
@@ -381,6 +417,9 @@ export async function getToolsDirectory(input: {
 export async function searchCatalogTools(input: {
   locale: string;
   query?: string;
+  category?: string;
+  pricing?: string;
+  tag?: string;
   page?: number;
   pageSize?: number;
 }): Promise<CatalogSearchResult> {
@@ -395,17 +434,82 @@ export async function searchCatalogTools(input: {
   if (input.query?.trim()) {
     params.set("q", input.query.trim());
   }
-
-  const response = await fetch(`${getInternalApiUrl()}/v1/search?${params.toString()}`, {
-    next: { revalidate: 300 },
-  });
-
-  if (!response.ok) {
-    throw new Error(`Search API returned ${response.status}`);
+  if (input.category?.trim()) {
+    params.set("category", input.category.trim());
+  }
+  if (input.pricing?.trim()) {
+    params.set("pricing", input.pricing.trim());
+  }
+  if (input.tag?.trim()) {
+    params.set("tag", input.tag.trim());
   }
 
-  void input.locale;
-  return response.json() as Promise<CatalogSearchResult>;
+  try {
+    const response = await fetch(`${getInternalApiUrl()}/v1/search?${params.toString()}`, {
+      next: { revalidate: 300 },
+    });
+
+    if (!response.ok) {
+      return {
+        query: input.query?.trim() ?? "",
+        category: input.category?.trim() ?? "",
+        pricing: input.pricing?.trim() ?? "",
+        tag: input.tag?.trim() ?? "",
+        hits: [],
+        page,
+        pageSize,
+        totalHits: 0,
+        totalPages: 1,
+        processingTimeMs: 0,
+        degraded: true,
+        error: `Search API returned ${response.status}`,
+      };
+    }
+
+    const result = (await response.json()) as CatalogSearchResult;
+    return {
+      ...result,
+      category: input.category?.trim() ?? "",
+      pricing: input.pricing?.trim() ?? "",
+      tag: input.tag?.trim() ?? "",
+      degraded: false,
+      error: null,
+    };
+  } catch (error) {
+    return {
+      query: input.query?.trim() ?? "",
+      category: input.category?.trim() ?? "",
+      pricing: input.pricing?.trim() ?? "",
+      tag: input.tag?.trim() ?? "",
+      hits: [],
+      page,
+      pageSize,
+      totalHits: 0,
+      totalPages: 1,
+      processingTimeMs: 0,
+      degraded: true,
+      error: error instanceof Error ? error.message : "Search API unavailable",
+    };
+  }
+}
+
+export async function getSearchPageFilters(): Promise<SearchPageFilters> {
+  const [categories, tags] = await Promise.all([
+    prisma.category.findMany({
+      where: activeOnly,
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+      take: 24,
+      select: { slug: true, name: true },
+    }),
+    prisma.tag.findMany({
+      where: activeOnly,
+      orderBy: { name: "asc" },
+      take: 40,
+      select: { slug: true, name: true },
+    }),
+  ]);
+
+  return { categories, tags };
 }
 
 function buildCategoryFaqs(categoryName: string, tools: CatalogTool[]): CatalogFaq[] {
@@ -442,6 +546,201 @@ function buildTagFaqs(tagName: string): CatalogFaq[] {
       answer: `Tags group tools by capability, pricing model, or deployment style so you can discover alternatives faster.`,
     },
   ];
+}
+
+function buildCollectionFaqs(title: string, tools: CatalogTool[], locale: string): CatalogFaq[] {
+  const topNames = tools
+    .slice(0, 3)
+    .map((tool) => tool.name)
+    .join(", ");
+
+  if (locale === "zh") {
+    return [
+      {
+        question: `${title} 页面如何排序？`,
+        answer: topNames
+          ? `当前优先展示 ${topNames} 等工具，并结合页面主题使用发布时间、定价或站内热度进行排序。`
+          : `当前列表会根据页面主题使用发布时间、定价或站内热度进行排序。`,
+      },
+      {
+        question: `这些工具数据来自哪里？`,
+        answer: `页面直接使用站内已发布的真实工具数据，不使用额外的营销占位内容。`,
+      },
+      {
+        question: `如何继续筛选更多工具？`,
+        answer: `你可以继续进入工具详情页、分类页，或打开完整 Tools 与 Search 页面做进一步筛选。`,
+      },
+    ];
+  }
+
+  return [
+    {
+      question: `How is ${title} ranked?`,
+      answer: topNames
+        ? `This page currently highlights ${topNames} and ranks tools by the page theme, using publish recency, pricing, or on-site popularity signals.`
+        : `This page ranks tools by the page theme, using publish recency, pricing, or on-site popularity signals.`,
+    },
+    {
+      question: `Where does the data come from?`,
+      answer: `The page uses real published tools already available in the directory and avoids placeholder marketing content.`,
+    },
+    {
+      question: `How can I refine this list further?`,
+      answer: `Open tool detail pages, category pages, or continue into the main Tools and Search pages for deeper filtering.`,
+    },
+  ];
+}
+
+function buildCollectionMetadata(input: {
+  locale: string;
+  slug: CollectionPageSlug;
+  title: string;
+  description: string;
+}) {
+  return buildMetadata({
+    title: input.title,
+    description: input.description,
+    path: `/${input.locale}/${input.slug}`,
+    keywords: ["AI tools", "AI directory", input.slug.replace(/-/g, " ")],
+  });
+}
+
+function getCollectionCopy(slug: CollectionPageSlug, locale: string) {
+  const isZh = locale === "zh";
+
+  switch (slug) {
+    case "best-ai-tools":
+      return {
+        title: isZh ? "最佳 AI 工具榜单" : "Best AI Tools",
+        description: isZh
+          ? "浏览目录中值得优先评估的 AI 工具，查看排序、摘要和内部导航。"
+          : "Browse the most useful AI tools in the directory with ranked picks, summaries, and internal links.",
+      };
+    case "free-ai-tools":
+      return {
+        title: isZh ? "免费 AI 工具" : "Free AI Tools",
+        description: isZh
+          ? "查看可免费使用或低门槛试用的 AI 工具，快速找到适合入门和验证的选项。"
+          : "Discover AI tools you can use for free or try with a low barrier before making a larger commitment.",
+      };
+    case "new-ai-tools":
+      return {
+        title: isZh ? "最新 AI 工具" : "New AI Tools",
+        description: isZh
+          ? "按发布时间查看最新收录的 AI 工具，持续追踪目录里的新增产品。"
+          : "Track the newest AI tools added to the directory, ordered by recency and ready for review.",
+      };
+    case "trending-ai-tools":
+      return {
+        title: isZh ? "趋势 AI 工具" : "Trending AI Tools",
+        description: isZh
+          ? "查看当前更受关注的 AI 工具，结合站内热度与目录数据快速完成发现。"
+          : "Explore AI tools drawing attention right now, ranked with on-site popularity signals and directory data.",
+      };
+    default:
+      return {
+        title: "AI Tools",
+        description: "Browse AI tools from the directory.",
+      };
+  }
+}
+
+export async function getCollectionLanding(
+  slug: CollectionPageSlug,
+  locale: string,
+): Promise<{
+  metadata: ReturnType<typeof buildCollectionMetadata>;
+  data: LandingPageData;
+} | null> {
+  const copy = getCollectionCopy(slug, locale);
+  const config = getSiteConfig();
+  const path = `/${locale}/${slug}`;
+  const url = joinUrl(config.siteUrl, path);
+
+  const [latestTools, popularTools, freeOnlyTools, freemiumTools] = await Promise.all([
+    fetchPublishedTools(12),
+    fetchPopularTools(12),
+    fetchHomePageTools({ take: 10, pricingModels: [PricingModel.FREE] }),
+    fetchHomePageTools({ take: 10, pricingModels: [PricingModel.FREEMIUM] }),
+  ]);
+
+  const trendingTools = popularTools.slice(0, 6);
+
+  let rankedTools: CatalogTool[] = [];
+  switch (slug) {
+    case "best-ai-tools":
+      rankedTools = popularTools.slice(0, 10);
+      break;
+    case "free-ai-tools":
+      rankedTools = [
+        ...freeOnlyTools,
+        ...freemiumTools.filter((tool) => !freeOnlyTools.some((freeTool) => freeTool.id === tool.id)),
+      ]
+        .slice(0, 10)
+        .map((tool) => ({ slug: tool.slug, name: tool.name, summary: tool.summary }));
+      break;
+    case "new-ai-tools":
+      rankedTools = latestTools.slice(0, 10);
+      break;
+    case "trending-ai-tools":
+      rankedTools = popularTools
+        .filter((tool) => latestTools.some((latestTool) => latestTool.slug === tool.slug))
+        .slice(0, 10);
+      if (!rankedTools.length) {
+        rankedTools = popularTools.slice(0, 10);
+      }
+      break;
+    default:
+      return null;
+  }
+
+  const faqs = buildCollectionFaqs(copy.title, rankedTools, locale);
+  const jsonLd = [
+    buildCollectionPageJsonLd({
+      name: copy.title,
+      url,
+      description: copy.description,
+      items: rankedTools.map((tool) => ({
+        name: tool.name,
+        url: joinUrl(config.siteUrl, `/${locale}/tools/${tool.slug}`),
+        description: tool.summary ?? undefined,
+      })),
+    }),
+    buildItemListJsonLd({
+      name: copy.title,
+      url,
+      items: rankedTools.map((tool, index) => ({
+        name: tool.name,
+        url: joinUrl(config.siteUrl, `/${locale}/tools/${tool.slug}`),
+        position: index + 1,
+      })),
+    }),
+    buildFaqPageJsonLd({ url, faqs }),
+    buildBreadcrumbJsonLd(
+      [
+        { name: "Home", path: `/${locale}` },
+        { name: copy.title, path },
+      ],
+      config.siteUrl,
+    ),
+  ];
+
+  return {
+    metadata: buildCollectionMetadata({
+      locale,
+      slug,
+      title: copy.title,
+      description: copy.description,
+    }),
+    data: {
+      title: copy.title,
+      aiSummary: copy.description,
+      faqs,
+      relatedTools: rankedTools,
+      trendingTools,
+      jsonLd,
+    },
+  };
 }
 
 export async function getHomePageData(locale: string): Promise<{
