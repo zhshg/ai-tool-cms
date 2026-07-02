@@ -29,6 +29,13 @@ export type HomePageCategory = {
   toolCount: number;
 };
 
+export type CategoriesPageCategory = HomePageCategory & {
+  iconUrl: string | null;
+  isFeatured: boolean;
+  shortDescription: string;
+  ctaHint: string;
+};
+
 export type HomePageTool = CatalogTool & {
   id: string;
   website: string;
@@ -110,6 +117,68 @@ export type PublicShellData = {
   popularTools: CatalogTool[];
 };
 
+export type CategoriesPageData = {
+  categories: CategoriesPageCategory[];
+  featuredTools: HomePageTool[];
+  stats: {
+    categoryCount: number;
+    toolCount: number;
+    featuredCount: number;
+  };
+};
+
+export type CategoryDetailTool = {
+  id: string;
+  slug: string;
+  name: string;
+  summary: string | null;
+  website: string;
+  logoUrl: string | null;
+  pricingModel: PricingModel;
+  pricingLabel: string;
+  rating: number | null;
+  ratingLabel: string | null;
+  publishedAt: string | null;
+  categories: Array<{ slug: string; name: string }>;
+};
+
+export type CategorySidebarLink = {
+  href: string;
+  label: string;
+  description?: string | null;
+};
+
+export type CategoryLandingData = {
+  title: string;
+  aiSummary: string;
+  faqs: CatalogFaq[];
+  relatedTools: CatalogTool[];
+  trendingTools: CategoryDetailTool[];
+  jsonLd: Record<string, unknown>[];
+  category: {
+    slug: string;
+    name: string;
+    title: string;
+    description: string;
+    toolCount: number;
+    updatedAt: string;
+    updatedLabel: string;
+    iconUrl: string | null;
+    isFeatured: boolean;
+  };
+  featuredTools: CategoryDetailTool[];
+  allTools: CategoryDetailTool[];
+  relatedCategories: CategoriesPageCategory[];
+  popularCategories: CategoriesPageCategory[];
+  popularCollections: CategorySidebarLink[];
+  sidebar: {
+    topCategories: CategorySidebarLink[];
+    newestTools: CategorySidebarLink[];
+    popularCollections: CategorySidebarLink[];
+    blogGuides: CategorySidebarLink[];
+  };
+};
+
 type CategoryWithCount = {
   slug: string;
   name: string;
@@ -136,6 +205,33 @@ export type LandingPageData = {
 };
 
 type CollectionPageSlug = "best-ai-tools" | "free-ai-tools" | "new-ai-tools" | "trending-ai-tools";
+
+const COLLECTION_PAGE_DEFS: Array<{
+  slug: CollectionPageSlug;
+  label: string;
+  description: string;
+}> = [
+  {
+    slug: "best-ai-tools",
+    label: "Best AI Tools",
+    description: "Browse the strongest tools across the directory.",
+  },
+  {
+    slug: "free-ai-tools",
+    label: "Free AI Tools",
+    description: "Find tools with free access or easy trial entry points.",
+  },
+  {
+    slug: "new-ai-tools",
+    label: "New AI Tools",
+    description: "Track the latest published tools added to the directory.",
+  },
+  {
+    slug: "trending-ai-tools",
+    label: "Trending AI Tools",
+    description: "Follow tools drawing attention right now.",
+  },
+];
 
 async function fetchPublishedTools(limit = 12): Promise<CatalogTool[]> {
   const tools = await prisma.tool.findMany({
@@ -245,6 +341,174 @@ async function fetchCategoryDirectoryData(limit = 16): Promise<HomePageCategory[
       toolCount: category._count.tools,
     }))
     .sort((left, right) => right.toolCount - left.toolCount || left.name.localeCompare(right.name));
+}
+
+async function fetchRichCategoryDirectoryData(limit = 24): Promise<CategoriesPageCategory[]> {
+  const categories = await prisma.category.findMany({
+    where: activeOnly,
+    orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+    take: limit,
+    include: {
+      _count: {
+        select: {
+          tools: {
+            where: { deletedAt: null, tool: { status: ToolStatus.PUBLISHED, deletedAt: null } },
+          },
+        },
+      },
+    },
+  });
+
+  return categories
+    .map((category) => {
+      const metadata =
+        category.metadata && typeof category.metadata === "object"
+          ? (category.metadata as Record<string, unknown>)
+          : {};
+      const shortDescription =
+        category.description ??
+        `Browse ${category.name} tools, compare options, and continue into related directory pages.`;
+      return {
+        slug: category.slug,
+        name: category.name,
+        description: category.description ?? null,
+        toolCount: category._count.tools,
+        iconUrl: category.iconUrl ?? null,
+        isFeatured:
+          Boolean(metadata.featured) || category._count.tools >= 3 || category.sortOrder < 6,
+        shortDescription,
+        ctaHint:
+          category._count.tools > 0
+            ? `Explore ${category._count.tools} tools`
+            : "Open category hub",
+      } satisfies CategoriesPageCategory;
+    })
+    .sort((left, right) => {
+      if (Number(right.isFeatured) !== Number(left.isFeatured)) {
+        return Number(right.isFeatured) - Number(left.isFeatured);
+      }
+      return right.toolCount - left.toolCount || left.name.localeCompare(right.name);
+    });
+}
+
+function formatPricingLabel(pricingModel: PricingModel): string {
+  switch (pricingModel) {
+    case PricingModel.FREE:
+      return "Free";
+    case PricingModel.FREEMIUM:
+      return "Freemium";
+    case PricingModel.PAID:
+      return "Paid";
+    case PricingModel.CONTACT:
+      return "Contact Sales";
+    default:
+      return pricingModel;
+  }
+}
+
+function formatDateLabel(date: Date, locale: string): string {
+  return new Intl.DateTimeFormat(locale === "zh" ? "zh-CN" : "en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  }).format(date);
+}
+
+async function fetchCategoryDetailTools(
+  categoryId: string,
+  limit = 12,
+): Promise<CategoryDetailTool[]> {
+  const toolLinks = await prisma.toolCategory.findMany({
+    where: {
+      categoryId,
+      ...activeOnly,
+      tool: { status: ToolStatus.PUBLISHED, ...activeOnly },
+    },
+    orderBy: [{ isPrimary: "desc" }, { tool: { publishedAt: "desc" } }],
+    take: limit,
+    select: {
+      tool: {
+        select: {
+          id: true,
+          slug: true,
+          name: true,
+          summary: true,
+          website: true,
+          logoUrl: true,
+          pricingModel: true,
+          publishedAt: true,
+          categories: {
+            where: activeOnly,
+            orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }],
+            select: {
+              category: {
+                select: {
+                  slug: true,
+                  name: true,
+                },
+              },
+            },
+          },
+          reviews: {
+            where: { ...activeOnly, status: "APPROVED" },
+            select: {
+              rating: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  return toolLinks.map((link) => {
+    const ratings = link.tool.reviews.map((review) => review.rating);
+    const averageRating = ratings.length
+      ? ratings.reduce((total, value) => total + value, 0) / ratings.length
+      : null;
+    return {
+      id: link.tool.id,
+      slug: link.tool.slug,
+      name: link.tool.name,
+      summary: link.tool.summary,
+      website: link.tool.website,
+      logoUrl: link.tool.logoUrl,
+      pricingModel: link.tool.pricingModel,
+      pricingLabel: formatPricingLabel(link.tool.pricingModel),
+      rating: averageRating,
+      ratingLabel: averageRating ? averageRating.toFixed(1) : null,
+      publishedAt: link.tool.publishedAt?.toISOString() ?? null,
+      categories: link.tool.categories.map((item) => item.category),
+    } satisfies CategoryDetailTool;
+  });
+}
+
+function buildCollectionLinks(locale: string): CategorySidebarLink[] {
+  return COLLECTION_PAGE_DEFS.map((item) => ({
+    href: `/${locale}/${item.slug}`,
+    label: item.label,
+    description: item.description,
+  }));
+}
+
+function buildBlogGuideLinks(locale: string): CategorySidebarLink[] {
+  const dateLabel = locale === "zh" ? "博客导读" : "Blog guide";
+  return [
+    {
+      href: `/${locale}/blog`,
+      label: locale === "zh" ? "AI 工具目录博客" : "AI Tool Directory Blog",
+      description: dateLabel,
+    },
+    {
+      href: `/${locale}/blog`,
+      label: locale === "zh" ? "目录搭建与发布" : "Launch and production notes",
+      description: dateLabel,
+    },
+    {
+      href: `/${locale}/blog`,
+      label: locale === "zh" ? "比较页与导航策略" : "Comparison and navigation guides",
+      description: dateLabel,
+    },
+  ];
 }
 
 async function fetchHomePageTools(input: {
@@ -608,17 +872,25 @@ export async function getPublicShellData(): Promise<PublicShellData> {
   return { categories, popularTools };
 }
 
-export async function getCategoriesPageData(locale: string): Promise<{
-  categories: HomePageCategory[];
-  featuredTools: HomePageTool[];
-}> {
-  void locale;
-  const [categories, featuredTools] = await Promise.all([
-    fetchCategoryDirectoryData(24),
+export async function getCategoriesPageData(locale: string): Promise<CategoriesPageData> {
+  const [categories, featuredTools, categoryCount, toolCount] = await Promise.all([
+    fetchRichCategoryDirectoryData(24),
     fetchPopularHomePageTools(6),
+    prisma.category.count({ where: activeOnly }),
+    prisma.tool.count({ where: { status: ToolStatus.PUBLISHED, ...activeOnly } }),
   ]);
 
-  return { categories, featuredTools };
+  void locale;
+
+  return {
+    categories,
+    featuredTools,
+    stats: {
+      categoryCount,
+      toolCount,
+      featuredCount: categories.filter((category) => category.isFeatured).length,
+    },
+  };
 }
 
 function buildCategoryFaqs(categoryName: string, tools: CatalogTool[]): CatalogFaq[] {
@@ -987,28 +1259,28 @@ export async function getCategoryLanding(
   locale: string,
 ): Promise<{
   metadata: ReturnType<typeof buildCategoryLandingMetadata>;
-  data: LandingPageData;
+  data: CategoryLandingData;
 } | null> {
   const category = await prisma.category.findFirst({
     where: { slug, ...activeOnly },
   });
   if (!category) return null;
 
-  const toolLinks = await prisma.toolCategory.findMany({
-    where: {
-      categoryId: category.id,
-      ...activeOnly,
-      tool: { status: ToolStatus.PUBLISHED, ...activeOnly },
-    },
-    include: {
-      tool: { select: { slug: true, name: true, summary: true, publishedAt: true } },
-    },
-    orderBy: { tool: { publishedAt: "desc" } },
-    take: 12,
-  });
+  const [allTools, trendingTools, popularCategories, newestTools, categoryCount] =
+    await Promise.all([
+      fetchCategoryDetailTools(category.id, 12),
+      fetchPopularHomePageTools(6),
+      fetchRichCategoryDirectoryData(8),
+      fetchHomePageTools({ take: 5 }),
+      prisma.toolCategory.count({
+        where: {
+          categoryId: category.id,
+          ...activeOnly,
+          tool: { status: ToolStatus.PUBLISHED, ...activeOnly },
+        },
+      }),
+    ]);
 
-  const tools = toolLinks.map((link: ToolLinkWithTool) => link.tool);
-  const trending = await fetchPublishedTools(6);
   const config = getSiteConfig();
   const path = `/${locale}/category/${slug}`;
   const url = joinUrl(config.siteUrl, path);
@@ -1017,16 +1289,34 @@ export async function getCategoryLanding(
     category.description ??
     `Discover the best ${buildCategoryToolsLabel(category.name).toLowerCase()}. Compare features, pricing, alternatives, and related tools in one place.`;
 
-  const faqs = buildCategoryFaqs(category.name, tools);
-  const relatedTools = tools.slice(0, 8).map((t: CatalogTool) => ({
+  const simpleTools = allTools.map((tool) => ({
+    slug: tool.slug,
+    name: tool.name,
+    summary: tool.summary,
+  }));
+  const faqs = buildCategoryFaqs(category.name, simpleTools);
+  const relatedTools = simpleTools.slice(0, 8).map((t: CatalogTool) => ({
     slug: t.slug,
     name: t.name,
     summary: t.summary,
   }));
+  const categoryLabel = buildCategoryToolsLabel(category.name);
+  const relatedCategories = popularCategories
+    .filter((item) => item.slug !== category.slug)
+    .slice(0, 6);
+  const collectionLinks = buildCollectionLinks(locale);
+  const blogGuides = buildBlogGuideLinks(locale);
+  const featuredTools = allTools.slice(0, 4);
+  const updatedLabel = formatDateLabel(category.updatedAt, locale);
+  const metadata =
+    category.metadata && typeof category.metadata === "object"
+      ? (category.metadata as Record<string, unknown>)
+      : {};
+  const isFeatured = Boolean(metadata.featured) || categoryCount >= 3 || category.sortOrder < 6;
 
   const jsonLd = [
     buildCollectionPageJsonLd({
-      name: `Best ${buildCategoryToolsLabel(category.name)}`,
+      name: `Best ${categoryLabel}`,
       url,
       description: aiSummary,
       items: relatedTools.map((t: CatalogTool) => ({
@@ -1038,6 +1328,7 @@ export async function getCategoryLanding(
     buildBreadcrumbJsonLd(
       [
         { name: "Home", path: `/${locale}` },
+        { name: "Categories", path: `/${locale}/categories` },
         { name: category.name, path },
       ],
       config.siteUrl,
@@ -1047,12 +1338,55 @@ export async function getCategoryLanding(
   return {
     metadata: buildCategoryLandingMetadata(category, locale),
     data: {
-      title: `Best ${buildCategoryToolsLabel(category.name)}`,
+      title: `Best ${categoryLabel}`,
       aiSummary,
       faqs,
       relatedTools,
-      trendingTools: trending,
+      trendingTools: trendingTools.map((tool) => ({
+        id: tool.id,
+        slug: tool.slug,
+        name: tool.name,
+        summary: tool.summary,
+        website: tool.website,
+        logoUrl: null,
+        pricingModel: tool.pricingModel,
+        pricingLabel: formatPricingLabel(tool.pricingModel),
+        rating: null,
+        ratingLabel: null,
+        publishedAt: tool.publishedAt,
+        categories: tool.category ? [tool.category] : [],
+      })),
       jsonLd,
+      category: {
+        slug: category.slug,
+        name: category.name,
+        title: `Best ${categoryLabel}`,
+        description: aiSummary,
+        toolCount: categoryCount,
+        updatedAt: category.updatedAt.toISOString(),
+        updatedLabel,
+        iconUrl: category.iconUrl,
+        isFeatured,
+      },
+      featuredTools,
+      allTools,
+      relatedCategories,
+      popularCategories,
+      popularCollections: collectionLinks,
+      sidebar: {
+        topCategories: popularCategories.slice(0, 6).map((item) => ({
+          href: `/${locale}/category/${item.slug}`,
+          label: item.name,
+          description: `${item.toolCount} ${locale === "zh" ? "个工具" : "tools"}`,
+        })),
+        newestTools: newestTools.map((tool) => ({
+          href: `/${locale}/tools/${tool.slug}`,
+          label: tool.name,
+          description: tool.category?.name ?? tool.publishedAt ?? undefined,
+        })),
+        popularCollections: collectionLinks,
+        blogGuides,
+      },
     },
   };
 }
