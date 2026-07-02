@@ -57,6 +57,38 @@ export type CatalogSearchResult = {
   processingTimeMs: number;
 };
 
+export type ToolsDirectorySort = "latest" | "popular" | "name";
+
+export type ToolsDirectoryTool = CatalogTool & {
+  id: string;
+  website: string;
+  logoUrl: string | null;
+  pricingModel: PricingModel;
+  publishedAt: string | null;
+  primaryCategory: { slug: string; name: string } | null;
+  categories: Array<{ slug: string; name: string }>;
+  tags: Array<{ slug: string; name: string }>;
+};
+
+export type ToolsDirectoryCategory = {
+  slug: string;
+  name: string;
+  toolCount: number;
+};
+
+export type ToolsDirectoryResult = {
+  query: string;
+  page: number;
+  pageSize: number;
+  totalHits: number;
+  totalPages: number;
+  sort: ToolsDirectorySort;
+  category: string;
+  pricing: PricingModel | "";
+  categories: ToolsDirectoryCategory[];
+  tools: ToolsDirectoryTool[];
+};
+
 type CategoryWithCount = {
   slug: string;
   name: string;
@@ -158,6 +190,192 @@ async function fetchHomePageTools(input: {
 
 function getInternalApiUrl() {
   return process.env.INTERNAL_API_URL ?? process.env.API_URL ?? "http://localhost:4000";
+}
+
+function parseToolsDirectorySort(sort?: string): ToolsDirectorySort {
+  if (sort === "popular" || sort === "name") return sort;
+  return "latest";
+}
+
+function parsePricingModel(pricing?: string): PricingModel | "" {
+  if (
+    pricing === PricingModel.FREE ||
+    pricing === PricingModel.FREEMIUM ||
+    pricing === PricingModel.PAID ||
+    pricing === PricingModel.CONTACT
+  ) {
+    return pricing;
+  }
+  return "";
+}
+
+function getToolsDirectoryOrderBy(sort: ToolsDirectorySort) {
+  if (sort === "name") {
+    return [{ name: "asc" as const }];
+  }
+
+  if (sort === "popular") {
+    return [
+      { popularitySnapshots: { _count: "desc" as const } },
+      { publishedAt: "desc" as const },
+      { name: "asc" as const },
+    ];
+  }
+
+  return [
+    { publishedAt: "desc" as const },
+    { updatedAt: "desc" as const },
+    { createdAt: "desc" as const },
+  ];
+}
+
+export async function getToolsDirectory(input: {
+  locale: string;
+  query?: string;
+  category?: string;
+  pricing?: string;
+  sort?: string;
+  page?: number;
+  pageSize?: number;
+}): Promise<ToolsDirectoryResult> {
+  const query = input.query?.trim() ?? "";
+  const category = input.category?.trim() ?? "";
+  const pricing = parsePricingModel(input.pricing);
+  const sort = parseToolsDirectorySort(input.sort);
+  const page = Math.max(1, input.page ?? 1);
+  const pageSize = Math.min(48, Math.max(1, input.pageSize ?? 12));
+  const skip = (page - 1) * pageSize;
+  const publishedToolWhere = { status: ToolStatus.PUBLISHED, ...activeOnly };
+  const where = {
+    ...publishedToolWhere,
+    ...(query
+      ? {
+          OR: [
+            { name: { contains: query, mode: "insensitive" as const } },
+            { summary: { contains: query, mode: "insensitive" as const } },
+            { description: { contains: query, mode: "insensitive" as const } },
+            {
+              categories: {
+                some: {
+                  ...activeOnly,
+                  category: {
+                    ...activeOnly,
+                    name: { contains: query, mode: "insensitive" as const },
+                  },
+                },
+              },
+            },
+            {
+              tags: {
+                some: {
+                  ...activeOnly,
+                  tag: {
+                    ...activeOnly,
+                    name: { contains: query, mode: "insensitive" as const },
+                  },
+                },
+              },
+            },
+          ],
+        }
+      : {}),
+    ...(category
+      ? {
+          categories: {
+            some: {
+              ...activeOnly,
+              category: { slug: category, ...activeOnly },
+            },
+          },
+        }
+      : {}),
+    ...(pricing ? { pricingModel: pricing } : {}),
+  };
+
+  const [totalHits, tools, categories] = await Promise.all([
+    prisma.tool.count({ where }),
+    prisma.tool.findMany({
+      where,
+      orderBy: getToolsDirectoryOrderBy(sort),
+      skip,
+      take: pageSize,
+      select: {
+        id: true,
+        slug: true,
+        name: true,
+        summary: true,
+        website: true,
+        logoUrl: true,
+        pricingModel: true,
+        publishedAt: true,
+        categories: {
+          where: activeOnly,
+          orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }],
+          select: {
+            isPrimary: true,
+            category: { select: { slug: true, name: true } },
+          },
+        },
+        tags: {
+          where: activeOnly,
+          orderBy: { createdAt: "asc" },
+          take: 5,
+          select: {
+            tag: { select: { slug: true, name: true } },
+          },
+        },
+      },
+    }),
+    prisma.category.findMany({
+      where: activeOnly,
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+      take: 24,
+      include: {
+        _count: {
+          select: {
+            tools: {
+              where: { deletedAt: null, tool: publishedToolWhere },
+            },
+          },
+        },
+      },
+    }),
+  ]);
+
+  void input.locale;
+  return {
+    query,
+    page,
+    pageSize,
+    totalHits,
+    totalPages: Math.max(1, Math.ceil(totalHits / pageSize)),
+    sort,
+    category,
+    pricing,
+    categories: categories.map((item) => ({
+      slug: item.slug,
+      name: item.name,
+      toolCount: item._count.tools,
+    })),
+    tools: tools.map((tool) => {
+      const categories = tool.categories.map((item) => item.category);
+      const primaryCategory =
+        tool.categories.find((item) => item.isPrimary)?.category ?? categories[0] ?? null;
+      return {
+        id: tool.id,
+        slug: tool.slug,
+        name: tool.name,
+        summary: tool.summary,
+        website: tool.website,
+        logoUrl: tool.logoUrl,
+        pricingModel: tool.pricingModel,
+        publishedAt: tool.publishedAt?.toISOString() ?? null,
+        primaryCategory,
+        categories,
+        tags: tool.tags.map((item) => item.tag),
+      };
+    }),
+  };
 }
 
 export async function searchCatalogTools(input: {
