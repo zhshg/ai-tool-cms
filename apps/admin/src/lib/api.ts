@@ -28,9 +28,7 @@ function isHtmlResponse(contentType: string | null): boolean {
 
 export function getApiBase(): string {
   if (typeof window !== "undefined") {
-    const publicOrigin =
-      normalizeApiOrigin(clientEnv.NEXT_PUBLIC_API_URL) ||
-      normalizeApiOrigin(clientEnv.NEXT_PUBLIC_APP_URL);
+    const publicOrigin = normalizeApiOrigin(clientEnv.NEXT_PUBLIC_API_URL);
 
     if (publicOrigin) {
       return `${publicOrigin}/v1`;

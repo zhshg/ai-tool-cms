@@ -103,7 +103,7 @@ services:
       [
         "sh",
         "-c",
-        "node -e \"require('/app/packages/search/dist').bootstrapSearch().then((result)=>{console.log(JSON.stringify(result));}).catch((error)=>{console.error(error);process.exit(1);})\"",
+        'node -e "require(''/app/packages/search/dist'').bootstrapSearch().then((result)=>{console.log(JSON.stringify(result));}).catch((error)=>{console.error(error);process.exit(1);})"',
       ]
     environment:
       NODE_ENV: production
@@ -302,6 +302,8 @@ services:
       dockerfile: docker/Dockerfile.next
       args:
         APP_NAME: web
+        NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
     image: ${IMAGE_REGISTRY:-ghcr.io/zhshg}/ai-tool-cms-web:${IMAGE_TAG:-latest}
     restart: unless-stopped
     environment:
@@ -349,6 +351,8 @@ services:
       args:
         APP_NAME: admin
         ADMIN_BASE_PATH: /admin
+        NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
     image: ${IMAGE_REGISTRY:-ghcr.io/zhshg}/ai-tool-cms-admin:${IMAGE_TAG:-latest}
     restart: unless-stopped
     environment:
