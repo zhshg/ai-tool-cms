@@ -5,6 +5,9 @@ export type ApiError = {
   message: string;
 };
 
+const ACCESS_TOKEN_KEY = "atcms_jwt";
+const REFRESH_TOKEN_KEY = "atcms_refresh_token";
+
 function normalizeApiOrigin(origin: string | undefined): string {
   const value = origin?.trim();
   if (!value) return "";
@@ -24,9 +27,39 @@ function normalizeApiOrigin(origin: string | undefined): string {
   return value.replace(/\/$/, "");
 }
 
-function getApiBase(): string {
+export function getApiBase(): string {
   const origin = normalizeApiOrigin(clientEnv.NEXT_PUBLIC_API_URL);
   return origin ? `${origin}/v1` : "/v1";
+}
+
+export function getAdminBasePath(): string {
+  if (typeof window === "undefined") {
+    return "";
+  }
+
+  const segments = window.location.pathname.split("/").filter(Boolean);
+  return segments[0] === "admin" ? "/admin" : "";
+}
+
+export function clearAdminTokens() {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.removeItem(ACCESS_TOKEN_KEY);
+  window.localStorage.removeItem(REFRESH_TOKEN_KEY);
+}
+
+export function redirectToAdminLogin(nextPath?: string) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  const basePath = getAdminBasePath();
+  const normalizedNext =
+    nextPath || `${window.location.pathname}${window.location.search}${window.location.hash}`;
+  const search = normalizedNext ? `?next=${encodeURIComponent(normalizedNext)}` : "";
+  window.location.assign(`${basePath}/login${search}`);
 }
 
 export function getApiErrorMessage(error: ApiError): string {
@@ -46,9 +79,11 @@ export function getApiErrorMessage(error: ApiError): string {
 }
 
 export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
-  const token = typeof window !== "undefined" ? window.localStorage.getItem("atcms_jwt") : null;
+  const token =
+    typeof window !== "undefined" ? window.localStorage.getItem(ACCESS_TOKEN_KEY) : null;
 
   if (!token) {
+    redirectToAdminLogin();
     throw {
       status: 401,
       message: "Missing authentication token.",
@@ -74,6 +109,10 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
 
   if (!res.ok) {
     const body = await res.text();
+    if (res.status === 401) {
+      clearAdminTokens();
+      redirectToAdminLogin();
+    }
     throw { status: res.status, message: body || res.statusText } satisfies ApiError;
   }
 

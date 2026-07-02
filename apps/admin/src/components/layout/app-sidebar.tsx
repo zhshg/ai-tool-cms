@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/components/rbac/auth-provider";
+import { getAdminBasePath } from "@/lib/api";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 
@@ -14,7 +16,9 @@ type AppSidebarProps = {
 
 export function AppSidebar({ onNavigate, className }: AppSidebarProps) {
   const pathname = usePathname();
-  const { navItems, user } = useAuth();
+  const router = useRouter();
+  const { navItems, user, logout } = useAuth();
+  const adminBasePath = getAdminBasePath();
 
   return (
     <aside
@@ -35,8 +39,7 @@ export function AppSidebar({ onNavigate, className }: AppSidebarProps) {
       <ScrollArea className="flex-1 px-3 py-4">
         <nav className="flex flex-col gap-1">
           {navItems.map((item) => {
-            const isActive =
-              item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+            const isActive = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
             const Icon = item.icon;
 
             return (
@@ -61,9 +64,19 @@ export function AppSidebar({ onNavigate, className }: AppSidebarProps) {
 
       <Separator />
       <div className="space-y-1 p-4 text-xs text-muted-foreground">
-        <p className="font-medium text-foreground">{user.name}</p>
-        <p>{user.email}</p>
-        <p>Role: {user.roles.join(", ")}</p>
+        <p className="font-medium text-foreground">{user?.name ?? "Guest"}</p>
+        <p>{user?.email ?? "Not signed in"}</p>
+        <p>Role: {user?.roles.join(", ") ?? "-"}</p>
+        <button
+          type="button"
+          className="pt-2 text-left text-xs font-medium text-primary"
+          onClick={() => {
+            logout();
+            router.replace(`${adminBasePath}/login`);
+          }}
+        >
+          Sign out
+        </button>
       </div>
     </aside>
   );
