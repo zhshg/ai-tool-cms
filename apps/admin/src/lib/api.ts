@@ -36,7 +36,7 @@ export function getApiBase(): string {
       return `${publicOrigin}/v1`;
     }
 
-    return "/v1";
+    return "";
   }
 
   const origin = normalizeApiOrigin(clientEnv.NEXT_PUBLIC_API_URL);
