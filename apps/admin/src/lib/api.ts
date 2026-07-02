@@ -14,11 +14,6 @@ function normalizeApiOrigin(origin: string | undefined): string {
 
   if (typeof window !== "undefined") {
     const normalized = value.replace(/\/$/, "");
-    const localhostPattern = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i;
-    if (localhostPattern.test(normalized)) {
-      return "";
-    }
-
     if (normalized === window.location.origin) {
       return "";
     }
@@ -33,7 +28,15 @@ function isHtmlResponse(contentType: string | null): boolean {
 
 export function getApiBase(): string {
   if (typeof window !== "undefined") {
-    return new URL("/v1", window.location.origin).toString();
+    const publicOrigin =
+      normalizeApiOrigin(clientEnv.NEXT_PUBLIC_API_URL) ||
+      normalizeApiOrigin(clientEnv.NEXT_PUBLIC_APP_URL);
+
+    if (publicOrigin) {
+      return `${publicOrigin}/v1`;
+    }
+
+    return "/v1";
   }
 
   const origin = normalizeApiOrigin(clientEnv.NEXT_PUBLIC_API_URL);
