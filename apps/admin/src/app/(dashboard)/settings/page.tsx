@@ -6,6 +6,7 @@ import { RequirePermission } from "@/components/rbac/require-permission";
 import {
   fetchSettings,
   fetchSettingsSummary,
+  getApiErrorMessage,
   type AdminSetting,
   type ApiError,
   type SettingsSummary,
@@ -54,7 +55,7 @@ export default function SettingsPage() {
           ) : null}
           {error ? (
             <p className="p-6 text-sm text-destructive">
-              API error {error.status}: {error.message}
+              API error {error.status}: {getApiErrorMessage(error)}
             </p>
           ) : null}
           {!isLoading && !error && items.length === 0 ? (

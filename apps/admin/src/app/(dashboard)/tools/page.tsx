@@ -4,7 +4,13 @@ import { useEffect, useState } from "react";
 import { RefreshCw } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { RequirePermission } from "@/components/rbac/require-permission";
-import { fetchTools, refreshToolLogo, type AdminTool, type ApiError } from "@/lib/api";
+import {
+  fetchTools,
+  getApiErrorMessage,
+  refreshToolLogo,
+  type AdminTool,
+  type ApiError,
+} from "@/lib/api";
 import { Permission } from "@/lib/permissions";
 
 export default function ToolsPage() {
@@ -56,7 +62,7 @@ export default function ToolsPage() {
           {isLoading ? <p className="p-6 text-sm text-muted-foreground">Loading tools...</p> : null}
           {error ? (
             <p className="p-6 text-sm text-destructive">
-              API error {error.status}: {error.message}
+              API error {error.status}: {getApiErrorMessage(error)}
             </p>
           ) : null}
           {!isLoading && !error && items.length === 0 ? (

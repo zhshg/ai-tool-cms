@@ -1,23 +1,76 @@
 import { clientEnv } from "@ai-tool-cms/config/client";
 
-const API_BASE = `${clientEnv.NEXT_PUBLIC_API_URL}/v1`;
-
 export type ApiError = {
   status: number;
   message: string;
 };
 
+function normalizeApiOrigin(origin: string | undefined): string {
+  const value = origin?.trim();
+  if (!value) return "";
+
+  if (typeof window !== "undefined") {
+    const normalized = value.replace(/\/$/, "");
+    const localhostPattern = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i;
+    if (localhostPattern.test(normalized)) {
+      return "";
+    }
+
+    if (normalized === window.location.origin) {
+      return "";
+    }
+  }
+
+  return value.replace(/\/$/, "");
+}
+
+function getApiBase(): string {
+  const origin = normalizeApiOrigin(clientEnv.NEXT_PUBLIC_API_URL);
+  return origin ? `${origin}/v1` : "/v1";
+}
+
+export function getApiErrorMessage(error: ApiError): string {
+  if (error.status === 401) {
+    return "Unauthorized. Please sign in and make sure atcms_jwt is available.";
+  }
+
+  if (error.status === 403) {
+    return "Forbidden. Your account does not have permission to access this resource.";
+  }
+
+  if (error.status === 0) {
+    return "Network request failed. Please check the public API routing and try again.";
+  }
+
+  return error.message || "Request failed.";
+}
+
 export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const token = typeof window !== "undefined" ? window.localStorage.getItem("atcms_jwt") : null;
 
-  const res = await fetch(`${API_BASE}${path}`, {
-    ...init,
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...init?.headers,
-    },
-  });
+  if (!token) {
+    throw {
+      status: 401,
+      message: "Missing authentication token.",
+    } satisfies ApiError;
+  }
+
+  let res: Response;
+  try {
+    res = await fetch(`${getApiBase()}${path}`, {
+      ...init,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        ...init?.headers,
+      },
+    });
+  } catch {
+    throw {
+      status: 0,
+      message: "Failed to fetch",
+    } satisfies ApiError;
+  }
 
   if (!res.ok) {
     const body = await res.text();
