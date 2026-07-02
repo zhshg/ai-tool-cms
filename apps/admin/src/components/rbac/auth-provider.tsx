@@ -13,7 +13,13 @@ import { filterByPermission, hasAnyPermission, hasPermission, type AuthUser } fr
 import { navItems, type NavItem } from "@/lib/nav";
 import type { PermissionCode } from "@/lib/permissions";
 import { RolePermissions } from "@/lib/permissions";
-import { clearAdminTokens, getApiBase, redirectToAdminLogin, type ApiError } from "@/lib/api";
+import {
+  clearAdminTokens,
+  getApiBase,
+  readApiError,
+  redirectToAdminLogin,
+  type ApiError,
+} from "@/lib/api";
 
 type AuthContextValue = {
   user: AuthUser | null;
@@ -69,11 +75,7 @@ async function fetchAuthProfile(token: string): Promise<AuthUser> {
   });
 
   if (!response.ok) {
-    const body = await response.text();
-    throw {
-      status: response.status,
-      message: body || response.statusText,
-    } satisfies ApiError;
+    throw await readApiError(response, "Failed to load authenticated admin profile.");
   }
 
   const profile = (await response.json()) as AuthProfile;
@@ -139,11 +141,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
 
       if (!response.ok) {
-        const body = await response.text();
-        throw {
-          status: response.status,
-          message: body || response.statusText,
-        } satisfies ApiError;
+        throw await readApiError(response, "Sign in failed.");
       }
 
       const auth = (await response.json()) as LoginResponse;

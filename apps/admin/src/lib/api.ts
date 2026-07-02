@@ -27,7 +27,15 @@ function normalizeApiOrigin(origin: string | undefined): string {
   return value.replace(/\/$/, "");
 }
 
+function isHtmlResponse(contentType: string | null): boolean {
+  return contentType?.toLowerCase().includes("text/html") ?? false;
+}
+
 export function getApiBase(): string {
+  if (typeof window !== "undefined") {
+    return new URL("/v1", window.location.origin).toString();
+  }
+
   const origin = normalizeApiOrigin(clientEnv.NEXT_PUBLIC_API_URL);
   return origin ? `${origin}/v1` : "/v1";
 }
@@ -78,6 +86,28 @@ export function getApiErrorMessage(error: ApiError): string {
   return error.message || "Request failed.";
 }
 
+export async function readApiError(
+  response: Response,
+  fallbackMessage?: string,
+): Promise<ApiError> {
+  const contentType = response.headers.get("content-type");
+  const body = await response.text();
+
+  if (isHtmlResponse(contentType)) {
+    return {
+      status: response.status,
+      message:
+        fallbackMessage ||
+        "API route returned HTML instead of JSON. Please verify nginx routes /v1/* to the API service.",
+    };
+  }
+
+  return {
+    status: response.status,
+    message: body || fallbackMessage || response.statusText,
+  };
+}
+
 export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const token =
     typeof window !== "undefined" ? window.localStorage.getItem(ACCESS_TOKEN_KEY) : null;
@@ -108,12 +138,11 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
   }
 
   if (!res.ok) {
-    const body = await res.text();
     if (res.status === 401) {
       clearAdminTokens();
       redirectToAdminLogin();
     }
-    throw { status: res.status, message: body || res.statusText } satisfies ApiError;
+    throw await readApiError(res);
   }
 
   return res.json() as Promise<T>;
