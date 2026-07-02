@@ -1,0 +1,230 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-tool-cms.local/docs/import/tool-import-schema.json",
+  "title": "AI Tool Import Record",
+  "description": "Canonical import schema for AI Tool CMS tool records.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "name",
+    "slug",
+    "website",
+    "summary",
+    "description",
+    "primary_category",
+    "pricing",
+    "seo_title",
+    "seo_description"
+  ],
+  "properties": {
+    "name": {
+      "type": "string",
+      "minLength": 2,
+      "maxLength": 120
+    },
+    "slug": {
+      "type": "string",
+      "minLength": 2,
+      "maxLength": 80,
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+    },
+    "website": {
+      "type": "string",
+      "format": "uri",
+      "pattern": "^https?://"
+    },
+    "logo": {
+      "type": "string",
+      "format": "uri",
+      "pattern": "^https?://"
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 40,
+      "maxLength": 220
+    },
+    "description": {
+      "type": "string",
+      "minLength": 120,
+      "maxLength": 4000
+    },
+    "primary_category": {
+      "type": "string",
+      "minLength": 2,
+      "maxLength": 80
+    },
+    "secondary_categories": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 2,
+        "maxLength": 80
+      },
+      "uniqueItems": true,
+      "maxItems": 10
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 2,
+        "maxLength": 40
+      },
+      "uniqueItems": true,
+      "maxItems": 12
+    },
+    "pricing": {
+      "type": "string",
+      "enum": ["Free", "Freemium", "Paid", "Custom", "Trial", "Open Source"]
+    },
+    "features": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 2,
+        "maxLength": 120
+      },
+      "maxItems": 12
+    },
+    "use_cases": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 2,
+        "maxLength": 120
+      },
+      "maxItems": 12
+    },
+    "languages": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 2,
+        "maxLength": 40
+      },
+      "uniqueItems": true,
+      "maxItems": 20
+    },
+    "platform": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 2,
+        "maxLength": 40
+      },
+      "uniqueItems": true,
+      "maxItems": 12
+    },
+    "target_users": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 2,
+        "maxLength": 60
+      },
+      "uniqueItems": true,
+      "maxItems": 12
+    },
+    "screenshots": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "format": "uri",
+        "pattern": "^https?://"
+      },
+      "uniqueItems": true,
+      "maxItems": 5
+    },
+    "faq": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["question", "answer"],
+        "properties": {
+          "question": {
+            "type": "string",
+            "minLength": 10,
+            "maxLength": 120
+          },
+          "answer": {
+            "type": "string",
+            "minLength": 30,
+            "maxLength": 500
+          }
+        }
+      },
+      "maxItems": 10
+    },
+    "pricing_plans": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 80
+          },
+          "price_label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "billing_period": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 240
+          }
+        }
+      },
+      "maxItems": 10
+    },
+    "alternatives": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 2,
+        "maxLength": 80
+      },
+      "uniqueItems": true,
+      "maxItems": 12
+    },
+    "source_urls": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "format": "uri",
+        "pattern": "^https?://"
+      },
+      "uniqueItems": true,
+      "maxItems": 20
+    },
+    "last_verified_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "notes": {
+      "type": "string",
+      "maxLength": 1000
+    },
+    "seo_title": {
+      "type": "string",
+      "minLength": 20,
+      "maxLength": 70
+    },
+    "seo_description": {
+      "type": "string",
+      "minLength": 80,
+      "maxLength": 180
+    }
+  },
+  "$comment": "Application-level validation must also enforce duplicate slug detection, duplicate website detection, taxonomy category mapping, and tag/category conflict rules."
+}
