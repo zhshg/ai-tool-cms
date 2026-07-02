@@ -75,6 +75,7 @@ export {
   type SearchQueueName,
   type SearchQueuePayloadMap,
   type SocialPostJobPayload,
+  type ToolLogoCollectJobPayload,
   type TranslationWorkflowJobPayload,
   type WebhookDeliverJobPayload,
   type WebsiteMonitorJobPayload,

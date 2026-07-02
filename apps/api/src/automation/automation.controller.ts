@@ -65,6 +65,12 @@ export class AutomationController {
     return this.automationService.triggerScreenshots(toolId);
   }
 
+  @Post("logos/:toolId")
+  @RequirePermission(PermissionCode.AutomationManage)
+  logo(@Param("toolId") toolId: string, @Body() body: { force?: boolean } = {}) {
+    return this.automationService.triggerToolLogo(toolId, body.force ?? true);
+  }
+
   @Post("social")
   @RequirePermission(PermissionCode.AutomationManage)
   social(@Body() body: { template?: "NEW_AI" | "TRENDING_AI" | "WEEKLY_AI" | "TOP_AI" }) {

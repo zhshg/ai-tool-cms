@@ -3,6 +3,7 @@ export const AUTOMATION_QUEUE_NAMES = {
   WEBSITE_MONITOR: "automation-website-monitor",
   PRICE_MONITOR: "automation-price-monitor",
   SCREENSHOT_CAPTURE: "automation-screenshot-capture",
+  TOOL_LOGO_COLLECT: "automation-tool-logo-collect",
   LINK_CHECK: "automation-link-check",
   AI_REFRESH: "automation-ai-refresh",
   SOCIAL_POST: "automation-social-post",
@@ -28,6 +29,11 @@ export type PriceMonitorJobPayload = {
 export type ScreenshotCaptureJobPayload = {
   toolId: string;
   variants?: Array<"DESKTOP" | "MOBILE" | "DARK">;
+};
+
+export type ToolLogoCollectJobPayload = {
+  toolId: string;
+  force?: boolean;
 };
 
 export type LinkCheckJobPayload = {
@@ -61,6 +67,7 @@ export type AutomationQueuePayloadMap = {
   [AUTOMATION_QUEUE_NAMES.WEBSITE_MONITOR]: WebsiteMonitorJobPayload;
   [AUTOMATION_QUEUE_NAMES.PRICE_MONITOR]: PriceMonitorJobPayload;
   [AUTOMATION_QUEUE_NAMES.SCREENSHOT_CAPTURE]: ScreenshotCaptureJobPayload;
+  [AUTOMATION_QUEUE_NAMES.TOOL_LOGO_COLLECT]: ToolLogoCollectJobPayload;
   [AUTOMATION_QUEUE_NAMES.LINK_CHECK]: LinkCheckJobPayload;
   [AUTOMATION_QUEUE_NAMES.AI_REFRESH]: AiRefreshJobPayload;
   [AUTOMATION_QUEUE_NAMES.SOCIAL_POST]: SocialPostJobPayload;

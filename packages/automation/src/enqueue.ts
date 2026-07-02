@@ -6,6 +6,13 @@ export async function enqueueWebsiteMonitor(monitorId: string): Promise<string> 
   });
 }
 
+export async function enqueueToolLogoCollect(toolId: string, force = false): Promise<string> {
+  return enqueueAutomationJob(AUTOMATION_QUEUE_NAMES.TOOL_LOGO_COLLECT, "collect-tool-logo", {
+    toolId,
+    force,
+  });
+}
+
 export async function enqueuePriceMonitor(monitorId: string): Promise<string> {
   return enqueueAutomationJob(AUTOMATION_QUEUE_NAMES.PRICE_MONITOR, "price-monitor", {
     monitorId,

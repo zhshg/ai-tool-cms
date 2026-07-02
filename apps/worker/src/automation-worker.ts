@@ -14,12 +14,14 @@ import {
   type PriceMonitorJobPayload,
   type ScreenshotCaptureJobPayload,
   type SocialPostJobPayload,
+  type ToolLogoCollectJobPayload,
   type WebsiteMonitorJobPayload,
 } from "@ai-tool-cms/queue";
 import { captureToolScreenshots } from "@ai-tool-cms/screenshot";
 import {
   checkPriceMonitor,
   checkWebsiteMonitor,
+  collectToolLogo,
   createAutomationRun,
   finishAutomationRun,
   publishSocialPost,
@@ -90,6 +92,18 @@ export function startAutomationWorkers(): Worker[] {
     { connection: workerConnection(), concurrency: 1 },
   );
 
+  const toolLogoWorker = new BullWorker<ToolLogoCollectJobPayload>(
+    AUTOMATION_QUEUE_NAMES.TOOL_LOGO_COLLECT,
+    async (job) =>
+      withRun("LINK_CHECK", job.data.toolId, async () => {
+        const result = await collectToolLogo(prisma, job.data.toolId, {
+          force: job.data.force,
+        });
+        return result;
+      }),
+    { connection: workerConnection(), concurrency: 2 },
+  );
+
   const linkWorker = new BullWorker<LinkCheckJobPayload>(
     AUTOMATION_QUEUE_NAMES.LINK_CHECK,
     async (job) =>
@@ -147,6 +161,7 @@ export function startAutomationWorkers(): Worker[] {
     websiteWorker,
     priceWorker,
     screenshotWorker,
+    toolLogoWorker,
     linkWorker,
     aiRefreshWorker,
     socialWorker,

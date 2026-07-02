@@ -65,6 +65,7 @@ export type AdminTool = {
   name: string;
   slug: string;
   website: string;
+  logoUrl?: string | null;
   status: string;
   pricingModel: string;
   createdAt: string;
@@ -137,7 +138,17 @@ export type CrawlerDashboard = {
   enabledSources: number;
   queue: {
     total: number;
-    byName: Record<string, { waiting: number; active: number; completed: number; failed: number; delayed: number; total: number }>;
+    byName: Record<
+      string,
+      {
+        waiting: number;
+        active: number;
+        completed: number;
+        failed: number;
+        delayed: number;
+        total: number;
+      }
+    >;
   };
   averageTimeMs: number;
   newTools: number;
@@ -167,6 +178,13 @@ export function fetchSearchConsole() {
 
 export function fetchTools() {
   return apiFetch<PaginatedResponse<AdminTool>>("/tools?pageSize=50");
+}
+
+export function refreshToolLogo(toolId: string, force = true) {
+  return apiFetch<{ jobId: string }>(`/automation/logos/${toolId}`, {
+    method: "POST",
+    body: JSON.stringify({ force }),
+  });
 }
 
 export function fetchCategories() {

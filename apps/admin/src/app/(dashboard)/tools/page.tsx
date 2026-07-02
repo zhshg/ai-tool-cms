@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { RefreshCw } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { RequirePermission } from "@/components/rbac/require-permission";
-import { fetchTools, type AdminTool, type ApiError } from "@/lib/api";
+import { fetchTools, refreshToolLogo, type AdminTool, type ApiError } from "@/lib/api";
 import { Permission } from "@/lib/permissions";
 
 export default function ToolsPage() {
@@ -11,6 +12,8 @@ export default function ToolsPage() {
   const [total, setTotal] = useState(0);
   const [error, setError] = useState<ApiError | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [refreshingId, setRefreshingId] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
     fetchTools()
@@ -47,6 +50,9 @@ export default function ToolsPage() {
         </div>
 
         <div className="overflow-hidden rounded-lg border bg-card text-card-foreground shadow-sm">
+          {message ? (
+            <p className="border-b bg-emerald-50 px-6 py-3 text-sm text-emerald-700">{message}</p>
+          ) : null}
           {isLoading ? <p className="p-6 text-sm text-muted-foreground">Loading tools...</p> : null}
           {error ? (
             <p className="p-6 text-sm text-destructive">
@@ -65,6 +71,8 @@ export default function ToolsPage() {
                   <th className="px-4 py-3 font-medium">Status</th>
                   <th className="px-4 py-3 font-medium">Pricing</th>
                   <th className="px-4 py-3 font-medium">Categories</th>
+                  <th className="px-4 py-3 font-medium">Logo</th>
+                  <th className="px-4 py-3 font-medium">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -76,6 +84,32 @@ export default function ToolsPage() {
                     <td className="px-4 py-3">{tool.pricingModel}</td>
                     <td className="px-4 py-3 text-muted-foreground">
                       {tool.categories?.map((item) => item.category.name).join(", ") || "None"}
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {tool.logoUrl ? "Available" : "Missing"}
+                    </td>
+                    <td className="px-4 py-3">
+                      <button
+                        type="button"
+                        className="inline-flex items-center gap-2 rounded-md border px-3 py-2 text-xs font-medium hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
+                        disabled={refreshingId === tool.id}
+                        onClick={async () => {
+                          try {
+                            setRefreshingId(tool.id);
+                            const result = await refreshToolLogo(tool.id, true);
+                            setMessage(`Logo refresh queued for ${tool.name} (${result.jobId})`);
+                          } catch (err) {
+                            setError(err as ApiError);
+                          } finally {
+                            setRefreshingId(null);
+                          }
+                        }}
+                      >
+                        <RefreshCw
+                          className={`h-3.5 w-3.5 ${refreshingId === tool.id ? "animate-spin" : ""}`}
+                        />
+                        Refresh Logo
+                      </button>
                     </td>
                   </tr>
                 ))}

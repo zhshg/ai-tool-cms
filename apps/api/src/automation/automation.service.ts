@@ -2,6 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import {
   bootstrapAutomation,
+  enqueueToolLogoCollect,
   getAutomationCenterMetrics,
   runDailyAutomationPoll,
   runWeeklyAutomationPoll,
@@ -56,6 +57,11 @@ export class AutomationService {
 
   async triggerScreenshots(toolId: string) {
     const jobId = await enqueueScreenshotCapture(toolId);
+    return { jobId };
+  }
+
+  async triggerToolLogo(toolId: string, force = true) {
+    const jobId = await enqueueToolLogoCollect(toolId, force);
     return { jobId };
   }
 
