@@ -50,6 +50,14 @@ export function getAdminBasePath(): string {
   return segments[0] === "admin" ? "/admin" : "";
 }
 
+export function getAdminDashboardPath(): string {
+  return "/";
+}
+
+export function getAdminLoginPath(): string {
+  return "/login";
+}
+
 export function clearAdminTokens() {
   if (typeof window === "undefined") {
     return;
@@ -64,11 +72,10 @@ export function redirectToAdminLogin(nextPath?: string) {
     return;
   }
 
-  const basePath = getAdminBasePath();
   const normalizedNext =
     nextPath || `${window.location.pathname}${window.location.search}${window.location.hash}`;
   const search = normalizedNext ? `?next=${encodeURIComponent(normalizedNext)}` : "";
-  window.location.assign(`${basePath}/login${search}`);
+  window.location.assign(`${getAdminLoginPath()}${search}`);
 }
 
 export function getApiErrorMessage(error: ApiError): string {

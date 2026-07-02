@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/rbac/auth-provider";
-import { getAdminBasePath } from "@/lib/api";
+import { getAdminDashboardPath } from "@/lib/api";
 
 function LoginForm() {
   const router = useRouter();
@@ -15,7 +15,7 @@ function LoginForm() {
 
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
-      router.replace(searchParams.get("next") || `${getAdminBasePath() || ""}/`);
+      router.replace(searchParams.get("next") || getAdminDashboardPath());
     }
   }, [isAuthenticated, isLoading, router, searchParams]);
 
@@ -37,7 +37,7 @@ function LoginForm() {
 
           try {
             await login(email, password);
-            router.replace(searchParams.get("next") || `${getAdminBasePath() || ""}/`);
+            router.replace(searchParams.get("next") || getAdminDashboardPath());
           } catch (err) {
             const message = (err as { message?: string })?.message;
             setSubmitError(message || "Sign in failed.");

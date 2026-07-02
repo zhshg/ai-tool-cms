@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/components/rbac/auth-provider";
-import { getAdminBasePath } from "@/lib/api";
+import { getAdminLoginPath } from "@/lib/api";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 
@@ -18,7 +18,6 @@ export function AppSidebar({ onNavigate, className }: AppSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { navItems, user, logout } = useAuth();
-  const adminBasePath = getAdminBasePath();
 
   return (
     <aside
@@ -72,7 +71,7 @@ export function AppSidebar({ onNavigate, className }: AppSidebarProps) {
           className="pt-2 text-left text-xs font-medium text-primary"
           onClick={() => {
             logout();
-            router.replace(`${adminBasePath}/login`);
+            router.replace(getAdminLoginPath());
           }}
         >
           Sign out

@@ -8,12 +8,11 @@ import { AppSidebar } from "@/components/layout/app-sidebar";
 import { AppBreadcrumb } from "@/components/layout/app-breadcrumb";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { useAuth } from "@/components/rbac/auth-provider";
-import { getAdminBasePath } from "@/lib/api";
+import { getAdminLoginPath } from "@/lib/api";
 
 export function SiteHeader() {
   const router = useRouter();
   const { user, logout } = useAuth();
-  const adminBasePath = getAdminBasePath();
 
   return (
     <header className="sticky top-0 z-40 flex h-14 items-center gap-4 border-b bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60 lg:px-6">
@@ -45,7 +44,7 @@ export function SiteHeader() {
           aria-label="Sign out"
           onClick={() => {
             logout();
-            router.replace(`${adminBasePath}/login`);
+            router.replace(getAdminLoginPath());
           }}
         >
           <LogOut className="h-4 w-4" />

@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/components/rbac/auth-provider";
-import { getAdminBasePath } from "@/lib/api";
+import { getAdminLoginPath } from "@/lib/api";
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -12,9 +12,8 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      const basePath = getAdminBasePath();
       const next = pathname ? `?next=${encodeURIComponent(pathname)}` : "";
-      router.replace(`${basePath}/login${next}`);
+      router.replace(`${getAdminLoginPath()}${next}`);
     }
   }, [isAuthenticated, isLoading, pathname, router]);
 
