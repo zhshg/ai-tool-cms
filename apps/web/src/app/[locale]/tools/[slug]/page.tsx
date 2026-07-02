@@ -27,5 +27,5 @@ export default async function ToolPage({
   const page = await getToolPage(slug, locale);
   if (!page) notFound();
 
-  return <ToolDetailPage data={page.data} />;
+  return <ToolDetailPage data={page.data} locale={locale} />;
 }
