@@ -1,8 +1,6 @@
 import { ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { SiteFooter } from "@/components/marketing/site-footer";
-import { SiteHeader } from "@/components/marketing/site-header";
 import type { ToolPageData } from "@/lib/tool-page";
 import { serializeJsonLd } from "@/lib/seo";
 
@@ -16,8 +14,7 @@ export function ToolDetailPage({ data, locale }: ToolDetailPageProps) {
   const featureItems = data.features.length ? data.features : data.useCases;
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
-      <SiteHeader locale={locale} />
+    <>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(data.jsonLd) }}
@@ -267,8 +264,7 @@ export function ToolDetailPage({ data, locale }: ToolDetailPageProps) {
           </aside>
         </div>
       </main>
-      <SiteFooter locale={locale} />
-    </div>
+    </>
   );
 }
 

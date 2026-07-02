@@ -12,8 +12,6 @@ import {
 } from "lucide-react";
 import { setRequestLocale } from "next-intl/server";
 
-import { SiteFooter } from "@/components/marketing/site-footer";
-import { SiteHeader } from "@/components/marketing/site-header";
 import { Button } from "@/components/ui/button";
 import { getHomePageData, getHomePageSeoData, type HomePageTool } from "@/lib/catalog";
 import { serializeJsonLd } from "@/lib/seo";
@@ -160,8 +158,7 @@ export default async function HomePage({ params }: HomePageProps) {
         };
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
-      <SiteHeader locale={locale} />
+    <>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
@@ -398,9 +395,7 @@ export default async function HomePage({ params }: HomePageProps) {
           </div>
         </section>
       </main>
-
-      <SiteFooter locale={locale} />
-    </div>
+    </>
   );
 }
 

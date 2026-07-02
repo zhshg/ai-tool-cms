@@ -210,6 +210,12 @@ export class SeoService {
         priority: 0.85,
       },
       {
+        url: `/${locale}/categories`,
+        lastModified: new Date(),
+        changeFrequency: "weekly",
+        priority: 0.8,
+      },
+      {
         url: `/${locale}/search`,
         lastModified: new Date(),
         changeFrequency: "weekly",

@@ -1,107 +1,134 @@
 import Link from "next/link";
 
+import type { CatalogTool, HomePageCategory } from "@/lib/catalog";
+
 type SiteFooterProps = {
   locale: string;
+  categories: HomePageCategory[];
+  popularTools: CatalogTool[];
 };
 
-export async function SiteFooter({ locale }: SiteFooterProps) {
+export function SiteFooter({ locale, categories, popularTools }: SiteFooterProps) {
   const labels =
     locale === "zh"
       ? {
-          tagline: "发现、比较并追踪值得使用的 AI 工具。",
-          directory: "目录",
-          allTools: "全部工具",
+          tagline: "围绕真实 AI 工具、分类、搜索和内容导航构建的公开目录站。",
           categories: "热门分类",
-          search: "搜索工具",
-          content: "内容",
-          blog: "博客与指南",
-          updates: "更新",
-          weekly: "每周精选",
+          popularTools: "热门工具",
+          company: "站点",
+          sitemap: "索引",
+          tools: "全部工具",
+          blog: "博客",
+          search: "搜索",
+          home: "首页",
+          categoriesPage: "分类页",
+          sitemapXml: "Sitemap",
+          robots: "Robots",
+          rss: "RSS",
         }
       : {
-          tagline: "Discover, compare, and track AI tools worth using.",
-          directory: "Directory",
-          allTools: "All tools",
+          tagline: "A public directory built for discovering real AI tools, categories, search, and editorial guidance.",
           categories: "Popular categories",
-          search: "Search tools",
-          content: "Content",
-          blog: "Blog and guides",
-          updates: "Updates",
-          weekly: "Weekly picks",
+          popularTools: "Popular tools",
+          company: "Company",
+          sitemap: "Sitemap",
+          tools: "All tools",
+          blog: "Blog",
+          search: "Search",
+          home: "Home",
+          categoriesPage: "Categories",
+          sitemapXml: "Sitemap",
+          robots: "Robots",
+          rss: "RSS",
         };
 
   const year = new Date().getFullYear();
 
   return (
-    <footer className="border-t bg-muted/30">
-      <div className="mx-auto max-w-6xl px-6 py-12">
-        <div className="grid gap-8 md:grid-cols-4">
-          <div className="space-y-2">
-            <p className="font-semibold">AI Tool Directory</p>
-            <p className="text-sm text-muted-foreground">{labels.tagline}</p>
+    <footer className="border-t bg-slate-50">
+      <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+        <div className="grid gap-10 lg:grid-cols-[minmax(0,1.2fr)_repeat(4,minmax(0,1fr))]">
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="flex size-10 items-center justify-center rounded-lg border bg-slate-950 text-sm font-semibold text-white">
+                AI
+              </div>
+              <div>
+                <div className="text-sm font-semibold text-slate-950">AI Tool Directory</div>
+                <div className="text-xs text-slate-500">
+                  {locale === "zh" ? "高密度目录导航" : "High-density directory navigation"}
+                </div>
+              </div>
+            </div>
+            <p className="max-w-sm text-sm leading-6 text-slate-600">{labels.tagline}</p>
           </div>
 
-          <div>
-            <p className="text-sm font-medium">{labels.directory}</p>
-            <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
-              <li>
-                <Link href={`/${locale}/tools`} className="hover:text-foreground">
-                  {labels.allTools}
-                </Link>
-              </li>
-              <li>
-                <Link href={`/${locale}#categories`} className="hover:text-foreground">
-                  {labels.categories}
-                </Link>
-              </li>
-              <li>
-                <Link href={`/${locale}/search`} className="hover:text-foreground">
-                  {labels.search}
-                </Link>
-              </li>
-            </ul>
-          </div>
+          <FooterList
+            title={labels.categories}
+            items={categories.slice(0, 6).map((category) => ({
+              href: `/${locale}/category/${category.slug}`,
+              label: category.name,
+            }))}
+          />
 
-          <div>
-            <p className="text-sm font-medium">{labels.content}</p>
-            <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
-              <li>
-                <Link href={`/${locale}/blog`} className="hover:text-foreground">
-                  {labels.blog}
-                </Link>
-              </li>
-              <li>
-                <Link href={`/${locale}/category/ai-writing`} className="hover:text-foreground">
-                  AI Writing
-                </Link>
-              </li>
-              <li>
-                <Link href={`/${locale}/category/code-assistant`} className="hover:text-foreground">
-                  Code Assistant
-                </Link>
-              </li>
-            </ul>
-          </div>
+          <FooterList
+            title={labels.popularTools}
+            items={popularTools.slice(0, 6).map((tool) => ({
+              href: `/${locale}/tools/${tool.slug}`,
+              label: tool.name,
+            }))}
+          />
 
-          <div>
-            <p className="text-sm font-medium">{labels.updates}</p>
-            <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
-              <li>
-                <Link href="/feed/rss" className="hover:text-foreground">
-                  RSS
-                </Link>
-              </li>
-              <li>
-                <Link href={`/${locale}#newsletter`} className="hover:text-foreground">
-                  {labels.weekly}
-                </Link>
-              </li>
-            </ul>
-          </div>
+          <FooterList
+            title={labels.company}
+            items={[
+              { href: `/${locale}`, label: labels.home },
+              { href: `/${locale}/categories`, label: labels.categoriesPage },
+              { href: `/${locale}/tools`, label: labels.tools },
+              { href: `/${locale}/blog`, label: labels.blog },
+              { href: `/${locale}/search`, label: labels.search },
+            ]}
+          />
+
+          <FooterList
+            title={labels.sitemap}
+            items={[
+              { href: "/sitemap.xml", label: labels.sitemapXml },
+              { href: "/robots.txt", label: labels.robots },
+              { href: "/feed/rss", label: labels.rss },
+              { href: `/${locale}/best-ai-tools`, label: "Best AI Tools" },
+              { href: `/${locale}/trending-ai-tools`, label: "Trending AI Tools" },
+            ]}
+          />
         </div>
 
-        <p className="mt-8 text-center text-xs text-muted-foreground">{`© ${year} AI Tool Directory`}</p>
+        <div className="mt-10 border-t pt-6 text-xs text-slate-500">
+          {`© ${year} AI Tool Directory`}
+        </div>
       </div>
     </footer>
+  );
+}
+
+function FooterList({
+  title,
+  items,
+}: {
+  title: string;
+  items: Array<{ href: string; label: string }>;
+}) {
+  return (
+    <div>
+      <div className="text-sm font-semibold text-slate-950">{title}</div>
+      <ul className="mt-4 space-y-2.5 text-sm text-slate-600">
+        {items.map((item) => (
+          <li key={`${title}-${item.href}`}>
+            <Link href={item.href} className="transition hover:text-slate-950">
+              {item.label}
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }

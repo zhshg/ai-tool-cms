@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 
 import { Providers } from "@/app/providers";
+import { PublicSiteLayout } from "@/components/marketing/public-site-layout";
 import { routing } from "@/i18n/routing";
 import { createRootMetadata } from "@/lib/seo";
 
@@ -32,7 +33,9 @@ export default async function LocaleLayout({
 
   return (
     <NextIntlClientProvider messages={messages}>
-      <Providers>{children}</Providers>
+      <Providers>
+        <PublicSiteLayout locale={locale}>{children}</PublicSiteLayout>
+      </Providers>
     </NextIntlClientProvider>
   );
 }

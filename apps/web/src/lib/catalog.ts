@@ -105,6 +105,11 @@ export type SearchPageFilters = {
   tags: CatalogSearchFilterOption[];
 };
 
+export type PublicShellData = {
+  categories: HomePageCategory[];
+  popularTools: CatalogTool[];
+};
+
 type CategoryWithCount = {
   slug: string;
   name: string;
@@ -158,6 +163,92 @@ async function fetchPopularTools(limit = 12): Promise<CatalogTool[]> {
     select: { slug: true, name: true, summary: true },
   });
   return tools;
+}
+
+async function fetchPopularHomePageTools(limit = 8): Promise<HomePageTool[]> {
+  const tools = await prisma.tool.findMany({
+    where: {
+      status: ToolStatus.PUBLISHED,
+      ...activeOnly,
+    },
+    orderBy: [
+      { popularitySnapshots: { _count: "desc" } },
+      { publishedAt: "desc" },
+      { name: "asc" },
+    ],
+    take: limit,
+    select: {
+      id: true,
+      slug: true,
+      name: true,
+      summary: true,
+      website: true,
+      pricingModel: true,
+      publishedAt: true,
+      categories: {
+        where: activeOnly,
+        orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }],
+        take: 1,
+        select: {
+          category: {
+            select: {
+              slug: true,
+              name: true,
+            },
+          },
+        },
+      },
+      tags: {
+        where: activeOnly,
+        take: 4,
+        select: {
+          tag: {
+            select: {
+              slug: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  return tools.map((tool) => ({
+    id: tool.id,
+    slug: tool.slug,
+    name: tool.name,
+    summary: tool.summary,
+    website: tool.website,
+    pricingModel: tool.pricingModel,
+    publishedAt: tool.publishedAt?.toISOString() ?? null,
+    category: tool.categories[0]?.category ?? null,
+    tagSlugs: tool.tags.map((tag) => tag.tag.slug),
+  }));
+}
+
+async function fetchCategoryDirectoryData(limit = 16): Promise<HomePageCategory[]> {
+  const categories = await prisma.category.findMany({
+    where: activeOnly,
+    orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+    take: limit,
+    include: {
+      _count: {
+        select: {
+          tools: {
+            where: { deletedAt: null, tool: { status: ToolStatus.PUBLISHED, deletedAt: null } },
+          },
+        },
+      },
+    },
+  });
+
+  return categories
+    .map((category: CategoryWithCount) => ({
+      slug: category.slug,
+      name: category.name,
+      description: category.description ?? null,
+      toolCount: category._count.tools,
+    }))
+    .sort((left, right) => right.toolCount - left.toolCount || left.name.localeCompare(right.name));
 }
 
 async function fetchHomePageTools(input: {
@@ -510,6 +601,28 @@ export async function getSearchPageFilters(): Promise<SearchPageFilters> {
   ]);
 
   return { categories, tags };
+}
+
+export async function getPublicShellData(): Promise<PublicShellData> {
+  const [categories, popularTools] = await Promise.all([
+    fetchCategoryDirectoryData(8),
+    fetchPopularTools(6),
+  ]);
+
+  return { categories, popularTools };
+}
+
+export async function getCategoriesPageData(locale: string): Promise<{
+  categories: HomePageCategory[];
+  featuredTools: HomePageTool[];
+}> {
+  void locale;
+  const [categories, featuredTools] = await Promise.all([
+    fetchCategoryDirectoryData(24),
+    fetchPopularHomePageTools(6),
+  ]);
+
+  return { categories, featuredTools };
 }
 
 function buildCategoryFaqs(categoryName: string, tools: CatalogTool[]): CatalogFaq[] {

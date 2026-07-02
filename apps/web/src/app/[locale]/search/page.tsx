@@ -3,8 +3,6 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { setRequestLocale } from "next-intl/server";
 import { Button } from "@/components/ui/button";
-import { SiteFooter } from "@/components/marketing/site-footer";
-import { SiteHeader } from "@/components/marketing/site-header";
 import { getSearchPageFilters, searchCatalogTools } from "@/lib/catalog";
 import { serializeJsonLd } from "@/lib/seo";
 import { buildBreadcrumbJsonLd, buildItemListJsonLd, getSiteConfig, joinUrl } from "@ai-tool-cms/seo";
@@ -110,8 +108,7 @@ export default async function SearchPage({ params, searchParams }: SearchPagePro
   ];
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
-      <SiteHeader locale={locale} />
+    <>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
@@ -287,8 +284,7 @@ export default async function SearchPage({ params, searchParams }: SearchPagePro
           filters={{ q: query, category, pricing, tag }}
         />
       </main>
-      <SiteFooter locale={locale} />
-    </div>
+    </>
   );
 }
 
