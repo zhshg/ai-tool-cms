@@ -1,5 +1,5 @@
 /**
- * Database seed — Commit 012 (demo) & Commit 020 (bulk).
+ * Database seed - Commit 012 (demo) & Commit 020 (bulk).
  *
  * Usage:
  *   pnpm db:seed              # demo profile (default)
@@ -8,11 +8,11 @@
  */
 import { prisma } from "./seeds/context";
 import { seedBulkData } from "./seeds/bulk";
-import { seedDemoTools } from "./seeds/demo-tools";
 import { seedCrawlSources } from "./seeds/crawl-sources";
 import { seedRolesAndPermissions } from "./seeds/rbac";
 import { seedDefaultTaxonomy } from "./seeds/taxonomy";
 import { seedPlatform } from "./seeds/platform";
+import { seedPublicCatalog } from "./seeds/public-catalog";
 
 async function main(): Promise<void> {
   const profile = process.env.SEED_PROFILE ?? "demo";
@@ -28,7 +28,10 @@ async function main(): Promise<void> {
   console.info("[seed] platform: workflows, plugins, feature flags");
 
   if (profile === "demo" || profile === "all") {
-    await seedDemoTools(adminUserId, categoryIds, tagIds);
+    const publicCatalog = await seedPublicCatalog(adminUserId);
+    console.info(
+      `[seed] public catalog: ${publicCatalog.categoryIds.length} categories, ${publicCatalog.tagIds.length} tags, ${publicCatalog.toolIds.length} tools`,
+    );
     await seedCrawlSources(adminUserId);
     console.info("[seed] mock crawl source seeded (framework validation)");
   }
