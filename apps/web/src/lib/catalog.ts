@@ -1,4 +1,4 @@
-import { prisma, PricingModel, ToolStatus } from "@ai-tool-cms/database";
+﻿import { prisma, PricingModel, ToolStatus } from "@ai-tool-cms/database";
 import type { ComparePageSpec } from "@ai-tool-cms/seo";
 import {
   buildMetadata,
@@ -135,11 +135,7 @@ export type LandingPageData = {
   jsonLd: Record<string, unknown>[];
 };
 
-type CollectionPageSlug =
-  | "best-ai-tools"
-  | "free-ai-tools"
-  | "new-ai-tools"
-  | "trending-ai-tools";
+type CollectionPageSlug = "best-ai-tools" | "free-ai-tools" | "new-ai-tools" | "trending-ai-tools";
 
 async function fetchPublishedTools(limit = 12): Promise<CatalogTool[]> {
   const tools = await prisma.tool.findMany({
@@ -626,26 +622,38 @@ export async function getCategoriesPageData(locale: string): Promise<{
 }
 
 function buildCategoryFaqs(categoryName: string, tools: CatalogTool[]): CatalogFaq[] {
+  const toolsLabel = buildCategoryToolsLabel(categoryName).toLowerCase();
   const topNames = tools
     .slice(0, 3)
     .map((t) => t.name)
     .join(", ");
   return [
     {
-      question: `What are the best ${categoryName} AI tools?`,
+      question: `What are the best ${toolsLabel}?`,
       answer: topNames
         ? `Top picks include ${topNames}. Compare features, pricing, and reviews on this page.`
-        : `Browse curated ${categoryName} AI tools with reviews and comparisons.`,
+        : `Browse curated ${toolsLabel} with reviews and comparisons.`,
     },
     {
-      question: `How do I choose a ${categoryName} AI tool?`,
+      question: `How do I choose a ${buildCategoryToolsLabel(categoryName)
+        .toLowerCase()
+        .replace(/tools$/u, "tool")}?`,
       answer: `Compare use cases, pricing, integrations, and user reviews. Start with the tools listed here and open individual tool pages for detailed FAQs.`,
     },
     {
-      question: `Are there free ${categoryName} AI tools?`,
-      answer: `Many ${categoryName} tools offer free tiers. Filter by tags such as free-tier or open-source to find options that match your budget.`,
+      question: `Are there free ${toolsLabel}?`,
+      answer: `Many ${toolsLabel} offer free tiers. Filter by tags such as free-tier or open-source to find options that match your budget.`,
     },
   ];
+}
+
+function normalizeCategoryLabel(categoryName: string): string {
+  return categoryName.endsWith(" AI") ? categoryName.slice(0, -3) : categoryName;
+}
+
+function buildCategoryToolsLabel(categoryName: string): string {
+  const normalizedName = normalizeCategoryLabel(categoryName);
+  return /^AI\b/u.test(normalizedName) ? `${normalizedName} Tools` : `${normalizedName} AI Tools`;
 }
 
 function buildTagFaqs(tagName: string): CatalogFaq[] {
@@ -787,7 +795,9 @@ export async function getCollectionLanding(
     case "free-ai-tools":
       rankedTools = [
         ...freeOnlyTools,
-        ...freemiumTools.filter((tool) => !freeOnlyTools.some((freeTool) => freeTool.id === tool.id)),
+        ...freemiumTools.filter(
+          (tool) => !freeOnlyTools.some((freeTool) => freeTool.id === tool.id),
+        ),
       ]
         .slice(0, 10)
         .map((tool) => ({ slug: tool.slug, name: tool.name, summary: tool.summary }));
@@ -905,7 +915,9 @@ export async function getHomePageData(locale: string): Promise<{
 
   const featuredTools = latestTools.slice(0, 4);
   const trendingTools = latestTools
-    .filter((tool) => tool.pricingModel !== PricingModel.FREE || tool.tagSlugs.includes("multimodal"))
+    .filter(
+      (tool) => tool.pricingModel !== PricingModel.FREE || tool.tagSlugs.includes("multimodal"),
+    )
     .slice(0, 6);
   const freeTools = [
     ...freeOnlyTools,
@@ -1003,7 +1015,7 @@ export async function getCategoryLanding(
 
   const aiSummary =
     category.description ??
-    `Discover the best ${category.name} AI tools. Compare features, pricing, and alternatives in one place.`;
+    `Discover the best ${buildCategoryToolsLabel(category.name).toLowerCase()}. Compare features, pricing, alternatives, and related tools in one place.`;
 
   const faqs = buildCategoryFaqs(category.name, tools);
   const relatedTools = tools.slice(0, 8).map((t: CatalogTool) => ({
@@ -1014,7 +1026,7 @@ export async function getCategoryLanding(
 
   const jsonLd = [
     buildCollectionPageJsonLd({
-      name: `Best ${category.name} AI Tools`,
+      name: `Best ${buildCategoryToolsLabel(category.name)}`,
       url,
       description: aiSummary,
       items: relatedTools.map((t: CatalogTool) => ({
@@ -1035,7 +1047,7 @@ export async function getCategoryLanding(
   return {
     metadata: buildCategoryLandingMetadata(category, locale),
     data: {
-      title: `Best ${category.name} AI Tools`,
+      title: `Best ${buildCategoryToolsLabel(category.name)}`,
       aiSummary,
       faqs,
       relatedTools,
@@ -1069,7 +1081,7 @@ export async function getTagLanding(
   const path = `/${locale}/tag/${slug}`;
   const url = joinUrl(config.siteUrl, path);
 
-  const aiSummary = `AI tools tagged "${tag.name}" — reviews, pricing, and alternatives.`;
+  const aiSummary = `AI tools tagged "${tag.name}" 鈥?reviews, pricing, and alternatives.`;
   const faqs = buildTagFaqs(tag.name);
   const relatedTools = tools.slice(0, 8).map((t: CatalogTool) => ({
     slug: t.slug,

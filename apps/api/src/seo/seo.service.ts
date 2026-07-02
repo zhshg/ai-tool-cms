@@ -221,6 +221,12 @@ export class SeoService {
         changeFrequency: "weekly",
         priority: 0.6,
       },
+      {
+        url: `/${locale}/blog`,
+        lastModified: new Date(),
+        changeFrequency: "weekly",
+        priority: 0.68,
+      },
       ...this.collectionPaths.map((path) => ({
         url: `/${locale}/${path}`,
         lastModified: new Date(),

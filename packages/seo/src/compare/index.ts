@@ -38,7 +38,7 @@ export function buildComparePageJsonLd(spec: ComparePageSpec, locale = "en") {
   return buildCollectionPageJsonLd({
     name: spec.title,
     url,
-    description: `${spec.title} comparison for AI tools directory`,
+    description: `${spec.title} comparison for AI tool buyers and evaluators.`,
     items: (spec.toolSlugs ?? []).map((slug) => ({
       name: slug,
       url: joinUrl(config.siteUrl, `/${locale}/tools/${slug}`),
@@ -50,11 +50,14 @@ export function buildCategoryLandingMetadata(
   category: { slug: string; name: string; metaDescription?: string | null },
   locale = "en",
 ): BuiltMetadata {
+  const normalizedName = normalizeCategoryLabel(category.name);
+  const titleLabel = buildCategoryToolsLabel(normalizedName);
+
   return buildMetadata({
-    title: `Best ${category.name} AI Tools`,
+    title: `Best ${titleLabel}`,
     description:
       category.metaDescription ??
-      `Discover top ${category.name} AI tools, reviews, and comparisons.`,
+      `Discover top ${titleLabel.toLowerCase()}, reviews, pricing, and comparisons.`,
     path: `/${locale}/category/${category.slug}`,
   });
 }
@@ -65,7 +68,18 @@ export function buildTagLandingMetadata(
 ): BuiltMetadata {
   return buildMetadata({
     title: `${tag.name} AI Tools`,
-    description: `AI tools tagged ${tag.name} — reviews, pricing, and alternatives.`,
+    description: `Explore AI tools tagged ${tag.name} with reviews, pricing, and alternatives.`,
     path: `/${locale}/tag/${tag.slug}`,
   });
+}
+
+function normalizeCategoryLabel(categoryName: string): string {
+  if (categoryName.endsWith(" AI")) {
+    return categoryName.slice(0, -3);
+  }
+  return categoryName;
+}
+
+function buildCategoryToolsLabel(categoryName: string): string {
+  return /^AI\b/u.test(categoryName) ? `${categoryName} Tools` : `${categoryName} AI Tools`;
 }

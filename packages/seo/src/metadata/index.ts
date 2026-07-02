@@ -2,7 +2,7 @@ import type { SeoPageInput } from "../types";
 import { getSiteConfig, type SiteConfig } from "../site-config";
 import { joinUrl, resolveAbsoluteUrl } from "../utils";
 
-/** Next.js Metadata-compatible shape (plain object — no next import). */
+/** Next.js Metadata-compatible shape (plain object - no next import). */
 export type BuiltMetadata = {
   metadataBase: URL;
   title: string;
@@ -36,14 +36,27 @@ function toOpenGraphLocale(locale: string): string {
   return locale.replace("-", "_");
 }
 
+function sanitizePublicBranding(value: string | undefined, siteName: string): string | undefined {
+  if (!value) return value;
+  return value
+    .replace(/AI Tool CMS/g, siteName)
+    .replace(/AI Tool CMS Admin/g, "AI Tool CMS Admin")
+    .replace(/\s+[��-]\s+AI Tool Directory\s*\|\s*AI Tool Directory$/u, ` | ${siteName}`)
+    .replace(/\s+[��-]\s+AI Tool Directory$/u, ` | ${siteName}`)
+    .trim();
+}
+
 function buildTitle(title: string | undefined, siteName: string): string {
-  if (!title) return siteName;
-  if (title === siteName || title.endsWith(` | ${siteName}`)) return title;
-  return `${title} | ${siteName}`;
+  const normalizedTitle = sanitizePublicBranding(title, siteName);
+  if (!normalizedTitle) return siteName;
+  if (normalizedTitle === siteName || normalizedTitle.endsWith(` | ${siteName}`)) {
+    return normalizedTitle;
+  }
+  return `${normalizedTitle} | ${siteName}`;
 }
 
 /**
- * Unified metadata builder — pages must use this instead of hand-rolling SEO tags.
+ * Unified metadata builder - pages must use this instead of hand-rolling SEO tags.
  */
 export function buildMetadata(
   input: SeoPageInput = {},
@@ -52,7 +65,10 @@ export function buildMetadata(
   const path = input.path ?? "/";
   const canonicalUrl = input.canonical ?? joinUrl(config.siteUrl, path);
   const title = buildTitle(input.title, config.siteName);
-  const description = input.description ?? config.siteDescription ?? undefined;
+  const description = sanitizePublicBranding(
+    input.description ?? config.siteDescription ?? undefined,
+    config.siteName,
+  );
   const ogImage = input.ogImage ?? config.ogImage;
   const resolvedOgImage = ogImage ? resolveAbsoluteUrl(ogImage, config.siteUrl) : undefined;
   const twitterCard = input.twitterCard ?? (resolvedOgImage ? "summary_large_image" : "summary");
@@ -111,7 +127,7 @@ export function buildToolMetadata(
 ): BuiltMetadata {
   return buildMetadata(
     {
-      title: tool.metaTitle ?? tool.name,
+      title: tool.metaTitle ?? `${tool.name} Review, Pricing, Features & Alternatives`,
       description: tool.metaDescription ?? tool.summary ?? undefined,
       path: `/${locale}/tools/${tool.slug}`,
       ogImage: tool.logoUrl ?? undefined,

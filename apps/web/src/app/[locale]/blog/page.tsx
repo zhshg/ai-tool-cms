@@ -1,11 +1,36 @@
-import Link from "next/link";
+﻿import Link from "next/link";
+import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
+import { buildMetadata, getSiteConfig } from "@ai-tool-cms/seo";
 
 const posts = [
   { slug: "v1-ga-launch", date: "2026-06-27" },
   { slug: "open-ecosystem", date: "2026-06-27" },
   { slug: "production-ready", date: "2026-06-27" },
 ] as const;
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const isZh = locale === "zh";
+  const config = getSiteConfig();
+
+  return buildMetadata(
+    {
+      title: isZh ? "AI 工具目录博客" : "AI Tool Directory Blog",
+      description: isZh
+        ? "阅读 AI 工具目录的导购、对比、发布复盘与运营经验。"
+        : "Read AI tool directory guides, comparisons, launch notes, and operational lessons.",
+      path: `/${locale}/blog`,
+      hreflang: config.locales.map((loc) => ({ locale: loc, path: `/${loc}/blog` })),
+      ogType: "article",
+    },
+    config,
+  ) as Metadata;
+}
 
 export default async function BlogPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;

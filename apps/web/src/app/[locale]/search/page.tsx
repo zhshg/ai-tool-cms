@@ -1,11 +1,17 @@
-import { AlertTriangle, Search } from "lucide-react";
+﻿import { AlertTriangle, Search } from "lucide-react";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { setRequestLocale } from "next-intl/server";
 import { Button } from "@/components/ui/button";
 import { getSearchPageFilters, searchCatalogTools } from "@/lib/catalog";
 import { serializeJsonLd } from "@/lib/seo";
-import { buildBreadcrumbJsonLd, buildItemListJsonLd, getSiteConfig, joinUrl } from "@ai-tool-cms/seo";
+import {
+  buildBreadcrumbJsonLd,
+  buildItemListJsonLd,
+  buildMetadata,
+  getSiteConfig,
+  joinUrl,
+} from "@ai-tool-cms/seo";
 
 const PAGE_SIZE = 12;
 
@@ -44,23 +50,16 @@ export async function generateMetadata({
     ? `Search AI tools for ${query} with category, pricing, and tag filters.`
     : "Search AI tools by keyword, category, pricing, and tags.";
 
-  return {
-    title,
-    description,
-    alternates: { canonical: joinUrl(config.siteUrl, path) },
-    robots: query ? { index: false, follow: true } : { index: true, follow: true },
-    openGraph: {
+  return buildMetadata(
+    {
       title,
       description,
-      url: joinUrl(config.siteUrl, path),
-      type: "website",
+      path,
+      noIndex: Boolean(query),
+      ogType: "website",
     },
-    twitter: {
-      card: "summary_large_image",
-      title,
-      description,
-    },
-  };
+    config,
+  ) as Metadata;
 }
 
 export default async function SearchPage({ params, searchParams }: SearchPageProps) {

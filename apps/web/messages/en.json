@@ -1,14 +1,14 @@
-{
+﻿{
   "home": {
     "title": "AI Tool Directory",
-    "description": "Discover, compare, and explore the best AI tools — powered by AI Tool CMS.",
+    "description": "Discover, compare, and explore the best AI tools in one public directory.",
     "trending": "Trending tools",
     "categories": "Browse by category",
     "latest": "Latest additions"
   },
   "scaffold": {
-    "title": "AI Tool CMS Web",
-    "description": "Framework scaffold — no business pages yet."
+    "title": "AI Tool Directory Web",
+    "description": "Framework scaffold with no business pages enabled yet."
   },
   "landing": {
     "nav": {
@@ -20,16 +20,16 @@
       "getStarted": "Get Started"
     },
     "hero": {
-      "badge": "v1.0.0 GA — Open Source",
+      "badge": "v1.0.0 GA - Open Source",
       "title": "The AI-Native CMS for Tool Directories",
-      "subtitle": "Crawl, enrich with AI, optimize for SEO, and ship — with REST API, MCP Server, and full observability.",
+      "subtitle": "Crawl, enrich with AI, optimize for SEO, and ship with REST API, MCP Server, and full observability.",
       "ctaPrimary": "Start in 30 minutes",
       "ctaSecondary": "View on GitHub",
-      "stats": "Production · 24×7 · Documented · Observable"
+      "stats": "Production 路 24x7 路 Documented 路 Observable"
     },
     "features": {
       "title": "Everything you need to launch",
-      "subtitle": "From crawler to publish — one platform.",
+      "subtitle": "From crawler to publish in one platform.",
       "items": {
         "ai": {
           "title": "AI Pipeline",
@@ -64,7 +64,7 @@
         "web": { "title": "Web + Admin", "desc": "Next.js 15" },
         "api": { "title": "API", "desc": "NestJS REST" },
         "worker": { "title": "Worker", "desc": "BullMQ async" },
-        "open": { "title": "Open API", "desc": "SDK · MCP · Webhooks" }
+        "open": { "title": "Open API", "desc": "SDK 路 MCP 路 Webhooks" }
       }
     },
     "demo": {
@@ -84,7 +84,7 @@
     },
     "sponsors": {
       "title": "Powered by",
-      "cta": "Interested in sponsoring? Open a Discussion on GitHub."
+      "cta": "Interested in sponsoring? Open a discussion on GitHub."
     },
     "github": {
       "title": "Open Source on GitHub",
@@ -117,7 +117,7 @@
         "enterprise": "Enterprise Edition",
         "saas": "SaaS Cloud"
       },
-      "changelogLink": "View full changelog →"
+      "changelogLink": "View full changelog"
     },
     "cta": {
       "title": "Ready to launch your AI tool directory?",
@@ -126,7 +126,7 @@
       "secondary": "View Pricing"
     },
     "footer": {
-      "tagline": "Open-source AI tool content management system.",
+      "tagline": "Open-source directory stack for publishing and discovering AI tools.",
       "product": "Product",
       "pricing": "Pricing",
       "showcase": "Showcase",
@@ -143,12 +143,12 @@
       "subtitle": "Guides for developers and operators.",
       "githubHint": "Full documentation is maintained in the repository:",
       "sections": {
-        "gettingStarted": "Getting Started — 30 min deploy",
-        "api": "API Reference — REST, SDK, MCP",
-        "deployment": "Deployment — Docker & K8s",
+        "gettingStarted": "Getting Started - 30 min deploy",
+        "api": "API Reference - REST, SDK, MCP",
+        "deployment": "Deployment - Docker & K8s",
         "architecture": "Architecture Overview"
       },
-      "back": "Back to home"
+      "back": "Back home"
     },
     "pricing": {
       "title": "Pricing",
@@ -177,30 +177,30 @@
     },
     "blog": {
       "title": "Blog",
-      "subtitle": "Release notes and engineering updates.",
-      "back": "Back to home",
+      "subtitle": "Guides, comparisons, release notes, and operating lessons from the AI tool directory.",
+      "back": "home",
       "posts": {
         "v1-ga-launch": {
-          "title": "AI Tool CMS v1.0.0 GA",
-          "excerpt": "General Availability — production-ready, documented, and open source."
+          "title": "AI Tool Directory v1.0.0 launch",
+          "excerpt": "How the public directory launched with production-ready search, SEO, and deployment."
         },
         "open-ecosystem": {
-          "title": "Open Ecosystem: API, MCP, SDK",
-          "excerpt": "Sprint 10 delivered the developer platform for AI-native integrations."
+          "title": "Directory platform: API, MCP, and SDK",
+          "excerpt": "How the directory exposes search, integrations, and structured access for developers."
         },
         "production-ready": {
-          "title": "Production Readiness Sprint",
-          "excerpt": "Monitoring, backups, CI/CD, and zero-downtime deployment patterns."
+          "title": "Directory operations and production readiness",
+          "excerpt": "Operational lessons behind a stable AI tool directory: monitoring, CI/CD, backups, and rollout safety."
         }
       }
     },
     "changelog": {
       "title": "Changelog",
-      "subtitle": "Release history for AI Tool CMS.",
+      "subtitle": "Release history for the AI tool directory.",
       "releases": {
-        "1_0_0": "Sprint 12 — v1.0.0 GA: Launch, docs, community, marketing.",
-        "1_0_0-prod_1": "Sprint 11 — Production readiness: monitoring, backup, CI/CD.",
-        "1_0_0-rc_1": "Sprint 10 — Open ecosystem: Public API, MCP, SDK, Webhooks."
+        "1_0_0": "Sprint 12 - v1.0.0 GA: launch, docs, community, marketing.",
+        "1_0_0-prod_1": "Sprint 11 - production readiness: monitoring, backup, CI/CD.",
+        "1_0_0-rc_1": "Sprint 10 - open ecosystem: public API, MCP, SDK, webhooks."
       }
     },
     "showcase": {

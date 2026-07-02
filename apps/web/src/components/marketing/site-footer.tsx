@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 
 import type { CatalogTool, HomePageCategory } from "@/lib/catalog";
 
@@ -27,8 +27,9 @@ export function SiteFooter({ locale, categories, popularTools }: SiteFooterProps
           rss: "RSS",
         }
       : {
-          tagline: "A public directory built for discovering real AI tools, categories, search, and editorial guidance.",
           categories: "Popular categories",
+          tagline:
+            "A public directory built for discovering real AI tools, categories, search, and editorial guidance.",
           popularTools: "Popular tools",
           company: "Company",
           sitemap: "Sitemap",
@@ -56,7 +57,7 @@ export function SiteFooter({ locale, categories, popularTools }: SiteFooterProps
               <div>
                 <div className="text-sm font-semibold text-slate-950">AI Tool Directory</div>
                 <div className="text-xs text-slate-500">
-                  {locale === "zh" ? "高密度目录导航" : "High-density directory navigation"}
+                  {locale === "zh" ? "高信息密度目录导航" : "High-density directory navigation"}
                 </div>
               </div>
             </div>
@@ -103,7 +104,7 @@ export function SiteFooter({ locale, categories, popularTools }: SiteFooterProps
         </div>
 
         <div className="mt-10 border-t pt-6 text-xs text-slate-500">
-          {`© ${year} AI Tool Directory`}
+          {`Copyright ${year} AI Tool Directory`}
         </div>
       </div>
     </footer>

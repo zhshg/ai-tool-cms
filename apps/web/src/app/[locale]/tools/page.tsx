@@ -1,11 +1,17 @@
-import { ExternalLink, Search, SlidersHorizontal } from "lucide-react";
+﻿import { ExternalLink, Search, SlidersHorizontal } from "lucide-react";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { setRequestLocale } from "next-intl/server";
 import { Button } from "@/components/ui/button";
 import { getToolsDirectory, type ToolsDirectoryTool } from "@/lib/catalog";
 import { serializeJsonLd } from "@/lib/seo";
-import { buildBreadcrumbJsonLd, buildItemListJsonLd, getSiteConfig, joinUrl } from "@ai-tool-cms/seo";
+import {
+  buildBreadcrumbJsonLd,
+  buildItemListJsonLd,
+  buildMetadata,
+  getSiteConfig,
+  joinUrl,
+} from "@ai-tool-cms/seo";
 
 const PAGE_SIZE = 12;
 
@@ -50,22 +56,15 @@ export async function generateMetadata({
     ? `Find ${query} AI tools with category filters, pricing models, summaries, and website links.`
     : "Browse AI tools by category, pricing, popularity, and launch date.";
 
-  return {
-    title,
-    description,
-    alternates: { canonical: joinUrl(config.siteUrl, path) },
-    openGraph: {
+  return buildMetadata(
+    {
       title,
       description,
-      url: joinUrl(config.siteUrl, path),
-      type: "website",
+      path,
+      ogType: "website",
     },
-    twitter: {
-      card: "summary_large_image",
-      title,
-      description,
-    },
-  };
+    config,
+  ) as Metadata;
 }
 
 export default async function ToolsPage({ params, searchParams }: ToolsPageProps) {
@@ -218,7 +217,12 @@ export default async function ToolsPage({ params, searchParams }: ToolsPageProps
           <EmptyState locale={locale} />
         )}
 
-        <Pagination locale={locale} page={result.page} totalPages={result.totalPages} filters={filters} />
+        <Pagination
+          locale={locale}
+          page={result.page}
+          totalPages={result.totalPages}
+          filters={filters}
+        />
       </main>
     </>
   );
@@ -363,7 +367,11 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
-function buildToolsPageHref(locale: string, filters: Record<string, string | undefined>, page: number) {
+function buildToolsPageHref(
+  locale: string,
+  filters: Record<string, string | undefined>,
+  page: number,
+) {
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(filters)) {
     if (key !== "page" && value) params.set(key, value);

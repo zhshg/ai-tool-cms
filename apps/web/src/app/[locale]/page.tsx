@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import type { Metadata } from "next";
 import {
   ArrowRight,
@@ -15,7 +15,7 @@ import { setRequestLocale } from "next-intl/server";
 import { Button } from "@/components/ui/button";
 import { getHomePageData, getHomePageSeoData, type HomePageTool } from "@/lib/catalog";
 import { serializeJsonLd } from "@/lib/seo";
-import { getSiteConfig, joinUrl } from "@ai-tool-cms/seo";
+import { buildMetadata, getSiteConfig } from "@ai-tool-cms/seo";
 
 type HomePageProps = {
   params: Promise<{ locale: string }>;
@@ -25,17 +25,20 @@ const BLOG_POSTS = [
   {
     slug: "v1-ga-launch",
     title: "How to launch an AI tools directory",
-    excerpt: "Production launch notes, deployment learnings, and what belongs on a public AI tools homepage.",
+    excerpt:
+      "Production launch notes, deployment learnings, and what belongs on a public AI tools homepage.",
   },
   {
     slug: "open-ecosystem",
     title: "Build an open AI tools ecosystem",
-    excerpt: "How to extend an AI tools directory with structured APIs, search, and ingestion workflows.",
+    excerpt:
+      "How to extend an AI tools directory with structured APIs, search, and ingestion workflows.",
   },
   {
     slug: "production-ready",
     title: "What production-ready really means",
-    excerpt: "Search, health checks, Docker hardening, and release acceptance lessons from shipping the stack.",
+    excerpt:
+      "Search, health checks, Docker hardening, and release acceptance lessons from shipping the stack.",
   },
 ] as const;
 
@@ -43,30 +46,18 @@ export async function generateMetadata({ params }: HomePageProps): Promise<Metad
   const { locale } = await params;
   const isZh = locale === "zh";
   const config = getSiteConfig();
-  const path = `/${locale}`;
 
-  return {
-    title: isZh ? "AI 工具目录首页" : "AI Tool Directory Home",
-    description: isZh
-      ? "发现热门 AI 工具、热门分类、最新收录与实用指南。"
-      : "Discover trending AI tools, popular categories, new launches, and practical guides.",
-    alternates: { canonical: joinUrl(config.siteUrl, path) },
-    openGraph: {
+  return buildMetadata(
+    {
       title: isZh ? "AI 工具目录首页" : "AI Tool Directory Home",
       description: isZh
-        ? "发现热门 AI 工具、热门分类、最新收录与实用指南。"
-        : "Discover trending AI tools, popular categories, new launches, and practical guides.",
-      url: joinUrl(config.siteUrl, path),
-      type: "website",
+        ? "发现热门 AI 工具、分类、最新收录与实用指南。"
+        : "Discover trending AI tools, popular categories, new launches, and editorial guides from the directory.",
+      path: `/${locale}`,
+      hreflang: config.locales.map((loc) => ({ locale: loc, path: `/${loc}` })),
     },
-    twitter: {
-      card: "summary",
-      title: isZh ? "AI 工具目录首页" : "AI Tool Directory Home",
-      description: isZh
-        ? "发现热门 AI 工具、热门分类、最新收录与实用指南。"
-        : "Discover trending AI tools, popular categories, new launches, and practical guides.",
-    },
-  };
+    config,
+  ) as Metadata;
 }
 
 export default async function HomePage({ params }: HomePageProps) {
@@ -82,7 +73,7 @@ export default async function HomePage({ params }: HomePageProps) {
           heroLabel: "AI 工具目录",
           heroTitle: "发现真正值得加入工作流的 AI 工具",
           heroText:
-            "按分类、价格与使用场景快速筛选工具。首页聚合热门、最新、免费可试以及实战指南。",
+            "按分类、价格与使用场景快速筛选工具。首页聚合热门、最新、免费可试以及实用指南。",
           searchPlaceholder: "搜索工具名称、分类或使用场景",
           searchButton: "搜索工具",
           browseTools: "浏览全部工具",
@@ -103,7 +94,7 @@ export default async function HomePage({ params }: HomePageProps) {
           blogTitle: "博客与指南",
           blogText: "用发布复盘、生态观察和部署经验帮助用户做选择。",
           newsletterTitle: "每周追踪新工具、对比与实战指南",
-          newsletterText: "通过 RSS 和博客持续跟踪目录更新，而不是回到产品营销页。",
+          newsletterText: "通过 RSS 和博客持续跟进目录更新，而不是回到产品营销页。",
           openRss: "打开 RSS",
           readBlog: "阅读博客",
           categoryCta: "查看工具",
@@ -118,8 +109,8 @@ export default async function HomePage({ params }: HomePageProps) {
           freeBadge: "免费试用",
         }
       : {
-          heroLabel: "AI Tool Directory",
           heroTitle: "Find AI tools worth adding to your workflow",
+          heroLabel: "AI Tool Directory",
           heroText:
             "Browse by category, pricing, and use case. The homepage now prioritizes discovery: trending, latest, free-to-try, and useful guides.",
           searchPlaceholder: "Search tools, categories, or use cases",
@@ -140,9 +131,11 @@ export default async function HomePage({ params }: HomePageProps) {
           freeTitle: "Free AI tools",
           freeText: "Start with tools you can try without a big commitment.",
           blogTitle: "Blog and guides",
-          blogText: "Release notes, ecosystem analysis, and deployment lessons that help users choose better.",
+          blogText:
+            "Release notes, ecosystem analysis, and deployment lessons that help users choose better.",
           newsletterTitle: "Track new tools, comparisons, and workflow guides every week",
-          newsletterText: "Use RSS and the blog to follow fresh directory updates instead of landing on platform marketing copy.",
+          newsletterText:
+            "Use RSS and the blog to follow fresh directory updates instead of landing on platform marketing copy.",
           openRss: "Open RSS",
           readBlog: "Read blog",
           categoryCta: "Explore tools",
@@ -328,12 +321,7 @@ export default async function HomePage({ params }: HomePageProps) {
             />
             <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
               {freeTools.map((tool) => (
-                <ToolCompactCard
-                  key={tool.id}
-                  locale={locale}
-                  tool={tool}
-                  pricingLabels={copy}
-                />
+                <ToolCompactCard key={tool.id} locale={locale} tool={tool} pricingLabels={copy} />
               ))}
             </div>
           </div>
