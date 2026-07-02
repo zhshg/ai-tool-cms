@@ -12,7 +12,7 @@ import {
 import { filterByPermission, hasAnyPermission, hasPermission, type AuthUser } from "@/lib/rbac";
 import { navItems, type NavItem } from "@/lib/nav";
 import type { PermissionCode } from "@/lib/permissions";
-import { RolePermissions } from "@/lib/permissions";
+import { normalizePermissionCode, RolePermissions } from "@/lib/permissions";
 import {
   clearAdminTokens,
   getApiBase,
@@ -55,15 +55,16 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 function normalizeUser(profile: AuthProfile): AuthUser {
   const fallbackRole = profile.roles[0] ?? "admin";
   const fallbackPermissions = RolePermissions[fallbackRole] ?? RolePermissions.admin;
+  const normalizedPermissions = profile.permissions
+    .map((permission) => normalizePermissionCode(permission))
+    .filter((permission): permission is PermissionCode => Boolean(permission));
 
   return {
     id: profile.id,
     name: profile.displayName || profile.email,
     email: profile.email,
     roles: profile.roles.length ? profile.roles : [fallbackRole],
-    permissions: profile.permissions.length
-      ? (profile.permissions as PermissionCode[])
-      : fallbackPermissions,
+    permissions: normalizedPermissions.length ? normalizedPermissions : fallbackPermissions,
   };
 }
 

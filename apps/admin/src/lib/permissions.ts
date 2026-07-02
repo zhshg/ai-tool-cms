@@ -30,6 +30,19 @@ export const Permission = {
 
 export type PermissionCode = (typeof Permission)[keyof typeof Permission];
 
+const permissionAliases: Record<string, PermissionCode> = {
+  "tool:read": Permission.ToolsRead,
+  "category:read": Permission.CategoriesRead,
+};
+
+export function normalizePermissionCode(permission: string): PermissionCode | null {
+  if (Object.values(Permission).includes(permission as PermissionCode)) {
+    return permission as PermissionCode;
+  }
+
+  return permissionAliases[permission] ?? null;
+}
+
 export const RolePermissions: Record<string, PermissionCode[]> = {
   admin: [
     Permission.DashboardView,
