@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { BadRequestException, Injectable } from "@nestjs/common";
 import {
   buildAtomFeed,
   buildJsonFeed,
@@ -20,10 +20,51 @@ import { isSupportedLocale } from "@ai-tool-cms/i18n";
 import { PromptStatus, ToolStatus } from "@ai-tool-cms/database";
 import { PrismaService } from "../prisma/prisma.service";
 import { activeOnly } from "../common/prisma.util";
+import type {
+  SeoGeneralConfigDto,
+  SeoProviderConfigDto,
+  UpdateSeoIntegrationsDto,
+} from "./dto";
+
+type IntegrationProvider = "googleSearchConsole" | "bingWebmaster";
+
+type SeoProviderConfig = {
+  enabled: boolean;
+  siteUrl: string;
+  propertyId: string;
+  propertyName: string;
+  oauthAccessToken?: string;
+  oauthRefreshToken?: string;
+  apiKey?: string;
+  verificationStatus: string;
+  connectedAt?: string;
+  disconnectedAt?: string;
+  disconnectReason?: string;
+  lastRefreshedAt?: string;
+};
+
+type SeoGeneralConfig = {
+  robots: string[];
+  sitemapEnabled: boolean;
+  canonicalEnabled: boolean;
+  openGraphEnabled: boolean;
+  twitterEnabled: boolean;
+  indexNowEnabled: boolean;
+  indexNowKey?: string;
+  analyticsProvider: string;
+  ga4MeasurementId?: string;
+  ga4ApiSecret?: string;
+};
 
 @Injectable()
 export class SeoService {
   constructor(private readonly prisma: PrismaService) {}
+
+  private readonly integrationSettingKeys = {
+    googleSearchConsole: "seo.googleSearchConsole",
+    bingWebmaster: "seo.bingWebmaster",
+    general: "seo.general",
+  } as const;
 
   private readonly collectionPaths = [
     "best-ai-tools",
@@ -174,21 +215,134 @@ export class SeoService {
   }
 
   async getSearchConsole() {
-    const googleConfigured = Boolean(process.env.GOOGLE_SEARCH_CONSOLE_CREDENTIALS);
-    const bingConfigured = Boolean(process.env.BING_WEBMASTER_API_KEY);
+    const integrations = await this.getIntegrations();
 
     return {
-      google: googleConfigured
-        ? await this.fetchGoogleSearchConsole()
-        : {
-            provider: "google",
-            configured: false,
-            message: "Set GOOGLE_SEARCH_CONSOLE_CREDENTIALS",
-          },
-      bing: bingConfigured
-        ? await this.fetchBingWebmaster()
-        : { provider: "bing", configured: false, message: "Set BING_WEBMASTER_API_KEY" },
+      google: integrations.providers.googleSearchConsole.live,
+      bing: integrations.providers.bingWebmaster.live,
     };
+  }
+
+  async getIntegrations() {
+    const [googleConfig, bingConfig, generalConfig] = await Promise.all([
+      this.readSetting<SeoProviderConfig>(
+        this.integrationSettingKeys.googleSearchConsole,
+        this.getDefaultProviderConfig(),
+      ),
+      this.readSetting<SeoProviderConfig>(
+        this.integrationSettingKeys.bingWebmaster,
+        this.getDefaultProviderConfig(),
+      ),
+      this.readSetting<SeoGeneralConfig>(this.integrationSettingKeys.general, this.getDefaultGeneralConfig()),
+    ]);
+
+    const [googleLive, bingLive] = await Promise.all([
+      this.fetchGoogleSearchConsole(googleConfig),
+      this.fetchBingWebmaster(bingConfig),
+    ]);
+
+    return {
+      providers: {
+        googleSearchConsole: {
+          config: this.maskProviderConfig(googleConfig),
+          live: googleLive,
+        },
+        bingWebmaster: {
+          config: this.maskProviderConfig(bingConfig),
+          live: bingLive,
+        },
+      },
+      general: this.maskGeneralConfig(generalConfig),
+    };
+  }
+
+  async updateIntegrations(dto: UpdateSeoIntegrationsDto, actorId: string) {
+    const current = await this.getIntegrations();
+    const nextGoogle = this.mergeProviderConfig(
+      current.providers.googleSearchConsole.config,
+      dto.googleSearchConsole,
+    );
+    const nextBing = this.mergeProviderConfig(current.providers.bingWebmaster.config, dto.bingWebmaster);
+    const nextGeneral = this.mergeGeneralConfig(current.general, dto.general);
+
+    await Promise.all([
+      this.upsertSetting(
+        this.integrationSettingKeys.googleSearchConsole,
+        this.restoreSecrets(nextGoogle, current.providers.googleSearchConsole.config),
+        "seo",
+        "Google Search Console integration configuration",
+        actorId,
+      ),
+      this.upsertSetting(
+        this.integrationSettingKeys.bingWebmaster,
+        this.restoreSecrets(nextBing, current.providers.bingWebmaster.config),
+        "seo",
+        "Bing Webmaster integration configuration",
+        actorId,
+      ),
+      this.upsertSetting(
+        this.integrationSettingKeys.general,
+        this.restoreGeneralSecrets(nextGeneral, current.general),
+        "seo",
+        "General SEO integration configuration",
+        actorId,
+      ),
+    ]);
+
+    return this.getIntegrations();
+  }
+
+  async disconnectIntegration(provider: string, actorId: string) {
+    const normalized = this.assertProvider(provider);
+    const config = await this.readSetting<SeoProviderConfig>(
+      this.integrationSettingKeys[normalized],
+      this.getDefaultProviderConfig(),
+    );
+    const next: SeoProviderConfig = {
+      ...config,
+      enabled: false,
+      oauthAccessToken: undefined,
+      oauthRefreshToken: undefined,
+      apiKey: undefined,
+      verificationStatus: "disconnected",
+      disconnectedAt: new Date().toISOString(),
+    };
+
+    await this.upsertSetting(
+      this.integrationSettingKeys[normalized],
+      next,
+      "seo",
+      `${normalized} disconnected`,
+      actorId,
+    );
+
+    return this.getIntegrations();
+  }
+
+  async refreshIntegration(provider: string, actorId: string) {
+    const normalized = this.assertProvider(provider);
+    const config = await this.readSetting<SeoProviderConfig>(
+      this.integrationSettingKeys[normalized],
+      this.getDefaultProviderConfig(),
+    );
+    const next: SeoProviderConfig = {
+      ...config,
+      lastRefreshedAt: new Date().toISOString(),
+      verificationStatus:
+        config.enabled && (config.oauthAccessToken || config.apiKey || config.siteUrl)
+          ? "verified"
+          : config.verificationStatus || "pending",
+    };
+
+    await this.upsertSetting(
+      this.integrationSettingKeys[normalized],
+      next,
+      "seo",
+      `${normalized} refreshed`,
+      actorId,
+    );
+
+    return this.getIntegrations();
   }
 
   private async loadLocaleSitemapEntries(locale: string): Promise<SitemapEntry[]> {
@@ -339,33 +493,247 @@ export class SeoService {
     }
   }
 
-  private async fetchGoogleSearchConsole() {
+  private async fetchGoogleSearchConsole(config: SeoProviderConfig) {
+    if (!config.enabled) {
+      return {
+        provider: "google",
+        configured: false,
+        verificationStatus: config.verificationStatus || "disconnected",
+        propertyId: config.propertyId || null,
+        propertyName: config.propertyName || null,
+        siteUrl: config.siteUrl || null,
+        clicks: 0,
+        impressions: 0,
+        ctr: 0,
+        averagePosition: 0,
+        indexedPages: 0,
+        coverage: 0,
+        sitemaps: 0,
+        lastSyncedAt: config.lastRefreshedAt ?? null,
+      };
+    }
+
     return {
       provider: "google",
       configured: true,
-      indexedPages: 0,
+      verificationStatus: config.verificationStatus || "verified",
+      propertyId: config.propertyId || null,
+      propertyName: config.propertyName || null,
+      siteUrl: config.siteUrl || null,
       clicks: 0,
       impressions: 0,
+      ctr: 0,
       averagePosition: 0,
-      errors: 0,
-      sitemapStatus: "unknown",
-      lastSyncedAt: new Date().toISOString(),
-      note: "Wire Google Search Console API client with service account credentials",
+      indexedPages: 0,
+      coverage: 0,
+      sitemaps: 0,
+      lastSyncedAt: config.lastRefreshedAt ?? config.connectedAt ?? new Date().toISOString(),
+      note: config.oauthAccessToken
+        ? "OAuth credentials saved. Connect the Google Search Console data source to replace placeholder metrics."
+        : "Save OAuth tokens and property metadata to enable live Google Search Console sync.",
     };
   }
 
-  private async fetchBingWebmaster() {
+  private async fetchBingWebmaster(config: SeoProviderConfig) {
+    if (!config.enabled) {
+      return {
+        provider: "bing",
+        configured: false,
+        verificationStatus: config.verificationStatus || "disconnected",
+        siteUrl: config.siteUrl || null,
+        clicks: 0,
+        impressions: 0,
+        keywords: 0,
+        indexStatus: 0,
+        crawlErrors: 0,
+        lastSyncedAt: config.lastRefreshedAt ?? null,
+      };
+    }
+
     return {
       provider: "bing",
       configured: true,
-      indexedPages: 0,
+      verificationStatus: config.verificationStatus || "verified",
+      siteUrl: config.siteUrl || null,
       clicks: 0,
       impressions: 0,
-      averagePosition: 0,
-      errors: 0,
-      sitemapStatus: "unknown",
-      lastSyncedAt: new Date().toISOString(),
-      note: "Wire Bing Webmaster API with BING_WEBMASTER_API_KEY",
+      keywords: 0,
+      indexStatus: 0,
+      crawlErrors: 0,
+      lastSyncedAt: config.lastRefreshedAt ?? config.connectedAt ?? new Date().toISOString(),
+      note: config.apiKey
+        ? "API key saved. Connect the Bing Webmaster source to replace placeholder metrics."
+        : "Save the Bing Webmaster API key to enable live Bing sync.",
     };
+  }
+
+  private getDefaultProviderConfig(): SeoProviderConfig {
+    return {
+      enabled: false,
+      siteUrl: "",
+      propertyId: "",
+      propertyName: "",
+      verificationStatus: "not_connected",
+    };
+  }
+
+  private getDefaultGeneralConfig(): SeoGeneralConfig {
+    return {
+      robots: ["User-agent: *", "Allow: /", "Sitemap: /sitemap.xml"],
+      sitemapEnabled: true,
+      canonicalEnabled: true,
+      openGraphEnabled: true,
+      twitterEnabled: true,
+      indexNowEnabled: false,
+      analyticsProvider: "ga4",
+    };
+  }
+
+  private maskProviderConfig(config: SeoProviderConfig) {
+    return {
+      ...config,
+      oauthAccessToken: this.maskSecret(config.oauthAccessToken),
+      oauthRefreshToken: this.maskSecret(config.oauthRefreshToken),
+      apiKey: this.maskSecret(config.apiKey),
+    };
+  }
+
+  private maskGeneralConfig(config: SeoGeneralConfig) {
+    return {
+      ...config,
+      indexNowKey: this.maskSecret(config.indexNowKey),
+      ga4ApiSecret: this.maskSecret(config.ga4ApiSecret),
+    };
+  }
+
+  private maskSecret(value?: string) {
+    if (!value) return "";
+    if (value.length <= 8) return "********";
+    return `${value.slice(0, 4)}********${value.slice(-4)}`;
+  }
+
+  private restoreSecrets(next: SeoProviderConfig, current: SeoProviderConfig): SeoProviderConfig {
+    return {
+      ...next,
+      oauthAccessToken: this.unmaskSecret(next.oauthAccessToken, current.oauthAccessToken),
+      oauthRefreshToken: this.unmaskSecret(next.oauthRefreshToken, current.oauthRefreshToken),
+      apiKey: this.unmaskSecret(next.apiKey, current.apiKey),
+    };
+  }
+
+  private restoreGeneralSecrets(next: SeoGeneralConfig, current: SeoGeneralConfig): SeoGeneralConfig {
+    return {
+      ...next,
+      indexNowKey: this.unmaskSecret(next.indexNowKey, current.indexNowKey),
+      ga4ApiSecret: this.unmaskSecret(next.ga4ApiSecret, current.ga4ApiSecret),
+    };
+  }
+
+  private unmaskSecret(next?: string, current?: string) {
+    if (!next) return undefined;
+    if (next.includes("********")) {
+      return current;
+    }
+    return next;
+  }
+
+  private mergeProviderConfig(
+    current: ReturnType<SeoService["maskProviderConfig"]>,
+    patch?: SeoProviderConfigDto,
+  ): SeoProviderConfig {
+    if (!patch) {
+      return current as SeoProviderConfig;
+    }
+
+    return {
+      enabled: patch.enabled ?? current.enabled ?? false,
+      siteUrl: patch.siteUrl ?? current.siteUrl ?? "",
+      propertyId: patch.propertyId ?? current.propertyId ?? "",
+      propertyName: patch.propertyName ?? current.propertyName ?? "",
+      oauthAccessToken: patch.oauthAccessToken ?? current.oauthAccessToken ?? "",
+      oauthRefreshToken: patch.oauthRefreshToken ?? current.oauthRefreshToken ?? "",
+      apiKey: patch.apiKey ?? current.apiKey ?? "",
+      verificationStatus: patch.verificationStatus ?? current.verificationStatus ?? "pending",
+      connectedAt: current.connectedAt ?? new Date().toISOString(),
+      disconnectedAt: current.disconnectedAt,
+      disconnectReason: patch.disconnectReason ?? current.disconnectReason,
+      lastRefreshedAt: current.lastRefreshedAt,
+    };
+  }
+
+  private mergeGeneralConfig(
+    current: ReturnType<SeoService["maskGeneralConfig"]>,
+    patch?: SeoGeneralConfigDto,
+  ): SeoGeneralConfig {
+    if (!patch) {
+      return current as SeoGeneralConfig;
+    }
+
+    return {
+      robots: patch.robots ?? current.robots ?? [],
+      sitemapEnabled: patch.sitemapEnabled ?? current.sitemapEnabled ?? true,
+      canonicalEnabled: patch.canonicalEnabled ?? current.canonicalEnabled ?? true,
+      openGraphEnabled: patch.openGraphEnabled ?? current.openGraphEnabled ?? true,
+      twitterEnabled: patch.twitterEnabled ?? current.twitterEnabled ?? true,
+      indexNowEnabled: patch.indexNowEnabled ?? current.indexNowEnabled ?? false,
+      indexNowKey: patch.indexNowKey ?? current.indexNowKey ?? "",
+      analyticsProvider: patch.analyticsProvider ?? current.analyticsProvider ?? "ga4",
+      ga4MeasurementId: patch.ga4MeasurementId ?? current.ga4MeasurementId ?? "",
+      ga4ApiSecret: patch.ga4ApiSecret ?? current.ga4ApiSecret ?? "",
+    };
+  }
+
+  private assertProvider(provider: string): IntegrationProvider {
+    if (provider === "google" || provider === "google-search-console") {
+      return "googleSearchConsole";
+    }
+
+    if (provider === "bing" || provider === "bing-webmaster") {
+      return "bingWebmaster";
+    }
+
+    throw new BadRequestException(`Unsupported SEO provider: ${provider}`);
+  }
+
+  private async readSetting<T>(key: string, fallback: T): Promise<T> {
+    const setting = await this.prisma.client.setting.findFirst({
+      where: { key, ...activeOnly },
+      select: { value: true },
+    });
+
+    if (!setting) {
+      return fallback;
+    }
+
+    return { ...fallback, ...(setting.value as Record<string, unknown>) } as T;
+  }
+
+  private async upsertSetting(
+    key: string,
+    value: object,
+    group: string,
+    description: string,
+    actorId: string,
+  ) {
+    return this.prisma.client.setting.upsert({
+      where: { key },
+      update: {
+        value,
+        group,
+        description,
+        isPublic: false,
+        updatedById: actorId,
+        deletedAt: null,
+      },
+      create: {
+        key,
+        value,
+        group,
+        description,
+        isPublic: false,
+        createdById: actorId,
+        updatedById: actorId,
+      },
+    });
   }
 }

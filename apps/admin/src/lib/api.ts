@@ -182,6 +182,69 @@ export type SearchConsoleResponse = {
   bing: Record<string, unknown>;
 };
 
+export type SeoProviderConfig = {
+  enabled: boolean;
+  siteUrl: string;
+  propertyId: string;
+  propertyName: string;
+  oauthAccessToken?: string;
+  oauthRefreshToken?: string;
+  apiKey?: string;
+  verificationStatus: string;
+  connectedAt?: string;
+  disconnectedAt?: string;
+  disconnectReason?: string;
+  lastRefreshedAt?: string;
+};
+
+export type SeoGeneralConfig = {
+  robots: string[];
+  sitemapEnabled: boolean;
+  canonicalEnabled: boolean;
+  openGraphEnabled: boolean;
+  twitterEnabled: boolean;
+  indexNowEnabled: boolean;
+  indexNowKey?: string;
+  analyticsProvider: string;
+  ga4MeasurementId?: string;
+  ga4ApiSecret?: string;
+};
+
+export type SeoIntegrationSnapshot = {
+  provider: string;
+  configured: boolean;
+  verificationStatus?: string | null;
+  propertyId?: string | null;
+  propertyName?: string | null;
+  siteUrl?: string | null;
+  clicks?: number;
+  impressions?: number;
+  ctr?: number;
+  averagePosition?: number;
+  indexedPages?: number;
+  coverage?: number;
+  sitemaps?: number;
+  keywords?: number;
+  indexStatus?: number;
+  crawlErrors?: number;
+  lastSyncedAt?: string | null;
+  note?: string;
+};
+
+export type SeoIntegrationsResponse = {
+  providers: {
+    googleSearchConsole: {
+      config: SeoProviderConfig;
+      live: SeoIntegrationSnapshot;
+    };
+    bingWebmaster: {
+      config: SeoProviderConfig;
+      live: SeoIntegrationSnapshot;
+    };
+  };
+  general: SeoGeneralConfig;
+};
+
 export type PaginatedResponse<T> = {
   items: T[];
   total: number;
@@ -303,6 +366,33 @@ export function fetchSeoDashboard() {
 
 export function fetchSearchConsole() {
   return apiFetch<SearchConsoleResponse>("/seo/search-console");
+}
+
+export function fetchSeoIntegrations() {
+  return apiFetch<SeoIntegrationsResponse>("/seo/integrations");
+}
+
+export function updateSeoIntegrations(payload: {
+  googleSearchConsole?: Partial<SeoProviderConfig>;
+  bingWebmaster?: Partial<SeoProviderConfig>;
+  general?: Partial<SeoGeneralConfig>;
+}) {
+  return apiFetch<SeoIntegrationsResponse>("/seo/integrations", {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function disconnectSeoIntegration(provider: "google" | "bing") {
+  return apiFetch<SeoIntegrationsResponse>(`/seo/integrations/${provider}/disconnect`, {
+    method: "POST",
+  });
+}
+
+export function refreshSeoIntegration(provider: "google" | "bing") {
+  return apiFetch<SeoIntegrationsResponse>(`/seo/integrations/${provider}/refresh`, {
+    method: "POST",
+  });
 }
 
 export function fetchTools() {

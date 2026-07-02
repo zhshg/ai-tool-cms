@@ -1,9 +1,10 @@
-import { Controller, Get, Header, Param, Post, Res } from "@nestjs/common";
+import { Body, Controller, Get, Header, Param, Post, Put, Res } from "@nestjs/common";
 import type { Response } from "express";
 import { ApiOperation, ApiTags } from "@nestjs/swagger";
 import { PermissionCode } from "@ai-tool-cms/auth";
 import type { SitemapChunkId } from "@ai-tool-cms/seo";
 import { CurrentUser, Public, RequirePermission, type RequestUser } from "../common/decorators";
+import { UpdateSeoIntegrationsDto } from "./dto";
 import { SeoService } from "./seo.service";
 
 @ApiTags("seo")
@@ -23,6 +24,34 @@ export class SeoController {
   @ApiOperation({ summary: "Google/Bing search console metrics (Commit 049)" })
   searchConsole() {
     return this.seoService.getSearchConsole();
+  }
+
+  @Get("integrations")
+  @RequirePermission(PermissionCode.SeoRead)
+  @ApiOperation({ summary: "SEO integrations configuration center" })
+  integrations() {
+    return this.seoService.getIntegrations();
+  }
+
+  @Put("integrations")
+  @RequirePermission(PermissionCode.SeoManage)
+  @ApiOperation({ summary: "Persist SEO integrations configuration" })
+  updateIntegrations(@Body() dto: UpdateSeoIntegrationsDto, @CurrentUser() user: RequestUser) {
+    return this.seoService.updateIntegrations(dto, user.id);
+  }
+
+  @Post("integrations/:provider/disconnect")
+  @RequirePermission(PermissionCode.SeoManage)
+  @ApiOperation({ summary: "Disconnect a webmaster integration" })
+  disconnectIntegration(@Param("provider") provider: string, @CurrentUser() user: RequestUser) {
+    return this.seoService.disconnectIntegration(provider, user.id);
+  }
+
+  @Post("integrations/:provider/refresh")
+  @RequirePermission(PermissionCode.SeoManage)
+  @ApiOperation({ summary: "Refresh a webmaster integration snapshot" })
+  refreshIntegration(@Param("provider") provider: string, @CurrentUser() user: RequestUser) {
+    return this.seoService.refreshIntegration(provider, user.id);
   }
 
   @Public()
