@@ -46,7 +46,7 @@ export type ToolPageData = {
   pros: string[];
   cons: string[];
   useCases: string[];
-  categories: Array<{ slug: string; name: string; isPrimary: boolean }>;
+  categories: Array<{ slug: string; name: string; iconUrl: string | null; isPrimary: boolean }>;
   tags: Array<{ slug: string; name: string }>;
   pricingPlans: Array<{
     name: string;
@@ -69,6 +69,7 @@ export type ToolPageData = {
     name: string;
     summary: string | null;
     logoUrl: string | null;
+    categoryIconUrl: string | null;
     pricingModel: PricingModel;
   }>;
   faqs: Array<{ question: string; answer: string }>;
@@ -121,6 +122,7 @@ export async function getToolPage(
   const categories = tool.categories.map((item) => ({
     slug: item.category.slug,
     name: item.category.name,
+    iconUrl: item.category.iconUrl,
     isPrimary: item.isPrimary,
   }));
   const tags = tool.tags.map((item) => ({
@@ -149,6 +151,18 @@ export async function getToolPage(
       name: true,
       summary: true,
       logoUrl: true,
+      categories: {
+        where: activeOnly,
+        orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }],
+        take: 1,
+        select: {
+          category: {
+            select: {
+              iconUrl: true,
+            },
+          },
+        },
+      },
       pricingModel: true,
     },
   });
@@ -249,7 +263,14 @@ export async function getToolPage(
           Boolean(screenshot.imageUrl),
         ),
       alternatives: alternativeLinks,
-      similarTools,
+      similarTools: similarTools.map((item) => ({
+        slug: item.slug,
+        name: item.name,
+        summary: item.summary,
+        logoUrl: item.logoUrl,
+        categoryIconUrl: item.categories[0]?.category.iconUrl ?? null,
+        pricingModel: item.pricingModel,
+      })),
       faqs,
       internalLinks: tool.internalLinks.map((link: ToolInternalLinkRow) => ({
         anchor: link.anchorText,

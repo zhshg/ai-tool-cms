@@ -41,7 +41,7 @@ export type HomePageTool = CatalogTool & {
   website: string;
   pricingModel: PricingModel;
   publishedAt: string | null;
-  category: { slug: string; name: string } | null;
+  category: { slug: string; name: string; iconUrl: string | null } | null;
   tagSlugs: string[];
 };
 
@@ -78,7 +78,7 @@ export type ToolsDirectoryTool = CatalogTool & {
   logoUrl: string | null;
   pricingModel: PricingModel;
   publishedAt: string | null;
-  primaryCategory: { slug: string; name: string } | null;
+  primaryCategory: { slug: string; name: string; iconUrl: string | null } | null;
   categories: Array<{ slug: string; name: string }>;
   tags: Array<{ slug: string; name: string }>;
 };
@@ -134,6 +134,7 @@ export type CategoryDetailTool = {
   summary: string | null;
   website: string;
   logoUrl: string | null;
+  categoryIconUrl: string | null;
   pricingModel: PricingModel;
   pricingLabel: string;
   rating: number | null;
@@ -286,6 +287,7 @@ async function fetchPopularHomePageTools(limit = 8): Promise<HomePageTool[]> {
             select: {
               slug: true,
               name: true,
+              iconUrl: true,
             },
           },
         },
@@ -445,6 +447,7 @@ async function fetchCategoryDetailTools(
                 select: {
                   slug: true,
                   name: true,
+                  iconUrl: true,
                 },
               },
             },
@@ -472,6 +475,7 @@ async function fetchCategoryDetailTools(
       summary: link.tool.summary,
       website: link.tool.website,
       logoUrl: link.tool.logoUrl,
+      categoryIconUrl: link.tool.categories[0]?.category.iconUrl ?? null,
       pricingModel: link.tool.pricingModel,
       pricingLabel: formatPricingLabel(link.tool.pricingModel),
       rating: averageRating,
@@ -544,6 +548,7 @@ async function fetchHomePageTools(input: {
             select: {
               slug: true,
               name: true,
+              iconUrl: true,
             },
           },
         },
@@ -700,7 +705,7 @@ export async function getToolsDirectory(input: {
           orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }],
           select: {
             isPrimary: true,
-            category: { select: { slug: true, name: true } },
+            category: { select: { slug: true, name: true, iconUrl: true } },
           },
         },
         tags: {
@@ -1349,6 +1354,7 @@ export async function getCategoryLanding(
         summary: tool.summary,
         website: tool.website,
         logoUrl: null,
+        categoryIconUrl: tool.category?.iconUrl ?? null,
         pricingModel: tool.pricingModel,
         pricingLabel: formatPricingLabel(tool.pricingModel),
         rating: null,

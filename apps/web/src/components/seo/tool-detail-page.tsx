@@ -1,5 +1,6 @@
 import { ExternalLink } from "lucide-react";
 import Link from "next/link";
+import { ToolLogo } from "@/components/tool/tool-logo";
 import { Button } from "@/components/ui/button";
 import type { ToolPageData } from "@/lib/tool-page";
 import { serializeJsonLd } from "@/lib/seo";
@@ -10,7 +11,8 @@ type ToolDetailPageProps = {
 };
 
 export function ToolDetailPage({ data, locale }: ToolDetailPageProps) {
-  const primaryCategory = data.categories.find((category) => category.isPrimary) ?? data.categories[0];
+  const primaryCategory =
+    data.categories.find((category) => category.isPrimary) ?? data.categories[0];
   const featureItems = data.features.length ? data.features : data.useCases;
 
   return (
@@ -45,7 +47,12 @@ export function ToolDetailPage({ data, locale }: ToolDetailPageProps) {
               </nav>
 
               <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
-                <Logo name={data.name} logoUrl={data.logoUrl} size="lg" />
+                <ToolLogo
+                  name={data.name}
+                  logoUrl={data.logoUrl}
+                  categoryIconUrl={primaryCategory?.iconUrl ?? null}
+                  size="lg"
+                />
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     {primaryCategory ? (
@@ -141,7 +148,9 @@ export function ToolDetailPage({ data, locale }: ToolDetailPageProps) {
                   ))}
                 </div>
               ) : (
-                <EmptyNote text={`No detailed pricing plans are available. Listed model: ${formatPricing(data.pricingModel)}.`} />
+                <EmptyNote
+                  text={`No detailed pricing plans are available. Listed model: ${formatPricing(data.pricingModel)}.`}
+                />
               )}
             </Section>
 
@@ -149,7 +158,10 @@ export function ToolDetailPage({ data, locale }: ToolDetailPageProps) {
               {data.screenshots.length ? (
                 <div className="grid gap-4 md:grid-cols-2">
                   {data.screenshots.map((screenshot) => (
-                    <figure key={`${screenshot.variant}-${screenshot.imageUrl}`} className="rounded-lg border bg-card p-3">
+                    <figure
+                      key={`${screenshot.variant}-${screenshot.imageUrl}`}
+                      className="rounded-lg border bg-card p-3"
+                    >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={screenshot.imageUrl}
@@ -174,7 +186,10 @@ export function ToolDetailPage({ data, locale }: ToolDetailPageProps) {
                 <ul className="grid gap-3 sm:grid-cols-2">
                   {data.alternatives.map((link) => (
                     <li key={`${link.type}-${link.href}`} className="rounded-lg border bg-card p-4">
-                      <Link href={normalizeInternalHref(link.href)} className="font-medium hover:underline">
+                      <Link
+                        href={normalizeInternalHref(link.href)}
+                        className="font-medium hover:underline"
+                      >
                         {link.anchor}
                       </Link>
                     </li>
@@ -247,7 +262,12 @@ export function ToolDetailPage({ data, locale }: ToolDetailPageProps) {
                       href={`/${locale}/tools/${tool.slug}`}
                       className="flex gap-3 rounded-lg border p-3 transition hover:border-primary/40"
                     >
-                      <Logo name={tool.name} logoUrl={tool.logoUrl} size="sm" />
+                      <ToolLogo
+                        name={tool.name}
+                        logoUrl={tool.logoUrl}
+                        categoryIconUrl={tool.categoryIconUrl}
+                        size="sm"
+                      />
                       <span className="min-w-0">
                         <span className="block truncate text-sm font-medium">{tool.name}</span>
                         <span className="mt-1 line-clamp-2 block text-xs text-muted-foreground">
@@ -288,30 +308,6 @@ function Panel({ title, children }: { title: string; children: React.ReactNode }
   );
 }
 
-function Logo({ name, logoUrl, size }: { name: string; logoUrl: string | null; size: "sm" | "lg" }) {
-  const initials = name
-    .split(" ")
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join("")
-    .toUpperCase();
-  const className =
-    size === "lg"
-      ? "flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-background text-xl font-semibold"
-      : "flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted text-xs font-semibold";
-
-  return (
-    <span className={className}>
-      {logoUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={logoUrl} alt={`${name} logo`} className="size-full object-cover" />
-      ) : (
-        <span>{initials || "AI"}</span>
-      )}
-    </span>
-  );
-}
-
 function EmptyNote({ text }: { text: string }) {
   return (
     <div className="rounded-lg border border-dashed p-5 text-sm text-muted-foreground">{text}</div>
@@ -339,5 +335,8 @@ function normalizeInternalHref(href: string) {
 }
 
 function slugify(value: string) {
-  return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
 }

@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
+import { ToolLogo } from "@/components/tool/tool-logo";
 import { Button } from "@/components/ui/button";
 import type {
   CategoryDetailTool,
@@ -349,7 +350,12 @@ function ToolDirectoryCard({
       ].join(" ")}
     >
       <div className="flex items-start gap-4">
-        <LogoAvatar name={tool.name} logoUrl={tool.logoUrl} />
+        <ToolLogo
+          name={tool.name}
+          logoUrl={tool.logoUrl}
+          categoryIconUrl={tool.categoryIconUrl}
+          size="md"
+        />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <Link
@@ -598,26 +604,6 @@ function CategoryAvatar({
         <img src={iconUrl} alt={`${name} icon`} className="size-full object-cover" />
       ) : (
         <span>{name.slice(0, 2).toUpperCase()}</span>
-      )}
-    </div>
-  );
-}
-
-function LogoAvatar({ name, logoUrl }: { name: string; logoUrl?: string | null }) {
-  const initials = name
-    .split(" ")
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join("")
-    .toUpperCase();
-
-  return (
-    <div className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 text-sm font-semibold text-slate-700">
-      {logoUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={logoUrl} alt={`${name} logo`} className="size-full object-cover" />
-      ) : (
-        <span>{initials || "AI"}</span>
       )}
     </div>
   );

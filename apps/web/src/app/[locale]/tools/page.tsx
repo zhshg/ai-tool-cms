@@ -2,6 +2,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { setRequestLocale } from "next-intl/server";
+import { ToolLogo } from "@/components/tool/tool-logo";
 import { Button } from "@/components/ui/button";
 import { getToolsDirectory, type ToolsDirectoryTool } from "@/lib/catalog";
 import { serializeJsonLd } from "@/lib/seo";
@@ -230,24 +231,16 @@ export default async function ToolsPage({ params, searchParams }: ToolsPageProps
 
 function ToolCard({ locale, tool }: { locale: string; tool: ToolsDirectoryTool }) {
   const category = tool.primaryCategory;
-  const initials = tool.name
-    .split(" ")
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join("")
-    .toUpperCase();
 
   return (
     <article className="flex h-full flex-col rounded-lg border bg-card p-5 shadow-sm transition hover:border-primary/40">
       <div className="flex items-start gap-3">
-        <div className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted text-sm font-semibold">
-          {tool.logoUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={tool.logoUrl} alt={`${tool.name} logo`} className="size-full object-cover" />
-          ) : (
-            <span>{initials || "AI"}</span>
-          )}
-        </div>
+        <ToolLogo
+          name={tool.name}
+          logoUrl={tool.logoUrl}
+          categoryIconUrl={category?.iconUrl ?? null}
+          size="md"
+        />
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-3">
             <h2 className="text-lg font-semibold leading-6">

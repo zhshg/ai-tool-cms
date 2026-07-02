@@ -604,3 +604,15 @@ SEO 字段必须唯一、清晰、不过度堆砌关键词。
 - 未修改数据库 schema
 - 未修改 API contract
 - 未导入生产数据
+
+## Logo Guidance
+
+- logo is a recommended import field, not a required field.
+- Import records without logo should still pass validation if all required fields are valid.
+- Preferred source is an official product logo or another legally reusable brand asset URL.
+- Frontend rendering must support a fallback chain:
+  - Tool.logo
+  - generated avatar
+  - category icon
+  - default AI tool icon
+- Importers must not hard-fail on missing logo values.
