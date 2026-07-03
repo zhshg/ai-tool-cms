@@ -362,17 +362,25 @@ export type UsersSummary = {
 };
 
 export type DashboardStatsResponse = {
-  tools: {
-    total: number;
-    published: number;
-    draft: number;
-  };
-  categories: {
-    total: number;
-  };
-  users: {
-    total: number;
-    active: number;
+  totalTools: number;
+  publishedTools: number;
+  draftTools: number;
+  categories: number;
+  tags: number;
+  users: number;
+  activeUsers: number;
+  pendingAiReview: number;
+  indexedTools: number;
+  crawlerJobs: number;
+  workerQueue: number;
+  schedulerJobs: number;
+  searchIndex: number;
+  lastCrawl: string | null;
+  systemHealth: {
+    status: string;
+    database: boolean;
+    redis: boolean;
+    meilisearch: boolean;
   };
 };
 
@@ -618,24 +626,38 @@ export function fetchUsersSummary() {
 }
 
 export async function fetchDashboardStats(): Promise<DashboardStatsResponse> {
-  const [tools, categories, users] = await Promise.all([
-    fetchTools(),
-    fetchCategories(),
-    fetchUsersSummary(),
+  const [stats, users] = await Promise.all([
+    apiFetch<DashboardStatsResponse>("/operations/dashboard"),
+    fetchUsersSummary().catch(() => ({
+      total: 0,
+      active: 0,
+      inactive: 0,
+      suspended: 0,
+      roles: 0,
+    })),
   ]);
 
   return {
-    tools: {
-      total: tools.total ?? 0,
-      published: tools.items.filter((tool) => tool.status === "PUBLISHED").length,
-      draft: tools.items.filter((tool) => tool.status === "DRAFT").length,
-    },
-    categories: {
-      total: categories.total ?? 0,
-    },
-    users: {
-      total: users.total ?? 0,
-      active: users.active ?? 0,
+    ...stats,
+    users: stats.users ?? users.total ?? 0,
+    activeUsers: users.active ?? 0,
+    totalTools: stats.totalTools ?? 0,
+    publishedTools: stats.publishedTools ?? 0,
+    draftTools: stats.draftTools ?? 0,
+    categories: stats.categories ?? 0,
+    tags: stats.tags ?? 0,
+    pendingAiReview: stats.pendingAiReview ?? 0,
+    indexedTools: stats.indexedTools ?? 0,
+    crawlerJobs: stats.crawlerJobs ?? 0,
+    workerQueue: stats.workerQueue ?? 0,
+    schedulerJobs: stats.schedulerJobs ?? 0,
+    searchIndex: stats.searchIndex ?? 0,
+    lastCrawl: stats.lastCrawl ?? null,
+    systemHealth: stats.systemHealth ?? {
+      status: "unknown",
+      database: false,
+      redis: false,
+      meilisearch: false,
     },
   };
 }

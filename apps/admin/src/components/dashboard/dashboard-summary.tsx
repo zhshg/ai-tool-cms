@@ -1,42 +1,41 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { FolderTree, Users, Wrench } from "lucide-react";
+import {
+  Activity,
+  Bot,
+  FolderTree,
+  HardDriveDownload,
+  Search,
+  Settings2,
+  Users,
+  Wrench,
+} from "lucide-react";
 import { usePermissions } from "@/components/rbac/auth-provider";
 import { fetchDashboardStats, type ApiError, type DashboardStatsResponse } from "@/lib/api";
 
 const stats = [
-  {
-    key: "toolsTotal",
-    label: "Tools",
-    icon: Wrench,
-    visible: (p: ReturnType<typeof usePermissions>) => p.canReadTools,
-  },
-  {
-    key: "categoriesTotal",
-    label: "Categories",
-    icon: FolderTree,
-    visible: (p: ReturnType<typeof usePermissions>) => p.canReadCategories,
-  },
-  {
-    key: "usersTotal",
-    label: "Users",
-    icon: Users,
-    visible: (p: ReturnType<typeof usePermissions>) => p.canManageUsers,
-  },
+  { key: "totalTools", label: "Total Tools", icon: Wrench },
+  { key: "publishedTools", label: "Published Tools", icon: Wrench },
+  { key: "draftTools", label: "Draft Tools", icon: Wrench },
+  { key: "categories", label: "Categories", icon: FolderTree },
+  { key: "users", label: "Total Users", icon: Users },
+  { key: "activeUsers", label: "Active Users", icon: Users },
+  { key: "pendingAiReview", label: "Pending AI Reviews", icon: Bot },
+  { key: "crawlerJobs", label: "Crawler Jobs", icon: Activity },
+  { key: "workerQueue", label: "Worker Queue", icon: HardDriveDownload },
 ] as const;
 
-function getStatValue(statsData: DashboardStatsResponse | null, key: (typeof stats)[number]["key"]) {
+function getStatValue(
+  statsData: DashboardStatsResponse | null,
+  key: (typeof stats)[number]["key"],
+) {
   if (!statsData) return "0";
-  if (key === "toolsTotal") return String(statsData.tools.total ?? 0);
-  if (key === "categoriesTotal") return String(statsData.categories.total ?? 0);
-  return String(statsData.users.total ?? 0);
+  return String(statsData[key] ?? 0);
 }
 
 export function DashboardSummary() {
-  const permissions = usePermissions();
-  const visibleStats = stats.filter((stat) => stat.visible(permissions));
-  const user = permissions.user;
+  const { user } = usePermissions();
   const [statsData, setStatsData] = useState<DashboardStatsResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -51,8 +50,8 @@ export function DashboardSummary() {
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {visibleStats.map((stat) => {
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {stats.map((stat) => {
           const Icon = stat.icon;
           return (
             <div
@@ -64,14 +63,15 @@ export function DashboardSummary() {
                 <Icon className="h-4 w-4 text-muted-foreground" />
               </div>
               <p className="mt-3 text-3xl font-semibold">{getStatValue(statsData, stat.key)}</p>
-              {stat.key === "toolsTotal" ? (
+              {stat.key === "crawlerJobs" ? (
                 <p className="mt-2 text-xs text-muted-foreground">
-                  Published {statsData?.tools.published ?? 0} · Draft {statsData?.tools.draft ?? 0}
+                  Last crawl{" "}
+                  {statsData?.lastCrawl ? new Date(statsData.lastCrawl).toLocaleString() : "0"}
                 </p>
               ) : null}
-              {stat.key === "usersTotal" ? (
+              {stat.key === "workerQueue" ? (
                 <p className="mt-2 text-xs text-muted-foreground">
-                  Active {statsData?.users.active ?? 0}
+                  Scheduler jobs {statsData?.schedulerJobs ?? 0}
                 </p>
               ) : null}
             </div>
@@ -84,6 +84,36 @@ export function DashboardSummary() {
           {error}
         </div>
       ) : null}
+
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <div className="rounded-lg border bg-card p-6 text-card-foreground shadow-sm">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium text-muted-foreground">Indexed Tools</p>
+            <Search className="h-4 w-4 text-muted-foreground" />
+          </div>
+          <p className="mt-3 text-3xl font-semibold">{statsData?.indexedTools ?? 0}</p>
+        </div>
+
+        <div className="rounded-lg border bg-card p-6 text-card-foreground shadow-sm">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium text-muted-foreground">Search Index</p>
+            <HardDriveDownload className="h-4 w-4 text-muted-foreground" />
+          </div>
+          <p className="mt-3 text-3xl font-semibold">{statsData?.searchIndex ?? 0}</p>
+        </div>
+
+        <div className="rounded-lg border bg-card p-6 text-card-foreground shadow-sm">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium text-muted-foreground">System Health</p>
+            <Settings2 className="h-4 w-4 text-muted-foreground" />
+          </div>
+          <p className="mt-3 text-3xl font-semibold">{statsData?.systemHealth?.status ?? "0"}</p>
+          <p className="mt-2 text-xs text-muted-foreground">
+            DB {statsData?.systemHealth?.database ? "OK" : "0"} | Redis{" "}
+            {statsData?.systemHealth?.redis ? "OK" : "0"}
+          </p>
+        </div>
+      </div>
 
       <div className="rounded-lg border bg-card p-6 text-card-foreground shadow-sm">
         <h2 className="text-sm font-medium">RBAC session</h2>
