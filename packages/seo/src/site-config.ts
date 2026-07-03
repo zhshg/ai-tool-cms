@@ -18,13 +18,13 @@ export function getSiteConfig(env: NodeJS.ProcessEnv = process.env): SiteConfig 
   const parsed = safeGetEnv();
   const rawSiteUrl =
     env.NEXT_PUBLIC_SITE_URL ?? env.SITE_URL ?? env.NEXT_PUBLIC_APP_URL ?? env.APP_URL;
-  const siteUrl =
+  const configuredSiteUrl =
     rawSiteUrl ??
     parsed.NEXT_PUBLIC_SITE_URL ??
     parsed.SITE_URL ??
     parsed.NEXT_PUBLIC_APP_URL ??
-    parsed.APP_URL ??
-    "http://localhost";
+    parsed.APP_URL;
+  const siteUrl = resolveSiteUrl(configuredSiteUrl, env.NODE_ENV);
   const locales = parseEnabledLocales(parsed.ENABLED_LOCALES);
   const siteName = normalizePublicSiteName(env.SITE_NAME ?? parsed.SITE_NAME);
 
@@ -54,4 +54,16 @@ function safeGetEnv() {
   } catch {
     return process.env as unknown as ReturnType<typeof getEnv>;
   }
+}
+
+function resolveSiteUrl(siteUrl: string | undefined, nodeEnv: string | undefined) {
+  const value = siteUrl?.trim();
+  if (value) {
+    if (nodeEnv === "production" && /localhost|127\.0\.0\.1/i.test(value)) {
+      return "https://example.com";
+    }
+    return value;
+  }
+
+  return nodeEnv === "production" ? "https://example.com" : "http://localhost";
 }

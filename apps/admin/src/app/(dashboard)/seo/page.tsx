@@ -215,17 +215,17 @@ function IntegrationCard({
           <input
             className="w-full rounded-md border bg-background px-3 py-2"
             value={config.siteUrl}
-            onChange={(event) => onChange({ ...config, enabled: true, siteUrl: event.target.value })}
+            onChange={(event) =>
+              onChange({ ...config, enabled: true, siteUrl: event.target.value })
+            }
           />
         </label>
 
         <label className="space-y-2 text-sm">
-          <span className="font-medium">
-            {provider === "google" ? "Property ID" : "API Key"}
-          </span>
+          <span className="font-medium">{provider === "google" ? "Property ID" : "API Key"}</span>
           <input
             className="w-full rounded-md border bg-background px-3 py-2"
-            value={provider === "google" ? config.propertyId : config.apiKey ?? ""}
+            value={provider === "google" ? config.propertyId : (config.apiKey ?? "")}
             onChange={(event) =>
               onChange(
                 provider === "google"
@@ -336,22 +336,19 @@ export default function SeoDashboardPage() {
     void load();
   }, [load]);
 
-  const googleConfig = integrations?.providers.googleSearchConsole.config ?? createDefaultProviderConfig();
+  const googleConfig =
+    integrations?.providers.googleSearchConsole.config ?? createDefaultProviderConfig();
   const bingConfig = integrations?.providers.bingWebmaster.config ?? createDefaultProviderConfig();
   const generalConfig = integrations?.general ?? createDefaultGeneralConfig();
 
   const googleLive = useMemo(
     () =>
-      normalizeSnapshot(
-        searchConsole?.google,
-        integrations?.providers.googleSearchConsole.live,
-      ),
+      normalizeSnapshot(searchConsole?.google, integrations?.providers.googleSearchConsole.live),
     [integrations?.providers.googleSearchConsole.live, searchConsole?.google],
   );
 
   const bingLive = useMemo(
-    () =>
-      normalizeSnapshot(searchConsole?.bing, integrations?.providers.bingWebmaster.live),
+    () => normalizeSnapshot(searchConsole?.bing, integrations?.providers.bingWebmaster.live),
     [integrations?.providers.bingWebmaster.live, searchConsole?.bing],
   );
 
@@ -384,7 +381,9 @@ export default function SeoDashboardPage() {
     try {
       const next = await refreshSeoIntegration(provider);
       setIntegrations(next);
-      setMessage(`${provider === "google" ? "Google Search Console" : "Bing Webmaster"} refreshed.`);
+      setMessage(
+        `${provider === "google" ? "Google Search Console" : "Bing Webmaster"} refreshed.`,
+      );
     } catch (err) {
       const apiErr = err as ApiError;
       setError(apiErr.message ?? "Failed to refresh integration.");
@@ -467,6 +466,51 @@ export default function SeoDashboardPage() {
         </div>
 
         <div className="mt-6 grid gap-6 lg:grid-cols-2">
+          <div className="rounded-lg border bg-card p-6 shadow-sm lg:col-span-2">
+            <h2 className="text-base font-semibold">Launch Configuration Guide</h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Use this checklist to prepare Google Search Console, Bing Webmaster, and IndexNow for
+              launch without requiring live OAuth in this sprint.
+            </p>
+
+            <div className="mt-5 grid gap-5 xl:grid-cols-3">
+              <div className="rounded-lg border bg-muted/20 p-4">
+                <h3 className="text-sm font-semibold">Google Search Console</h3>
+                <ol className="mt-3 space-y-2 text-sm text-muted-foreground">
+                  <li>1. Set the production `SITE_URL` and `NEXT_PUBLIC_SITE_URL`.</li>
+                  <li>2. Add the exact property URL in Search Console.</li>
+                  <li>3. Verify ownership with DNS or HTML tag verification.</li>
+                  <li>4. Save `Site URL`, `Property ID`, and `Property Name` here.</li>
+                  <li>5. OAuth tokens can be added later when live sync is enabled.</li>
+                </ol>
+              </div>
+
+              <div className="rounded-lg border bg-muted/20 p-4">
+                <h3 className="text-sm font-semibold">Bing Webmaster</h3>
+                <ol className="mt-3 space-y-2 text-sm text-muted-foreground">
+                  <li>1. Add the production site URL in Bing Webmaster Tools.</li>
+                  <li>2. Verify ownership with XML file, meta tag, or DNS.</li>
+                  <li>3. Generate or copy the Bing API key when available.</li>
+                  <li>4. Save `Site URL`, `API Key`, and verification status here.</li>
+                  <li>5. Use Refresh later to validate the saved configuration snapshot.</li>
+                </ol>
+              </div>
+
+              <div className="rounded-lg border bg-muted/20 p-4">
+                <h3 className="text-sm font-semibold">IndexNow</h3>
+                <ol className="mt-3 space-y-2 text-sm text-muted-foreground">
+                  <li>
+                    1. Generate an IndexNow key and host the key file on the production domain.
+                  </li>
+                  <li>2. Enable `IndexNow` in General SEO below.</li>
+                  <li>3. Save the same key into `IndexNow Key`.</li>
+                  <li>4. Keep robots, canonical, OpenGraph, and Twitter toggles enabled.</li>
+                  <li>5. After launch, use sitemap ping plus IndexNow submission for new URLs.</li>
+                </ol>
+              </div>
+            </div>
+          </div>
+
           <IntegrationCard
             title="Google Search Console"
             provider="google"
@@ -671,6 +715,10 @@ export default function SeoDashboardPage() {
               {(dashboard?.sitemapChunks ?? ["tool", "category", "tag", "compare"]).map((chunk) => (
                 <li key={chunk}>/sitemaps/{chunk}.xml</li>
               ))}
+              <li>
+                /sitemaps/en.xml -&gt; locale URLs including homepage, tools, categories,
+                collections, and blog
+              </li>
             </ul>
             <code className="mt-3 block text-xs">POST /v1/seo/sitemap/ping</code>
           </div>
@@ -712,7 +760,9 @@ export default function SeoDashboardPage() {
               </ul>
             ) : (
               <p className="mt-2 text-sm text-muted-foreground">
-                {loading ? "Loading..." : "No issues found or no external data source connected yet."}
+                {loading
+                  ? "Loading..."
+                  : "No issues found or no external data source connected yet."}
               </p>
             )}
 
