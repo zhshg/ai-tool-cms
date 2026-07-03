@@ -217,6 +217,20 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
   return res.json() as Promise<T>;
 }
 
+export async function downloadAnalyticsCsv(period: AnalyticsPeriod = "daily") {
+  const token =
+    typeof window !== "undefined" ? window.localStorage.getItem(ACCESS_TOKEN_KEY) : null;
+  if (!token) {
+    redirectToAdminLogin();
+    throw { status: 401, message: "Missing authentication token." } satisfies ApiError;
+  }
+
+  const response = await fetch(`${getApiBase()}/analytics/export.csv?period=${period}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!response.ok) throw await readApiError(response);
+  return response.text();
+}
 export type SeoDashboardResponse = {
   report: {
     score: number;
@@ -398,6 +412,50 @@ export type UsersSummary = {
   roles: number;
 };
 
+export type AnalyticsPeriod = "daily" | "weekly" | "monthly";
+
+export type AnalyticsOverviewResponse = {
+  period: AnalyticsPeriod;
+  providers: Record<
+    string,
+    {
+      configured: boolean;
+      measurementId?: string | null;
+      host?: string | null;
+      url?: string | null;
+    }
+  >;
+  metrics: {
+    visitors: number;
+    views: number;
+    clicks: number;
+    ctr: number;
+    growth: number;
+    searchQueries: number;
+    publishedTools: number;
+    topTools: number;
+    topCategories: number;
+  };
+  topTools: Array<{
+    id: string;
+    name: string;
+    slug: string;
+    summary?: string | null;
+    clicks: number;
+  }>;
+  topCategories: Array<{ id: string; name: string; slug: string; toolCount: number }>;
+  searchKeywords: Array<{ keyword: string; searches: number; avgLatencyMs: number }>;
+  trends: Array<{
+    label: string;
+    searches: number;
+    clicks: number;
+    views: number;
+    crawlerJobs: number;
+  }>;
+  importStatistics: { importedTools: number; newTools: number; publishedTools: number };
+  crawlerStatistics: { total: number; success: number; failed: number; pending: number };
+  note: string;
+};
 export type DashboardStatsResponse = {
   totalTools: number;
   publishedTools: number;
@@ -775,6 +833,10 @@ export function fetchUsers() {
 
 export function fetchUsersSummary() {
   return apiFetch<UsersSummary>("/users/summary");
+}
+
+export function fetchAnalyticsOverview(period: AnalyticsPeriod = "daily") {
+  return apiFetch<AnalyticsOverviewResponse>(`/analytics/overview?period=${period}`);
 }
 
 export async function fetchDashboardStats(): Promise<DashboardStatsResponse> {
