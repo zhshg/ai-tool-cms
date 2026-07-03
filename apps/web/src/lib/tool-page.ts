@@ -43,6 +43,20 @@ type SerializedScreenshot = {
   height: number;
 };
 
+type SerializedVideo = {
+  title: string;
+  url: string;
+  thumbnailUrl: string | null;
+};
+
+type SerializedReview = {
+  title: string | null;
+  content: string;
+  rating: number;
+  authorName: string | null;
+  createdAt: string;
+};
+
 function buildStableJitter(sourceId: string, candidateId: string) {
   const seed = `${sourceId}:${candidateId}`;
   let hash = 0;
@@ -68,6 +82,10 @@ export type ToolPageData = {
   pros: string[];
   cons: string[];
   useCases: string[];
+  apiAccess: string[];
+  platforms: string[];
+  languages: string[];
+  videos: SerializedVideo[];
   categories: Array<{ slug: string; name: string; iconUrl: string | null; isPrimary: boolean }>;
   tags: Array<{ slug: string; name: string }>;
   pricingPlans: Array<{
@@ -105,6 +123,7 @@ export type ToolPageData = {
     pricingModel: PricingModel;
   }>;
   faqs: Array<{ question: string; answer: string }>;
+  reviews: SerializedReview[];
   internalLinks: ToolPageLink[];
   geoBlocks: ReturnType<typeof buildGeoContentBlocks>;
   jsonLd: Record<string, unknown>[];
@@ -129,6 +148,11 @@ export async function getToolPage(
       },
       toolScreenshots: { orderBy: { capturedAt: "desc" }, take: 6 },
       faqs: { where: activeOnly, orderBy: { sortOrder: "asc" }, take: 10 },
+      reviews: {
+        where: { status: ReviewStatus.APPROVED, ...activeOnly },
+        orderBy: { createdAt: "desc" },
+        take: 6,
+      },
       internalLinks: { where: activeOnly, orderBy: { sortOrder: "asc" }, take: 24 },
     },
   });
@@ -138,10 +162,14 @@ export async function getToolPage(
   const geoDocument = metadata.geoDocument as GeoPageDocument | undefined;
   const geoBlocks = geoDocument ? buildGeoContentBlocks(geoDocument) : [];
 
-  const pros = (metadata.aiPros as string[] | undefined) ?? [];
-  const cons = (metadata.aiCons as string[] | undefined) ?? [];
+  const pros = normalizeStringList(metadata.aiPros);
+  const cons = normalizeStringList(metadata.aiCons);
   const useCases = normalizeStringList(metadata.aiUseCases);
   const features = buildFeatureList(metadata);
+  const apiAccess = buildApiAccess(metadata);
+  const platforms = normalizeStringList(metadata.aiPlatforms ?? metadata.platforms);
+  const languages = normalizeStringList(metadata.aiLanguages ?? metadata.languages);
+  const videos = buildVideos(metadata);
   const collectedLogoUrl = resolveCollectedLogoUrl(tool.logoUrl, metadata);
 
   const aiSummary =
@@ -305,6 +333,10 @@ export async function getToolPage(
       pros,
       cons,
       useCases: useCases.length ? useCases : features.slice(0, 5),
+      apiAccess,
+      platforms,
+      languages,
+      videos,
       categories,
       tags,
       pricingPlans: tool.pricingPlans.map((plan) => ({
@@ -330,6 +362,13 @@ export async function getToolPage(
         pricingModel: item.pricingModel,
       })),
       faqs,
+      reviews: tool.reviews.map((review) => ({
+        title: review.title,
+        content: review.content,
+        rating: review.rating,
+        authorName: review.authorName,
+        createdAt: review.createdAt.toISOString(),
+      })),
       internalLinks: tool.internalLinks.map((link: ToolInternalLinkRow) => ({
         anchor: link.anchorText,
         href: link.href,
@@ -502,6 +541,49 @@ function resolveScreenshotUrl(storageKey: string, metadata: unknown): string {
   return "";
 }
 
+function buildApiAccess(metadata: Record<string, unknown>): string[] {
+  const explicit = normalizeStringList(metadata.aiApiAccess ?? metadata.apiAccess ?? metadata.api);
+  if (explicit.length) return explicit.slice(0, 6);
+
+  const integrations = normalizeStringList(metadata.aiIntegrations ?? metadata.integrations);
+  const hasApi =
+    Boolean(metadata.hasApi) ||
+    integrations.some((item) => /api|webhook|zapier|make|n8n/i.test(item));
+
+  return hasApi
+    ? ["API or automation integrations may be available", ...integrations.slice(0, 4)]
+    : [];
+}
+
+function buildVideos(metadata: Record<string, unknown>): SerializedVideo[] {
+  const raw = metadata.videos ?? metadata.demoVideos ?? metadata.aiVideos;
+  if (!Array.isArray(raw)) return [];
+
+  return raw
+    .map((item, index) => {
+      if (typeof item === "string") {
+        return { title: `Video ${index + 1}`, url: item, thumbnailUrl: null };
+      }
+      if (!item || typeof item !== "object") return null;
+
+      const record = item as Record<string, unknown>;
+      const url =
+        typeof record.url === "string"
+          ? record.url
+          : typeof record.href === "string"
+            ? record.href
+            : "";
+      if (!url) return null;
+
+      return {
+        title: typeof record.title === "string" ? record.title : `Video ${index + 1}`,
+        url,
+        thumbnailUrl: typeof record.thumbnailUrl === "string" ? record.thumbnailUrl : null,
+      };
+    })
+    .filter((item): item is SerializedVideo => Boolean(item))
+    .slice(0, 6);
+}
 function buildToolScreenshots(
   toolScreenshots: Array<{
     variant: string;
