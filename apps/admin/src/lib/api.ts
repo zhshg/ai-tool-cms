@@ -417,9 +417,28 @@ export type AiRevision = {
   qualityScore?: number | null;
   reviewNote?: string | null;
   createdAt: string;
-  tool?: { id: string; name: string; slug: string };
+  tool?: { id: string; name: string; slug: string; status?: string };
 };
 
+export type AiRevisionCompareResponse = {
+  revision: AiRevision;
+  current: unknown;
+  proposed: unknown;
+};
+
+export type AiReviewHistoryResponse = {
+  revisions: AiRevision[];
+  auditLogs: Array<{
+    id: string;
+    action: string;
+    entityType: string;
+    entityId?: string | null;
+    before?: unknown;
+    after?: unknown;
+    metadata?: unknown;
+    createdAt: string;
+  }>;
+};
 export type ImportPreviewResponse = {
   format: "csv" | "json";
   total: number;
@@ -757,6 +776,17 @@ export function fetchAiRevision(id: string) {
   return apiFetch<AiRevision>(`/ai/revisions/${id}`);
 }
 
+export function compareAiRevision(id: string) {
+  return apiFetch<AiRevisionCompareResponse>(`/ai/revisions/${id}/compare`);
+}
+
+export function editAiRevision(id: string, payload: unknown, reviewNote?: string) {
+  return apiFetch<AiRevision>(`/ai/revisions/${id}/edit`, {
+    method: "POST",
+    body: JSON.stringify({ payload, reviewNote }),
+  });
+}
+
 export function approveAiRevision(id: string, reviewNote?: string) {
   return apiFetch<AiRevision>(`/ai/revisions/${id}/approve`, {
     method: "POST",
@@ -769,6 +799,36 @@ export function rejectAiRevision(id: string, reviewNote?: string) {
     method: "POST",
     body: JSON.stringify({ reviewNote }),
   });
+}
+
+export function bulkApproveAiRevisions(revisionIds: string[], reviewNote?: string) {
+  return apiFetch<{ approved: number }>("/ai/revisions/bulk-approve", {
+    method: "POST",
+    body: JSON.stringify({ revisionIds, reviewNote }),
+  });
+}
+
+export function bulkRejectAiRevisions(revisionIds: string[], reviewNote?: string) {
+  return apiFetch<{ rejected: number }>("/ai/revisions/bulk-reject", {
+    method: "POST",
+    body: JSON.stringify({ revisionIds, reviewNote }),
+  });
+}
+
+export function publishAiReviewTool(toolId: string) {
+  return apiFetch<{ id: string; status: string }>(`/ai/tools/${toolId}/publish`, {
+    method: "POST",
+  });
+}
+
+export function archiveAiReviewTool(toolId: string) {
+  return apiFetch<{ id: string; status: string }>(`/ai/tools/${toolId}/archive`, {
+    method: "POST",
+  });
+}
+
+export function fetchAiReviewHistory(toolId: string) {
+  return apiFetch<AiReviewHistoryResponse>(`/ai/tools/${toolId}/history`);
 }
 
 export function regenerateAiTool(toolId: string) {
