@@ -238,6 +238,7 @@ function ToolCard({ locale, tool }: { locale: string; tool: ToolsDirectoryTool }
         <ToolLogo
           name={tool.name}
           logoUrl={tool.logoUrl}
+          fallbackLogoUrl={tool.collectedLogoUrl}
           categoryIconUrl={category?.iconUrl ?? null}
           size="md"
         />

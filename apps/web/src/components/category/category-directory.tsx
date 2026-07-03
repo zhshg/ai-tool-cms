@@ -353,6 +353,7 @@ function ToolDirectoryCard({
         <ToolLogo
           name={tool.name}
           logoUrl={tool.logoUrl}
+          fallbackLogoUrl={tool.collectedLogoUrl}
           categoryIconUrl={tool.categoryIconUrl}
           size="md"
         />

@@ -39,6 +39,7 @@ export type CategoriesPageCategory = HomePageCategory & {
 export type HomePageTool = CatalogTool & {
   id: string;
   website: string;
+  logoUrl: string | null;
   pricingModel: PricingModel;
   publishedAt: string | null;
   category: { slug: string; name: string; iconUrl: string | null } | null;
@@ -76,6 +77,7 @@ export type ToolsDirectoryTool = CatalogTool & {
   id: string;
   website: string;
   logoUrl: string | null;
+  collectedLogoUrl: string | null;
   pricingModel: PricingModel;
   publishedAt: string | null;
   primaryCategory: { slug: string; name: string; iconUrl: string | null } | null;
@@ -134,6 +136,7 @@ export type CategoryDetailTool = {
   summary: string | null;
   website: string;
   logoUrl: string | null;
+  collectedLogoUrl: string | null;
   categoryIconUrl: string | null;
   pricingModel: PricingModel;
   pricingLabel: string;
@@ -276,6 +279,7 @@ async function fetchPopularHomePageTools(limit = 8): Promise<HomePageTool[]> {
       name: true,
       summary: true,
       website: true,
+      logoUrl: true,
       pricingModel: true,
       publishedAt: true,
       categories: {
@@ -312,6 +316,7 @@ async function fetchPopularHomePageTools(limit = 8): Promise<HomePageTool[]> {
     name: tool.name,
     summary: tool.summary,
     website: tool.website,
+    logoUrl: tool.logoUrl,
     pricingModel: tool.pricingModel,
     publishedAt: tool.publishedAt?.toISOString() ?? null,
     category: tool.categories[0]?.category ?? null,
@@ -437,6 +442,7 @@ async function fetchCategoryDetailTools(
           summary: true,
           website: true,
           logoUrl: true,
+          metadata: true,
           pricingModel: true,
           publishedAt: true,
           categories: {
@@ -475,6 +481,10 @@ async function fetchCategoryDetailTools(
       summary: link.tool.summary,
       website: link.tool.website,
       logoUrl: link.tool.logoUrl,
+      collectedLogoUrl: resolveCatalogCollectedLogoUrl(
+        link.tool.logoUrl,
+        (link.tool.metadata ?? {}) as Record<string, unknown>,
+      ),
       categoryIconUrl: link.tool.categories[0]?.category.iconUrl ?? null,
       pricingModel: link.tool.pricingModel,
       pricingLabel: formatPricingLabel(link.tool.pricingModel),
@@ -537,6 +547,7 @@ async function fetchHomePageTools(input: {
       name: true,
       summary: true,
       website: true,
+      logoUrl: true,
       pricingModel: true,
       publishedAt: true,
       categories: {
@@ -573,6 +584,7 @@ async function fetchHomePageTools(input: {
     name: tool.name,
     summary: tool.summary,
     website: tool.website,
+    logoUrl: tool.logoUrl,
     pricingModel: tool.pricingModel,
     publishedAt: tool.publishedAt?.toISOString() ?? null,
     category: tool.categories[0]?.category ?? null,
@@ -698,6 +710,7 @@ export async function getToolsDirectory(input: {
         summary: true,
         website: true,
         logoUrl: true,
+        metadata: true,
         pricingModel: true,
         publishedAt: true,
         categories: {
@@ -760,6 +773,10 @@ export async function getToolsDirectory(input: {
         summary: tool.summary,
         website: tool.website,
         logoUrl: tool.logoUrl,
+        collectedLogoUrl: resolveCatalogCollectedLogoUrl(
+          tool.logoUrl,
+          (tool.metadata ?? {}) as Record<string, unknown>,
+        ),
         pricingModel: tool.pricingModel,
         publishedAt: tool.publishedAt?.toISOString() ?? null,
         primaryCategory,
@@ -768,6 +785,28 @@ export async function getToolsDirectory(input: {
       };
     }),
   };
+}
+
+function resolveCatalogCollectedLogoUrl(
+  primaryLogoUrl: string | null | undefined,
+  metadata: Record<string, unknown>,
+): string | null {
+  const candidates = [
+    metadata.logoUrl,
+    metadata.logo,
+    metadata.collectedLogoUrl,
+    metadata.faviconUrl,
+    metadata.appleTouchIconUrl,
+    metadata.openGraphImageUrl,
+  ];
+
+  for (const candidate of candidates) {
+    if (typeof candidate === "string" && candidate.trim() && candidate !== primaryLogoUrl) {
+      return candidate.trim();
+    }
+  }
+
+  return null;
 }
 
 export async function searchCatalogTools(input: {
@@ -1353,7 +1392,11 @@ export async function getCategoryLanding(
         name: tool.name,
         summary: tool.summary,
         website: tool.website,
-        logoUrl: null,
+        logoUrl: tool.logoUrl,
+        collectedLogoUrl: resolveCatalogCollectedLogoUrl(
+          tool.logoUrl,
+          tool.category ? { iconUrl: tool.category.iconUrl } : {},
+        ),
         categoryIconUrl: tool.category?.iconUrl ?? null,
         pricingModel: tool.pricingModel,
         pricingLabel: formatPricingLabel(tool.pricingModel),

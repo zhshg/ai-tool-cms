@@ -1,10 +1,4 @@
-import {
-  InternalLinkType,
-  prisma,
-  PricingModel,
-  SeoComparePageType,
-  ToolStatus,
-} from "@ai-tool-cms/database";
+import { prisma, PricingModel, ReviewStatus, ToolStatus } from "@ai-tool-cms/database";
 import { buildGeoContentBlocks, type GeoPageDocument } from "@ai-tool-cms/geo";
 import {
   buildToolMetadata,
@@ -33,11 +27,20 @@ type ToolInternalLinkRow = {
   linkType: string;
 };
 
+type RelatedAlternative = {
+  slug: string;
+  name: string;
+  summary: string | null;
+  score: number;
+  reason: string;
+};
+
 export type ToolPageData = {
   slug: string;
   name: string;
   website: string;
   logoUrl: string | null;
+  collectedLogoUrl: string | null;
   pricingModel: PricingModel;
   summary: string | null;
   longDescription: string | null;
@@ -63,12 +66,22 @@ export type ToolPageData = {
     width: number;
     height: number;
   }>;
-  alternatives: ToolPageLink[];
+  alternatives: Array<{
+    slug: string;
+    name: string;
+    summary: string | null;
+    logoUrl: string | null;
+    collectedLogoUrl: string | null;
+    categoryIconUrl: string | null;
+    pricingModel: PricingModel;
+    reason: string | null;
+  }>;
   similarTools: Array<{
     slug: string;
     name: string;
     summary: string | null;
     logoUrl: string | null;
+    collectedLogoUrl: string | null;
     categoryIconUrl: string | null;
     pricingModel: PricingModel;
   }>;
@@ -108,8 +121,9 @@ export async function getToolPage(
 
   const pros = (metadata.aiPros as string[] | undefined) ?? [];
   const cons = (metadata.aiCons as string[] | undefined) ?? [];
-  const useCases = (metadata.aiUseCases as string[] | undefined) ?? [];
-  const features = (metadata.aiFeatures as string[] | undefined) ?? [];
+  const useCases = normalizeStringList(metadata.aiUseCases);
+  const features = buildFeatureList(metadata);
+  const collectedLogoUrl = resolveCollectedLogoUrl(tool.logoUrl, metadata);
 
   const aiSummary =
     geoDocument?.llmSummary ??
@@ -151,6 +165,7 @@ export async function getToolPage(
       name: true,
       summary: true,
       logoUrl: true,
+      metadata: true,
       categories: {
         where: activeOnly,
         orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }],
@@ -166,35 +181,63 @@ export async function getToolPage(
       pricingModel: true,
     },
   });
-  const alternativesPromise = prisma.seoComparePage.findMany({
-    where: {
-      type: SeoComparePageType.ALTERNATIVES,
-      status: ToolStatus.PUBLISHED,
-      toolId: tool.id,
-      ...activeOnly,
-    },
-    orderBy: [{ publishedAt: "desc" }, { title: "asc" }],
-    take: 6,
-    select: { title: true, slug: true },
-  });
-  const [similarTools, alternativePages] = await Promise.all([
+  const recommendedAlternativesPromise = computeToolAlternatives(tool.id, 5);
+  const [similarTools, recommendedAlternatives] = await Promise.all([
     categoryIds.length || tagIds.length ? similarToolsPromise : Promise.resolve([]),
-    alternativesPromise,
+    recommendedAlternativesPromise,
   ]);
-  const alternativeLinks = [
-    ...tool.internalLinks
-      .filter((link: ToolInternalLinkRow) => link.linkType === InternalLinkType.ALTERNATIVE)
-      .map((link: ToolInternalLinkRow) => ({
-        anchor: link.anchorText,
-        href: link.href,
-        type: link.linkType,
-      })),
-    ...alternativePages.map((page) => ({
-      anchor: page.title,
-      href: `/${locale}/compare/${page.slug}`,
-      type: SeoComparePageType.ALTERNATIVES,
-    })),
-  ];
+  const alternativeLookup = new Map<string, RelatedAlternative>(
+    recommendedAlternatives.map((item: RelatedAlternative) => [item.slug, item]),
+  );
+  const alternativeDetails = recommendedAlternatives.length
+    ? await prisma.tool.findMany({
+        where: {
+          slug: { in: recommendedAlternatives.map((item: RelatedAlternative) => item.slug) },
+          status: ToolStatus.PUBLISHED,
+          ...activeOnly,
+        },
+        select: {
+          slug: true,
+          name: true,
+          summary: true,
+          logoUrl: true,
+          metadata: true,
+          pricingModel: true,
+          categories: {
+            where: activeOnly,
+            orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }],
+            take: 1,
+            select: {
+              category: {
+                select: {
+                  iconUrl: true,
+                },
+              },
+            },
+          },
+        },
+      })
+    : [];
+  const alternatives = recommendedAlternatives
+    .map((item: RelatedAlternative) => {
+      const detail = alternativeDetails.find((candidate) => candidate.slug === item.slug);
+      if (!detail) return null;
+
+      return {
+        slug: detail.slug,
+        name: detail.name,
+        summary: detail.summary,
+        logoUrl: detail.logoUrl,
+        collectedLogoUrl: resolveCollectedLogoUrl(
+          detail.logoUrl,
+          (detail.metadata ?? {}) as Record<string, unknown>,
+        ),
+        categoryIconUrl: detail.categories[0]?.category.iconUrl ?? null,
+        pricingModel: detail.pricingModel,
+        reason: alternativeLookup.get(detail.slug)?.reason ?? null,
+      };
+    })
+    .filter((item): item is NonNullable<typeof item> => Boolean(item));
   const firstPricingPlan = tool.pricingPlans[0];
 
   const jsonLd = buildToolPageJsonLd({
@@ -233,6 +276,7 @@ export async function getToolPage(
       name: tool.name,
       website: tool.website,
       logoUrl: tool.logoUrl,
+      collectedLogoUrl,
       pricingModel: tool.pricingModel,
       summary: tool.summary,
       longDescription: tool.longDescription,
@@ -262,12 +306,16 @@ export async function getToolPage(
         .filter((screenshot): screenshot is NonNullable<typeof screenshot> & { imageUrl: string } =>
           Boolean(screenshot.imageUrl),
         ),
-      alternatives: alternativeLinks,
+      alternatives,
       similarTools: similarTools.map((item) => ({
         slug: item.slug,
         name: item.name,
         summary: item.summary,
         logoUrl: item.logoUrl,
+        collectedLogoUrl: resolveCollectedLogoUrl(
+          item.logoUrl,
+          (item.metadata ?? {}) as Record<string, unknown>,
+        ),
         categoryIconUrl: item.categories[0]?.category.iconUrl ?? null,
         pricingModel: item.pricingModel,
       })),
@@ -281,6 +329,162 @@ export async function getToolPage(
       jsonLd,
     },
   };
+}
+
+function normalizeStringList(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+
+  return value.map((item) => (typeof item === "string" ? item.trim() : "")).filter(Boolean);
+}
+
+async function computeToolAlternatives(toolId: string, limit = 5): Promise<RelatedAlternative[]> {
+  const source = await prisma.tool.findFirst({
+    where: { id: toolId, status: ToolStatus.PUBLISHED, ...activeOnly },
+    include: {
+      categories: { where: activeOnly },
+      tags: { where: activeOnly },
+      reviews: { where: { status: ReviewStatus.APPROVED, ...activeOnly } },
+    },
+  });
+  if (!source) return [];
+
+  const sourceMeta = (source.metadata ?? {}) as Record<string, unknown>;
+  const sourceEmbedding = Array.isArray(sourceMeta.searchEmbedding)
+    ? (sourceMeta.searchEmbedding as number[])
+    : undefined;
+  const sourceCategoryIds = new Set(source.categories.map((item) => item.categoryId));
+  const sourceTagIds = new Set(source.tags.map((item) => item.tagId));
+
+  const candidates = await prisma.tool.findMany({
+    where: { status: ToolStatus.PUBLISHED, ...activeOnly, NOT: { id: toolId } },
+    include: {
+      categories: { where: activeOnly },
+      tags: { where: activeOnly },
+      reviews: { where: { status: ReviewStatus.APPROVED, ...activeOnly } },
+    },
+    take: 80,
+    orderBy: { publishedAt: "desc" },
+  });
+
+  const clickCounts = await prisma.searchClickLog.groupBy({
+    by: ["toolId"],
+    _count: { toolId: true },
+  });
+  const clickMap = new Map(clickCounts.map((item) => [item.toolId, item._count.toolId]));
+
+  return candidates
+    .map((candidate) => {
+      const metadata = (candidate.metadata ?? {}) as Record<string, unknown>;
+      const candidateEmbedding = Array.isArray(metadata.searchEmbedding)
+        ? (metadata.searchEmbedding as number[])
+        : undefined;
+      const candidateCategoryIds = new Set(candidate.categories.map((item) => item.categoryId));
+      const candidateTagIds = new Set(candidate.tags.map((item) => item.tagId));
+      const reviews = candidate.reviews;
+      const averageRating = reviews.length
+        ? reviews.reduce((total, review) => total + review.rating, 0) / reviews.length
+        : 0;
+      const sharedCategories = [...sourceCategoryIds].filter((id) => candidateCategoryIds.has(id));
+      const sharedTags = [...sourceTagIds].filter((id) => candidateTagIds.has(id));
+
+      let score = 0;
+      const reasons: string[] = [];
+
+      if (sharedCategories.length) {
+        score += sharedCategories.length * 25;
+        reasons.push("same category");
+      }
+
+      if (sharedTags.length) {
+        score += sharedTags.length * 15;
+        reasons.push("shared tags");
+      }
+
+      const popularityScore =
+        typeof metadata.popularityScore === "number" ? metadata.popularityScore : 0;
+      score += popularityScore * 0.2;
+      score += averageRating * 10;
+      score += Math.log10((clickMap.get(candidate.id) ?? 0) + 1) * 8;
+
+      if (sourceEmbedding?.length && candidateEmbedding?.length) {
+        const similarity = cosineSimilarity(sourceEmbedding, candidateEmbedding);
+        score += similarity * 40;
+        if (similarity > 0.5) {
+          reasons.push("semantic similarity");
+        }
+      }
+
+      return {
+        slug: candidate.slug,
+        name: candidate.name,
+        summary: candidate.summary,
+        score,
+        reason: reasons.join(", ") || "related tool",
+      } satisfies RelatedAlternative;
+    })
+    .sort((left, right) => right.score - left.score)
+    .slice(0, limit);
+}
+
+function cosineSimilarity(left: number[], right: number[]): number {
+  const length = Math.min(left.length, right.length);
+  if (!length) return 0;
+
+  let dot = 0;
+  let leftNorm = 0;
+  let rightNorm = 0;
+
+  for (let index = 0; index < length; index += 1) {
+    const leftValue = left[index] ?? 0;
+    const rightValue = right[index] ?? 0;
+    dot += leftValue * rightValue;
+    leftNorm += leftValue * leftValue;
+    rightNorm += rightValue * rightValue;
+  }
+
+  if (!leftNorm || !rightNorm) return 0;
+  return dot / (Math.sqrt(leftNorm) * Math.sqrt(rightNorm));
+}
+
+function buildFeatureList(metadata: Record<string, unknown>): string[] {
+  const explicitFeatures = normalizeStringList(metadata.aiFeatures);
+  if (explicitFeatures.length) {
+    return explicitFeatures.slice(0, 8);
+  }
+
+  const storedFeatures = normalizeStringList(metadata.features);
+  if (storedFeatures.length) {
+    return storedFeatures.slice(0, 8);
+  }
+
+  const useCases = normalizeStringList(metadata.aiUseCases);
+  if (useCases.length) {
+    return useCases.slice(0, 6);
+  }
+
+  return [];
+}
+
+function resolveCollectedLogoUrl(
+  primaryLogoUrl: string | null | undefined,
+  metadata: Record<string, unknown>,
+): string | null {
+  const candidates = [
+    metadata.logoUrl,
+    metadata.logo,
+    metadata.collectedLogoUrl,
+    metadata.faviconUrl,
+    metadata.appleTouchIconUrl,
+    metadata.openGraphImageUrl,
+  ];
+
+  for (const candidate of candidates) {
+    if (typeof candidate === "string" && candidate.trim() && candidate !== primaryLogoUrl) {
+      return candidate.trim();
+    }
+  }
+
+  return null;
 }
 
 function resolveScreenshotUrl(storageKey: string, metadata: unknown): string {

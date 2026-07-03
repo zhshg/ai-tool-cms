@@ -8,6 +8,7 @@ type ToolLogoSize = "sm" | "md" | "lg";
 type ToolLogoProps = {
   name: string;
   logoUrl?: string | null;
+  fallbackLogoUrl?: string | null;
   categoryIconUrl?: string | null;
   size?: ToolLogoSize;
   className?: string;
@@ -22,18 +23,25 @@ const SIZE_CLASS_MAP: Record<ToolLogoSize, string> = {
 export function ToolLogo({
   name,
   logoUrl,
+  fallbackLogoUrl,
   categoryIconUrl,
   size = "md",
   className = "",
 }: ToolLogoProps) {
   const [logoFailed, setLogoFailed] = useState(false);
+  const [fallbackLogoFailed, setFallbackLogoFailed] = useState(false);
   const [categoryIconFailed, setCategoryIconFailed] = useState(false);
 
   const initials = useMemo(() => buildInitials(name), [name]);
-  const showLogo = Boolean(logoUrl) && !logoFailed;
-  const showGeneratedAvatar = !showLogo && initials.length > 0;
+  const showPrimaryLogo = Boolean(logoUrl) && !logoFailed;
+  const showCollectedLogo = !showPrimaryLogo && Boolean(fallbackLogoUrl) && !fallbackLogoFailed;
+  const showGeneratedAvatar = !showPrimaryLogo && !showCollectedLogo && initials.length > 0;
   const showCategoryIcon =
-    !showLogo && !showGeneratedAvatar && Boolean(categoryIconUrl) && !categoryIconFailed;
+    !showPrimaryLogo &&
+    !showCollectedLogo &&
+    !showGeneratedAvatar &&
+    Boolean(categoryIconUrl) &&
+    !categoryIconFailed;
 
   return (
     <span
@@ -43,7 +51,7 @@ export function ToolLogo({
         className,
       ].join(" ")}
     >
-      {showLogo ? (
+      {showPrimaryLogo ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={logoUrl ?? ""}
@@ -52,6 +60,18 @@ export function ToolLogo({
           loading="lazy"
           decoding="async"
           onError={() => setLogoFailed(true)}
+        />
+      ) : null}
+
+      {showCollectedLogo ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={fallbackLogoUrl ?? ""}
+          alt={`${name} collected logo`}
+          className="size-full object-cover"
+          loading="lazy"
+          decoding="async"
+          onError={() => setFallbackLogoFailed(true)}
         />
       ) : null}
 
@@ -71,7 +91,7 @@ export function ToolLogo({
         />
       ) : null}
 
-      {!showLogo && !showGeneratedAvatar && !showCategoryIcon ? (
+      {!showPrimaryLogo && !showCollectedLogo && !showGeneratedAvatar && !showCategoryIcon ? (
         <Bot className="size-[55%] text-slate-500 dark:text-slate-400" aria-hidden="true" />
       ) : null}
     </span>

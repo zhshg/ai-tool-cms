@@ -14,6 +14,9 @@ export function ToolDetailPage({ data, locale }: ToolDetailPageProps) {
   const primaryCategory =
     data.categories.find((category) => category.isPrimary) ?? data.categories[0];
   const featureItems = data.features.length ? data.features : data.useCases;
+  const hasFeatures = featureItems.length > 0;
+  const hasAlternatives = data.alternatives.length > 0;
+  const hasSimilarTools = data.similarTools.length > 0;
 
   return (
     <>
@@ -50,6 +53,7 @@ export function ToolDetailPage({ data, locale }: ToolDetailPageProps) {
                 <ToolLogo
                   name={data.name}
                   logoUrl={data.logoUrl}
+                  fallbackLogoUrl={data.collectedLogoUrl}
                   categoryIconUrl={primaryCategory?.iconUrl ?? null}
                   size="lg"
                 />
@@ -106,8 +110,8 @@ export function ToolDetailPage({ data, locale }: ToolDetailPageProps) {
               </Section>
             ) : null}
 
-            <Section title="Features">
-              {featureItems.length ? (
+            {hasFeatures ? (
+              <Section title="Features">
                 <ul className="grid gap-3 sm:grid-cols-2">
                   {featureItems.map((item) => (
                     <li key={item} className="rounded-lg border bg-card p-4 text-sm">
@@ -115,10 +119,8 @@ export function ToolDetailPage({ data, locale }: ToolDetailPageProps) {
                     </li>
                   ))}
                 </ul>
-              ) : (
-                <EmptyNote text="No feature details are available yet." />
-              )}
-            </Section>
+              </Section>
+            ) : null}
 
             <Section title="Pricing">
               {data.pricingPlans.length ? (
@@ -181,24 +183,38 @@ export function ToolDetailPage({ data, locale }: ToolDetailPageProps) {
               )}
             </Section>
 
-            <Section title="Alternatives">
-              {data.alternatives.length ? (
-                <ul className="grid gap-3 sm:grid-cols-2">
-                  {data.alternatives.map((link) => (
-                    <li key={`${link.type}-${link.href}`} className="rounded-lg border bg-card p-4">
-                      <Link
-                        href={normalizeInternalHref(link.href)}
-                        className="font-medium hover:underline"
-                      >
-                        {link.anchor}
-                      </Link>
-                    </li>
+            {hasAlternatives ? (
+              <Section title="Alternatives">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {data.alternatives.map((tool) => (
+                    <Link
+                      key={tool.slug}
+                      href={`/${locale}/tools/${tool.slug}`}
+                      className="flex gap-3 rounded-lg border bg-card p-4 transition hover:border-primary/40"
+                    >
+                      <ToolLogo
+                        name={tool.name}
+                        logoUrl={tool.logoUrl}
+                        fallbackLogoUrl={tool.collectedLogoUrl}
+                        categoryIconUrl={tool.categoryIconUrl}
+                        size="sm"
+                      />
+                      <span className="min-w-0">
+                        <span className="block truncate text-sm font-medium">{tool.name}</span>
+                        <span className="mt-1 line-clamp-2 block text-xs text-muted-foreground">
+                          {tool.summary ?? formatPricing(tool.pricingModel)}
+                        </span>
+                        {tool.reason ? (
+                          <span className="mt-2 inline-flex rounded-full bg-muted px-2 py-1 text-[11px] text-muted-foreground">
+                            {formatAlternativeReason(tool.reason)}
+                          </span>
+                        ) : null}
+                      </span>
+                    </Link>
                   ))}
-                </ul>
-              ) : (
-                <EmptyNote text="No dedicated alternatives page is available yet." />
-              )}
-            </Section>
+                </div>
+              </Section>
+            ) : null}
 
             <Section title="FAQ">
               {data.faqs.length ? (
@@ -253,8 +269,8 @@ export function ToolDetailPage({ data, locale }: ToolDetailPageProps) {
               )}
             </Panel>
 
-            <Panel title="Similar tools">
-              {data.similarTools.length ? (
+            {hasSimilarTools ? (
+              <Panel title="Similar tools">
                 <div className="space-y-3">
                   {data.similarTools.map((tool) => (
                     <Link
@@ -265,6 +281,7 @@ export function ToolDetailPage({ data, locale }: ToolDetailPageProps) {
                       <ToolLogo
                         name={tool.name}
                         logoUrl={tool.logoUrl}
+                        fallbackLogoUrl={tool.collectedLogoUrl}
                         categoryIconUrl={tool.categoryIconUrl}
                         size="sm"
                       />
@@ -277,10 +294,8 @@ export function ToolDetailPage({ data, locale }: ToolDetailPageProps) {
                     </Link>
                   ))}
                 </div>
-              ) : (
-                <EmptyNote text="No similar tools are available yet." />
-              )}
-            </Panel>
+              </Panel>
+            ) : null}
           </aside>
         </div>
       </main>
@@ -330,8 +345,13 @@ function formatPlanPrice(price: string | null, billingPeriod: string | null) {
   return `$${price}${suffix}`;
 }
 
-function normalizeInternalHref(href: string) {
-  return href.replace(/^https?:\/\/[^/]+/, "");
+function formatAlternativeReason(reason: string) {
+  return reason
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .map((item) => item.charAt(0).toUpperCase() + item.slice(1))
+    .join(" • ");
 }
 
 function slugify(value: string) {
