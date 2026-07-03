@@ -411,6 +411,7 @@ export type SettingsSummary = {
 
 export type AiRevision = {
   id: string;
+  payload?: unknown;
   stage: string;
   status: string;
   qualityScore?: number | null;
@@ -752,6 +753,10 @@ export function fetchAiRevisions(status: string) {
   );
 }
 
+export function fetchAiRevision(id: string) {
+  return apiFetch<AiRevision>(`/ai/revisions/${id}`);
+}
+
 export function approveAiRevision(id: string, reviewNote?: string) {
   return apiFetch<AiRevision>(`/ai/revisions/${id}/approve`, {
     method: "POST",
@@ -767,8 +772,21 @@ export function rejectAiRevision(id: string, reviewNote?: string) {
 }
 
 export function regenerateAiTool(toolId: string) {
-  return apiFetch<{ toolId: string }>(`/ai/tools/${toolId}/regenerate`, {
+  return apiFetch<{ toolId: string; pipelineRunId: string; jobId: string }>(
+    `/ai/tools/${toolId}/regenerate`,
+    {
+      method: "POST",
+    },
+  );
+}
+
+export function bulkGenerateAiTools(toolIds: string[]) {
+  return apiFetch<{
+    queued: number;
+    results: Array<{ toolId: string; pipelineRunId: string; jobId: string }>;
+  }>("/ai/tools/bulk-generate", {
     method: "POST",
+    body: JSON.stringify({ toolIds }),
   });
 }
 

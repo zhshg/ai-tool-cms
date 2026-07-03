@@ -6,6 +6,8 @@ import { PageHeader } from "@/components/layout/page-header";
 import { RequirePermission } from "@/components/rbac/require-permission";
 import {
   approveAiRevision,
+  bulkGenerateAiTools,
+  fetchAiRevision,
   fetchAiRevisions,
   regenerateAiTool,
   rejectAiRevision,
@@ -31,6 +33,8 @@ export default function AiReviewPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [reviewNote, setReviewNote] = useState("");
   const [runningId, setRunningId] = useState<string | null>(null);
+  const [previewRevision, setPreviewRevision] = useState<AiRevision | null>(null);
+  const [isBulkGenerating, setIsBulkGenerating] = useState(false);
 
   const loadCurrentTab = useCallback(async () => {
     setIsLoading(true);
@@ -49,6 +53,32 @@ export default function AiReviewPage() {
   useEffect(() => {
     void loadCurrentTab();
   }, [loadCurrentTab]);
+
+  async function handlePreview(revision: AiRevision) {
+    try {
+      setRunningId(revision.id);
+      const detail = await fetchAiRevision(revision.id);
+      setPreviewRevision(detail);
+    } catch (err) {
+      setError(err as ApiError);
+    } finally {
+      setRunningId(null);
+    }
+  }
+
+  async function handleBulkGenerate() {
+    const toolIds = items.map((item) => item.tool?.id).filter((id): id is string => Boolean(id));
+    if (!toolIds.length) return;
+    try {
+      setIsBulkGenerating(true);
+      const result = await bulkGenerateAiTools(toolIds);
+      setMessage(`Queued ${result.queued} AI content generation job(s).`);
+    } catch (err) {
+      setError(err as ApiError);
+    } finally {
+      setIsBulkGenerating(false);
+    }
+  }
 
   async function handleApprove(revision: AiRevision) {
     try {
@@ -98,28 +128,37 @@ export default function AiReviewPage() {
           description="Operate the review workflow: approve, reject, and regenerate AI-generated content revisions."
         />
 
-        <div className="mb-4 flex flex-wrap gap-2">
-          {tabs.map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.key;
-            return (
-              <button
-                key={tab.key}
-                type="button"
-                onClick={() => setActiveTab(tab.key)}
-                className={`inline-flex items-center gap-2 rounded-md border px-4 py-2 text-sm font-medium transition-colors ${
-                  isActive
-                    ? "border-primary bg-primary text-primary-foreground"
-                    : "border-border bg-card text-card-foreground hover:bg-muted"
-                }`}
-              >
-                <Icon className="h-4 w-4" />
-                {tab.label}
-              </button>
-            );
-          })}
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-wrap gap-2">
+            {tabs.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.key;
+              return (
+                <button
+                  key={tab.key}
+                  type="button"
+                  onClick={() => setActiveTab(tab.key)}
+                  className={`inline-flex items-center gap-2 rounded-md border px-4 py-2 text-sm font-medium transition-colors ${
+                    isActive
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border bg-card text-card-foreground hover:bg-muted"
+                  }`}
+                >
+                  <Icon className="h-4 w-4" />
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
+          <button
+            type="button"
+            onClick={() => void handleBulkGenerate()}
+            disabled={!items.some((item) => item.tool?.id) || isBulkGenerating}
+            className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {isBulkGenerating ? "Queueing..." : "Bulk Generate Current Tools"}
+          </button>
         </div>
-
         <div className="mb-4 grid gap-4 md:grid-cols-3">
           <div className="rounded-lg border bg-card p-4 text-card-foreground shadow-sm">
             <p className="text-sm text-muted-foreground">Current status</p>
@@ -202,6 +241,14 @@ export default function AiReviewPage() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          className="rounded-md border px-3 py-2 text-xs font-medium hover:bg-muted disabled:opacity-60"
+                          disabled={runningId === revision.id}
+                          onClick={() => void handlePreview(revision)}
+                        >
+                          Preview
+                        </button>
                         {activeTab === "PENDING" ? (
                           <>
                             <button
@@ -239,6 +286,29 @@ export default function AiReviewPage() {
             </table>
           ) : null}
         </div>
+
+        {previewRevision ? (
+          <div className="mt-6 rounded-lg border bg-card p-4 text-card-foreground shadow-sm">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <div>
+                <h2 className="text-sm font-medium">Content Preview</h2>
+                <p className="text-xs text-muted-foreground">
+                  {previewRevision.tool?.name ?? "Unknown tool"} / {previewRevision.stage}
+                </p>
+              </div>
+              <button
+                type="button"
+                className="rounded-md border px-3 py-1.5 text-xs hover:bg-muted"
+                onClick={() => setPreviewRevision(null)}
+              >
+                Close
+              </button>
+            </div>
+            <pre className="max-h-96 overflow-auto rounded-md bg-muted p-4 text-xs leading-relaxed">
+              {JSON.stringify(previewRevision.payload ?? {}, null, 2)}
+            </pre>
+          </div>
+        ) : null}
       </div>
     </RequirePermission>
   );

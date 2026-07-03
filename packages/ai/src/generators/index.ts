@@ -27,6 +27,7 @@ export type FeatureExtractionOutput = {
   integrations: string[];
   targetUsers: string[];
   useCases: string[];
+  support: string[];
 };
 
 export type ProsConsOutput = {
@@ -42,6 +43,7 @@ export type SeoOutput = {
   metaDescription: string;
   keywords: string[];
   canonical?: string;
+  ogDescription?: string;
   openGraph?: Record<string, string>;
   twitterCard?: Record<string, string>;
   jsonLd?: Record<string, unknown>;

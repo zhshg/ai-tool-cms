@@ -90,6 +90,16 @@ export class AiReviewService {
     });
   }
 
+  async bulkRegenerate(toolIds: string[], actorId: string) {
+    const uniqueToolIds = [...new Set(toolIds)].filter(Boolean);
+    const results = [] as Array<{ toolId: string; pipelineRunId: string; jobId: string }>;
+    for (const toolId of uniqueToolIds) {
+      const result = await this.regenerate(toolId, actorId);
+      results.push(result);
+    }
+    return { queued: results.length, results };
+  }
+
   async regenerate(toolId: string, actorId: string) {
     const tool = await this.prisma.client.tool.findFirst({
       where: { id: toolId, ...activeOnly },

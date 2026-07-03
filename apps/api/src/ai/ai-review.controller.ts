@@ -47,6 +47,13 @@ export class AiReviewController {
     return this.reviewService.reject(id, user.id, dto.reviewNote);
   }
 
+  @Post("tools/bulk-generate")
+  @RequirePermission(PermissionCode.AiManage)
+  @ApiOperation({ summary: "Bulk generate AI content for tools" })
+  bulkGenerate(@Body() body: { toolIds?: string[] }, @CurrentUser() user: RequestUser) {
+    return this.reviewService.bulkRegenerate(body.toolIds ?? [], user.id);
+  }
+
   @Post("tools/:toolId/regenerate")
   @RequirePermission(PermissionCode.AiManage)
   @ApiOperation({ summary: "Regenerate AI content for tool" })
