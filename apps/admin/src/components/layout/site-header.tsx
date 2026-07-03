@@ -8,7 +8,7 @@ import { AppSidebar } from "@/components/layout/app-sidebar";
 import { AppBreadcrumb } from "@/components/layout/app-breadcrumb";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { useAuth } from "@/components/rbac/auth-provider";
-import { getAdminLoginPath } from "@/lib/api";
+import { getAdminRouterLoginPath } from "@/lib/api";
 
 export function SiteHeader() {
   const router = useRouter();
@@ -44,7 +44,7 @@ export function SiteHeader() {
           aria-label="Sign out"
           onClick={() => {
             logout();
-            router.replace(getAdminLoginPath());
+            router.replace(getAdminRouterLoginPath());
           }}
         >
           <LogOut className="h-4 w-4" />

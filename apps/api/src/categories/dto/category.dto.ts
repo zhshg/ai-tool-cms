@@ -32,6 +32,11 @@ export class CreateCategoryDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
+  iconUrl?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
   metaTitle?: string;
 
   @ApiPropertyOptional()
@@ -68,6 +73,11 @@ export class UpdateCategoryDto {
   @IsInt()
   @Min(0)
   sortOrder?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  iconUrl?: string;
 
   @ApiPropertyOptional()
   @IsOptional()

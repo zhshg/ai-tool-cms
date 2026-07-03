@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/components/rbac/auth-provider";
-import { getAdminLoginPath } from "@/lib/api";
+import { getAdminRouterLoginPath } from "@/lib/api";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 
@@ -71,7 +71,7 @@ export function AppSidebar({ onNavigate, className }: AppSidebarProps) {
           className="pt-2 text-left text-xs font-medium text-primary"
           onClick={() => {
             logout();
-            router.replace(getAdminLoginPath());
+            router.replace(getAdminRouterLoginPath());
           }}
         >
           Sign out

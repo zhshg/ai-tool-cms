@@ -1,33 +1,53 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { FolderTree, Users, Wrench } from "lucide-react";
 import { usePermissions } from "@/components/rbac/auth-provider";
+import { fetchDashboardStats, type ApiError, type DashboardStatsResponse } from "@/lib/api";
 
 const stats = [
   {
+    key: "toolsTotal",
     label: "Tools",
-    value: "—",
     icon: Wrench,
     visible: (p: ReturnType<typeof usePermissions>) => p.canReadTools,
   },
   {
+    key: "categoriesTotal",
     label: "Categories",
-    value: "—",
     icon: FolderTree,
     visible: (p: ReturnType<typeof usePermissions>) => p.canReadCategories,
   },
   {
+    key: "usersTotal",
     label: "Users",
-    value: "—",
     icon: Users,
     visible: (p: ReturnType<typeof usePermissions>) => p.canManageUsers,
   },
-];
+] as const;
+
+function getStatValue(statsData: DashboardStatsResponse | null, key: (typeof stats)[number]["key"]) {
+  if (!statsData) return "0";
+  if (key === "toolsTotal") return String(statsData.tools.total ?? 0);
+  if (key === "categoriesTotal") return String(statsData.categories.total ?? 0);
+  return String(statsData.users.total ?? 0);
+}
 
 export function DashboardSummary() {
   const permissions = usePermissions();
   const visibleStats = stats.filter((stat) => stat.visible(permissions));
   const user = permissions.user;
+  const [statsData, setStatsData] = useState<DashboardStatsResponse | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchDashboardStats()
+      .then((data) => {
+        setStatsData(data);
+        setError(null);
+      })
+      .catch((err: ApiError) => setError(err.message || "Failed to load dashboard stats."));
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -43,11 +63,27 @@ export function DashboardSummary() {
                 <p className="text-sm font-medium text-muted-foreground">{stat.label}</p>
                 <Icon className="h-4 w-4 text-muted-foreground" />
               </div>
-              <p className="mt-3 text-3xl font-semibold">{stat.value}</p>
+              <p className="mt-3 text-3xl font-semibold">{getStatValue(statsData, stat.key)}</p>
+              {stat.key === "toolsTotal" ? (
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Published {statsData?.tools.published ?? 0} · Draft {statsData?.tools.draft ?? 0}
+                </p>
+              ) : null}
+              {stat.key === "usersTotal" ? (
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Active {statsData?.users.active ?? 0}
+                </p>
+              ) : null}
             </div>
           );
         })}
       </div>
+
+      {error ? (
+        <div className="rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
+          {error}
+        </div>
+      ) : null}
 
       <div className="rounded-lg border bg-card p-6 text-card-foreground shadow-sm">
         <h2 className="text-sm font-medium">RBAC session</h2>

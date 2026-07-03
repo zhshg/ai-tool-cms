@@ -16,14 +16,17 @@ import { breadcrumbLabels } from "@/lib/nav";
 export function AppBreadcrumb() {
   const pathname = usePathname();
   const segments = pathname === "/" ? [] : pathname.split("/").filter(Boolean);
+  const normalizedSegments = segments[0] === "admin" ? segments.slice(1) : segments;
 
   const crumbs = [
     { href: "/", label: breadcrumbLabels[""] ?? "Dashboard" },
-    ...segments.map((segment, index) => {
-      const href = `/${segments.slice(0, index + 1).join("/")}`;
+    ...normalizedSegments.map((segment, index) => {
+      const href = `/${normalizedSegments.slice(0, index + 1).join("/")}`;
+      const parentSegment = index > 0 ? normalizedSegments[index - 1] : "";
+      const isToolDetail = parentSegment === "tools" && !breadcrumbLabels[segment];
       return {
         href,
-        label: breadcrumbLabels[segment] ?? segment,
+        label: isToolDetail ? "Tool Detail" : (breadcrumbLabels[segment] ?? segment),
       };
     }),
   ];

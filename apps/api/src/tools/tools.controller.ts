@@ -3,6 +3,13 @@ import { ApiOperation, ApiTags } from "@nestjs/swagger";
 import { PermissionCode } from "@ai-tool-cms/auth";
 import { CurrentUser, RequirePermission, type RequestUser } from "../common/decorators";
 import { PaginationQueryDto } from "../common/dto/pagination.dto";
+import {
+  BulkLogoRefreshDto,
+  BulkPublishToolsDto,
+  BulkUpdateToolsDto,
+  ImportExecuteDto,
+  ImportPreviewDto,
+} from "./dto/content-ops.dto";
 import { CreateToolDto, UpdateToolDto } from "./dto/tool.dto";
 import { CreateToolVersionDto, UpdateToolVersionDto } from "./dto/tool-version.dto";
 import { ToolVersionsService } from "./tool-versions.service";
@@ -90,6 +97,41 @@ export class ToolsController {
   @ApiOperation({ summary: "Create tool" })
   create(@Body() dto: CreateToolDto, @CurrentUser() user: RequestUser) {
     return this.toolsService.create(dto, user.id);
+  }
+
+  @Post("import/preview")
+  @RequirePermission(PermissionCode.ToolCreate)
+  @ApiOperation({ summary: "Preview tool import payload" })
+  previewImport(@Body() dto: ImportPreviewDto) {
+    return this.toolsService.previewImport(dto);
+  }
+
+  @Post("import/execute")
+  @RequirePermission(PermissionCode.ToolCreate)
+  @ApiOperation({ summary: "Execute tool import payload" })
+  executeImport(@Body() dto: ImportExecuteDto, @CurrentUser() user: RequestUser) {
+    return this.toolsService.executeImport(dto, user.id);
+  }
+
+  @Post("bulk/update")
+  @RequirePermission(PermissionCode.ToolUpdate)
+  @ApiOperation({ summary: "Bulk update tools" })
+  bulkUpdate(@Body() dto: BulkUpdateToolsDto, @CurrentUser() user: RequestUser) {
+    return this.toolsService.bulkUpdate(dto, user.id);
+  }
+
+  @Post("bulk/publish")
+  @RequirePermission(PermissionCode.ToolUpdate)
+  @ApiOperation({ summary: "Bulk publish tools" })
+  bulkPublish(@Body() dto: BulkPublishToolsDto, @CurrentUser() user: RequestUser) {
+    return this.toolsService.bulkPublish(dto.toolIds, user.id);
+  }
+
+  @Post("bulk/logo-refresh")
+  @RequirePermission(PermissionCode.ToolUpdate)
+  @ApiOperation({ summary: "Bulk refresh tool logos" })
+  bulkLogoRefresh(@Body() dto: BulkLogoRefreshDto) {
+    return this.toolsService.bulkRefreshLogos(dto.toolIds, dto.force ?? true);
   }
 
   @Put(":id")
