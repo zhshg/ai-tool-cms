@@ -603,6 +603,79 @@ export type CrawlSource = {
   nextRunAt?: string | null;
 };
 
+export type MonetizationDashboardResponse = {
+  generatedAt: string;
+  period: string;
+  metrics: {
+    affiliatePrograms: number;
+    affiliateLinks: number;
+    activeAffiliateLinks: number;
+    featuredTools: number;
+    sponsoredTools: number;
+    activeSponsored: number;
+    bannerAds: number;
+    activeBannerAds: number;
+    pricingPlans: number;
+    coupons: number;
+    referrals: number;
+    clicks: number;
+    conversions: number;
+    invoices: number;
+    revenue: number;
+  };
+  revenue: RevenueOverviewResponse;
+  topAffiliateLinks: Array<{
+    id: string;
+    tool: { id: string; name: string; slug: string };
+    network: string;
+    status: string;
+    clicks: number;
+    conversions: number;
+    revenue: number;
+  }>;
+  sponsoredPlacements: Array<{
+    id: string;
+    type: string;
+    status: string;
+    weight: number;
+    startAt?: string | null;
+    endAt?: string | null;
+    tool: { id: string; name: string; slug: string };
+  }>;
+  adSlots: Array<{
+    id: string;
+    slug: string;
+    name: string;
+    network: string;
+    position: string;
+    status: string;
+  }>;
+  pricingPlans: Array<{
+    id: string;
+    name: string;
+    slug: string;
+    amount: number;
+    billingPeriod?: string | null;
+    currency: string;
+    tool: { id: string; name: string; slug: string };
+  }>;
+  unsupported: Record<string, string>;
+};
+
+export type RevenueOverviewResponse = {
+  total: number;
+  weekly: number;
+  monthly: number;
+  bySource: Record<string, number>;
+};
+
+export function fetchMonetizationDashboard() {
+  return apiFetch<MonetizationDashboardResponse>("/monetization/dashboard");
+}
+
+export function fetchRevenueOverview() {
+  return apiFetch<RevenueOverviewResponse>("/revenue/overview");
+}
 export function fetchSeoDashboard() {
   return apiFetch<SeoDashboardResponse>("/seo/dashboard");
 }
