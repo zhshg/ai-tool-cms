@@ -1,4 +1,4 @@
-import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
+﻿import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import { PricingModel, ToolStatus } from "@ai-tool-cms/database";
 import { Type } from "class-transformer";
 import {
@@ -30,6 +30,16 @@ export class ToolMetadataDto {
   @IsArray()
   @IsString({ each: true })
   screenshots?: string[];
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  canonicalUrl?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  openGraphImageUrl?: string;
 
   @ApiPropertyOptional()
   @IsOptional()
