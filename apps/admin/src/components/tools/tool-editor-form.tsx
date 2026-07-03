@@ -1,9 +1,10 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
+import type { ChangeEvent } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Search, X } from "lucide-react";
+import { ImagePlus, LoaderCircle, Search, Upload, X } from "lucide-react";
 import { ToolLogo } from "@/components/tools/tool-logo";
 import {
   createTool,
@@ -11,6 +12,7 @@ import {
   fetchTags,
   fetchToolById,
   getApiErrorMessage,
+  uploadToolAsset,
   updateTool,
   type AdminCategory,
   type ApiError,
@@ -70,6 +72,8 @@ export function ToolEditorForm({ mode, toolId }: ToolEditorFormProps) {
   const [message, setMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+  const [isUploadingScreenshot, setIsUploadingScreenshot] = useState(false);
 
   const primaryCategories = useMemo(
     () => categories.filter((category) => !category.parentId),
@@ -230,6 +234,51 @@ export function ToolEditorForm({ mode, toolId }: ToolEditorFormProps) {
     }
   }
 
+  async function handleLogoUpload(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+
+    if (!file) {
+      return;
+    }
+
+    setIsUploadingLogo(true);
+    setError(null);
+
+    try {
+      const asset = await uploadToolAsset(file, "logo");
+      setForm((current) => ({ ...current, logoUrl: asset.url }));
+    } catch (err) {
+      setError(err as ApiError);
+    } finally {
+      setIsUploadingLogo(false);
+    }
+  }
+
+  async function handleScreenshotUpload(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+
+    if (!file) {
+      return;
+    }
+
+    setIsUploadingScreenshot(true);
+    setError(null);
+
+    try {
+      const asset = await uploadToolAsset(file, "screenshot");
+      setForm((current) => ({
+        ...current,
+        screenshots: [...current.screenshots, asset.url],
+      }));
+    } catch (err) {
+      setError(err as ApiError);
+    } finally {
+      setIsUploadingScreenshot(false);
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap gap-3">
@@ -341,14 +390,36 @@ export function ToolEditorForm({ mode, toolId }: ToolEditorFormProps) {
 
                 <label className="space-y-2 text-sm">
                   <span className="font-medium">Logo URL</span>
-                  <input
-                    className="w-full rounded-md border bg-background px-3 py-2"
-                    value={form.logoUrl}
-                    onChange={(event) => {
-                      setError(null);
-                      setForm((current) => ({ ...current, logoUrl: event.target.value }));
-                    }}
-                  />
+                  <div className="space-y-2">
+                    <input
+                      className="w-full rounded-md border bg-background px-3 py-2"
+                      value={form.logoUrl}
+                      onChange={(event) => {
+                        setError(null);
+                        setForm((current) => ({ ...current, logoUrl: event.target.value }));
+                      }}
+                    />
+                    <div className="flex flex-wrap items-center gap-2">
+                      <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm hover:bg-muted">
+                        {isUploadingLogo ? (
+                          <LoaderCircle className="size-4 animate-spin" />
+                        ) : (
+                          <Upload className="size-4" />
+                        )}
+                        <span>{isUploadingLogo ? "Uploading..." : "Upload logo"}</span>
+                        <input
+                          type="file"
+                          accept="image/png,image/jpeg,image/webp,image/svg+xml,image/x-icon,image/vnd.microsoft.icon"
+                          className="hidden"
+                          onChange={(event) => void handleLogoUpload(event)}
+                          disabled={isUploadingLogo}
+                        />
+                      </label>
+                      <span className="text-xs text-muted-foreground">
+                        You can upload an image or keep using a direct URL.
+                      </span>
+                    </div>
+                  </div>
                 </label>
 
                 <label className="space-y-2 text-sm">
@@ -415,7 +486,24 @@ export function ToolEditorForm({ mode, toolId }: ToolEditorFormProps) {
                   />
                   <div className="text-sm text-muted-foreground">
                     <p>Fallback order:</p>
-                    <p>`Tool.logo` → collected logo → initials → category icon → AI icon</p>
+                    <p>`Tool.logo` to collected logo to initials to category icon to AI icon</p>
+                    <div className="mt-3">
+                      <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm hover:bg-muted">
+                        {isUploadingLogo ? (
+                          <LoaderCircle className="size-4 animate-spin" />
+                        ) : (
+                          <ImagePlus className="size-4" />
+                        )}
+                        <span>{isUploadingLogo ? "Uploading..." : "Upload from device"}</span>
+                        <input
+                          type="file"
+                          accept="image/png,image/jpeg,image/webp,image/svg+xml,image/x-icon,image/vnd.microsoft.icon"
+                          className="hidden"
+                          onChange={(event) => void handleLogoUpload(event)}
+                          disabled={isUploadingLogo}
+                        />
+                      </label>
+                    </div>
                   </div>
                 </div>
               </aside>
@@ -564,6 +652,8 @@ export function ToolEditorForm({ mode, toolId }: ToolEditorFormProps) {
                 items={form.screenshots}
                 placeholder="https://example.com/screenshot.png"
                 onChange={(items) => setForm((current) => ({ ...current, screenshots: items }))}
+                onUpload={handleScreenshotUpload}
+                isUploading={isUploadingScreenshot}
               />
 
               <EditableFaqSection
@@ -586,12 +676,16 @@ function EditableStringListSection({
   items,
   placeholder,
   onChange,
+  onUpload,
+  isUploading = false,
 }: {
   title: string;
   description: string;
   items: string[];
   placeholder: string;
   onChange: (items: string[]) => void;
+  onUpload?: (event: ChangeEvent<HTMLInputElement>) => Promise<void> | void;
+  isUploading?: boolean;
 }) {
   function updateItem(index: number, value: string) {
     onChange(items.map((item, itemIndex) => (itemIndex === index ? value : item)));
@@ -652,6 +746,24 @@ function EditableStringListSection({
         >
           Add item
         </button>
+
+        {onUpload ? (
+          <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm hover:bg-muted">
+            {isUploading ? (
+              <LoaderCircle className="size-4 animate-spin" />
+            ) : (
+              <Upload className="size-4" />
+            )}
+            <span>{isUploading ? "Uploading..." : `Upload ${title}`}</span>
+            <input
+              type="file"
+              accept="image/png,image/jpeg,image/webp,image/svg+xml,image/x-icon,image/vnd.microsoft.icon"
+              className="hidden"
+              onChange={(event) => void onUpload(event)}
+              disabled={isUploading}
+            />
+          </label>
+        ) : null}
       </div>
     </div>
   );
@@ -736,3 +848,4 @@ function normalizeStringList(value: unknown) {
 function resolveString(value: unknown) {
   return typeof value === "string" ? value : "";
 }
+

@@ -1,6 +1,19 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, Query } from "@nestjs/common";
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Put,
+  Query,
+  UploadedFile,
+  UseInterceptors,
+} from "@nestjs/common";
 import { ApiOperation, ApiTags } from "@nestjs/swagger";
 import { PermissionCode } from "@ai-tool-cms/auth";
+import { FileInterceptor } from "@nestjs/platform-express";
 import { CurrentUser, RequirePermission, type RequestUser } from "../common/decorators";
 import { PaginationQueryDto } from "../common/dto/pagination.dto";
 import {
@@ -12,6 +25,7 @@ import {
 } from "./dto/content-ops.dto";
 import { CreateToolDto, UpdateToolDto } from "./dto/tool.dto";
 import { CreateToolVersionDto, UpdateToolVersionDto } from "./dto/tool-version.dto";
+import { ToolAssetsService } from "./tool-assets.service";
 import { ToolVersionsService } from "./tool-versions.service";
 import { ToolsService } from "./tools.service";
 
@@ -21,6 +35,7 @@ export class ToolsController {
   constructor(
     private readonly toolsService: ToolsService,
     private readonly toolVersionsService: ToolVersionsService,
+    private readonly toolAssetsService: ToolAssetsService,
   ) {}
 
   @Get()
@@ -132,6 +147,29 @@ export class ToolsController {
   @ApiOperation({ summary: "Bulk refresh tool logos" })
   bulkLogoRefresh(@Body() dto: BulkLogoRefreshDto) {
     return this.toolsService.bulkRefreshLogos(dto.toolIds, dto.force ?? true);
+  }
+
+  @Post("assets/upload")
+  @RequirePermission(PermissionCode.ToolUpdate)
+  @UseInterceptors(FileInterceptor("file"))
+  @ApiOperation({ summary: "Upload tool logo or screenshot asset" })
+  uploadAsset(
+    @UploadedFile()
+    file:
+      | {
+          buffer: Buffer;
+          mimetype: string;
+          size: number;
+          originalname: string;
+        }
+      | undefined,
+    @Query("kind") kind: string | undefined,
+  ) {
+    if (kind !== "logo" && kind !== "screenshot") {
+      throw new BadRequestException("Upload kind must be logo or screenshot.");
+    }
+
+    return this.toolAssetsService.uploadAsset(file, kind);
   }
 
   @Put(":id")

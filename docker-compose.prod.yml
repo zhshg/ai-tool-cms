@@ -197,6 +197,8 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
+    volumes:
+      - ./storage:/app/storage
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--spider", "http://127.0.0.1:4000/v1/health/ready"]
       interval: 15s
@@ -247,6 +249,8 @@ services:
     depends_on:
       api:
         condition: service_healthy
+    volumes:
+      - ./storage:/app/storage
     healthcheck:
       test: ["CMD", "node", "-e", "process.exit(0)"]
       interval: 30s
@@ -338,6 +342,8 @@ services:
     depends_on:
       api:
         condition: service_healthy
+    volumes:
+      - ./storage:/app/storage
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--spider", "http://127.0.0.1:3000"]
       interval: 15s

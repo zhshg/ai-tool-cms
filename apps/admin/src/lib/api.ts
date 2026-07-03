@@ -591,6 +591,54 @@ export function refreshToolLogo(toolId: string, force = true) {
   });
 }
 
+export async function uploadToolAsset(file: File, kind: "logo" | "screenshot") {
+  const token =
+    typeof window !== "undefined" ? window.localStorage.getItem(ACCESS_TOKEN_KEY) : null;
+
+  if (!token) {
+    redirectToAdminLogin();
+    throw {
+      status: 401,
+      message: "Missing authentication token.",
+    } satisfies ApiError;
+  }
+
+  const body = new FormData();
+  body.append("file", file);
+
+  let res: Response;
+  try {
+    res = await fetch(`${getApiBase()}/tools/assets/upload?kind=${encodeURIComponent(kind)}`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body,
+    });
+  } catch {
+    throw {
+      status: 0,
+      message: "Failed to fetch",
+    } satisfies ApiError;
+  }
+
+  if (!res.ok) {
+    if (res.status === 401) {
+      clearAdminTokens();
+      redirectToAdminLogin();
+    }
+
+    throw await readApiError(res);
+  }
+
+  return (await res.json()) as {
+    url: string;
+    filename: string;
+    mimeType: string;
+    size: number;
+  };
+}
+
 export function fetchCategories() {
   return apiFetch<PaginatedResponse<AdminCategory>>("/categories?pageSize=50");
 }
