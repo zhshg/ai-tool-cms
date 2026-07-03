@@ -1,6 +1,6 @@
 import { ConflictException, Injectable, NotFoundException } from "@nestjs/common";
 import type { Prisma } from "@ai-tool-cms/database";
-import { ToolStatus } from "@ai-tool-cms/database";
+import { PricingModel, ToolStatus } from "@ai-tool-cms/database";
 import { slugify } from "@ai-tool-cms/common";
 import { startAiPipeline } from "@ai-tool-cms/ai";
 import { emitWebhookEvent } from "@ai-tool-cms/api-platform";
@@ -227,6 +227,7 @@ export class ToolsService {
             !record.description ? "Missing description" : null,
             !record.logoUrl ? "Missing logo" : null,
             !record.categorySlugs?.length ? "Missing categories" : null,
+            !record.pricingModel ? "Missing or invalid pricing" : null,
           ].filter(Boolean),
         };
       }),
@@ -273,6 +274,10 @@ export class ToolsService {
           description: record.description,
           logoUrl: record.logoUrl,
           pricingModel: record.pricingModel,
+          metadata: {
+            languages: record.languages,
+            platforms: record.platforms,
+          },
           status: record.status ?? dto.defaultStatus ?? ToolStatus.DRAFT,
           categoryIds,
           tagIds,
@@ -426,19 +431,36 @@ export class ToolsService {
       summary: String(record.summary ?? "").trim() || undefined,
       description: String(record.description ?? "").trim() || undefined,
       logoUrl: String(record.logoUrl ?? record.logo ?? "").trim() || undefined,
-      pricingModel:
-        typeof record.pricingModel === "string" && record.pricingModel
-          ? (record.pricingModel as CreateToolDto["pricingModel"])
-          : undefined,
+      pricingModel: this.normalizePricingModel(record.pricingModel ?? record.pricing),
       status:
         typeof record.status === "string" && record.status
           ? (record.status as CreateToolDto["status"])
           : undefined,
-      categorySlugs: this.normalizeStringArray(record.categorySlugs ?? record.categories),
+      categorySlugs: this.normalizeStringArray(
+        record.categorySlugs ?? record.categories ?? record.category,
+      ),
       tagSlugs: this.normalizeStringArray(record.tagSlugs ?? record.tags),
+      languages: this.normalizeStringArray(record.languages ?? record.language),
+      platforms: this.normalizeStringArray(record.platforms ?? record.platform),
     };
   }
 
+  private normalizePricingModel(value: unknown) {
+    if (typeof value !== "string" || !value.trim()) return undefined;
+    const normalized = value
+      .trim()
+      .toUpperCase()
+      .replace(/[\s-]+/g, "_");
+    const aliases: Record<string, PricingModel> = {
+      FREE: PricingModel.FREE,
+      FREEMIUM: PricingModel.FREEMIUM,
+      PAID: PricingModel.PAID,
+      CONTACT: PricingModel.CONTACT,
+      CONTACT_US: PricingModel.CONTACT,
+      CONTACT_SALES: PricingModel.CONTACT,
+    };
+    return aliases[normalized];
+  }
   private normalizeStringArray(value: unknown) {
     if (Array.isArray(value)) {
       return value.map((item) => String(item).trim()).filter(Boolean);

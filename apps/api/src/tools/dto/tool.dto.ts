@@ -23,6 +23,12 @@ export class ToolMetadataDto {
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
+  languages?: string[];
+
+  @ApiPropertyOptional({ type: [String] })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
   platforms?: string[];
 
   @ApiPropertyOptional({ type: [String] })

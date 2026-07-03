@@ -13,6 +13,7 @@ import {
   Search,
   Settings,
   Sparkles,
+  UploadCloud,
   Users,
   Wrench,
   type LucideIcon,
@@ -45,6 +46,12 @@ export const navItems: NavItem[] = [
     href: "/categories",
     icon: FolderTree,
     permission: Permission.CategoriesRead,
+  },
+  {
+    title: "Import Center",
+    href: "/import",
+    icon: UploadCloud,
+    permission: Permission.ToolsCreate,
   },
   {
     title: "Crawler",
@@ -142,6 +149,7 @@ export const breadcrumbLabels: Record<string, string> = {
   "": "Dashboard",
   tools: "Tools",
   categories: "Categories",
+  import: "Import Center",
   crawler: "Crawler",
   "ai-review": "AI Review",
   seo: "SEO",
