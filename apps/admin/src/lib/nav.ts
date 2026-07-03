@@ -8,6 +8,7 @@ import {
   Globe,
   Handshake,
   Languages,
+  Layers3,
   LayoutDashboard,
   Megaphone,
   Search,
@@ -46,6 +47,12 @@ export const navItems: NavItem[] = [
     href: "/categories",
     icon: FolderTree,
     permission: Permission.CategoriesRead,
+  },
+  {
+    title: "Collections",
+    href: "/collections",
+    icon: Layers3,
+    permission: Permission.SeoRead,
   },
   {
     title: "Import Center",
@@ -149,6 +156,7 @@ export const breadcrumbLabels: Record<string, string> = {
   "": "Dashboard",
   tools: "Tools",
   categories: "Categories",
+  collections: "Collections",
   import: "Import Center",
   crawler: "Crawler",
   "ai-review": "AI Review",

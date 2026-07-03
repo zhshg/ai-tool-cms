@@ -30,6 +30,7 @@ import { PlatformBootstrapService } from "./platform-bootstrap.service";
 import { UsersModule } from "./users/users.module";
 import { SettingsModule } from "./settings/settings.module";
 import { OperationsModule } from "./operations/operations.module";
+import { CollectionsModule } from "./collections/collections.module";
 
 @Module({
   imports: [
@@ -71,6 +72,7 @@ import { OperationsModule } from "./operations/operations.module";
     UsersModule,
     SettingsModule,
     OperationsModule,
+    CollectionsModule,
   ],
   providers: [
     PlatformBootstrapService,

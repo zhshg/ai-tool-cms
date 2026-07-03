@@ -350,6 +350,35 @@ export type AdminCategory = {
   updatedAt: string;
 };
 
+export type AdminCollection = {
+  id: string;
+  slug: string;
+  name: string;
+  description?: string | null;
+  isPublic: boolean;
+  metadata?: {
+    featured?: boolean;
+    metaTitle?: string;
+    metaDescription?: string;
+    heroIntro?: string;
+    seoSummary?: string;
+  } | null;
+  createdAt: string;
+  updatedAt: string;
+  items?: Array<{
+    id: string;
+    sortOrder: number;
+    note?: string | null;
+    tool: {
+      id: string;
+      slug: string;
+      name: string;
+      summary?: string | null;
+      pricingModel?: string;
+      logoUrl?: string | null;
+    };
+  }>;
+};
 export type AdminUser = {
   id: string;
   email: string;
@@ -713,6 +742,33 @@ export function fetchTags() {
   );
 }
 
+export function fetchCollections() {
+  return apiFetch<PaginatedResponse<AdminCollection>>("/collections?pageSize=50");
+}
+
+export function fetchCollectionById(id: string) {
+  return apiFetch<AdminCollection>(`/collections/${id}`);
+}
+
+export function createCollection(payload: Record<string, unknown>) {
+  return apiFetch<AdminCollection>("/collections", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function updateCollection(id: string, payload: Record<string, unknown>) {
+  return apiFetch<AdminCollection>(`/collections/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function deleteCollection(id: string) {
+  return apiFetch<{ id: string }>(`/collections/${id}`, {
+    method: "DELETE",
+  });
+}
 export function fetchUsers() {
   return apiFetch<PaginatedResponse<AdminUser>>("/users?pageSize=50");
 }
