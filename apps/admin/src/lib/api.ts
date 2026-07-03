@@ -42,8 +42,13 @@ export function getApiBase(): string {
 }
 
 export function getAdminBasePath(): string {
+  const configuredBasePath = (process.env.NEXT_PUBLIC_ADMIN_BASE_PATH || "").trim();
+  if (configuredBasePath) {
+    return configuredBasePath.startsWith("/") ? configuredBasePath : `/${configuredBasePath}`;
+  }
+
   if (typeof window === "undefined") {
-    return "";
+    return "/admin";
   }
 
   const segments = window.location.pathname.split("/").filter(Boolean);
@@ -51,10 +56,20 @@ export function getAdminBasePath(): string {
 }
 
 export function getAdminDashboardPath(): string {
-  return "/";
+  const basePath = getAdminBasePath();
+  return basePath || "/";
 }
 
 export function getAdminLoginPath(): string {
+  const basePath = getAdminBasePath();
+  return `${basePath || ""}/login`;
+}
+
+export function getAdminRouterDashboardPath(): string {
+  return "/";
+}
+
+export function getAdminRouterLoginPath(): string {
   return "/login";
 }
 
@@ -262,7 +277,9 @@ export type AdminTool = {
   pricingModel: string;
   createdAt: string;
   updatedAt: string;
+  completenessScore?: number;
   categories?: Array<{ category: { id: string; name: string; slug: string } }>;
+  tags?: Array<{ tag: { id: string; name: string; slug: string } }>;
 };
 
 export type AdminCategory = {
@@ -271,6 +288,9 @@ export type AdminCategory = {
   slug: string;
   description?: string | null;
   sortOrder: number;
+  iconUrl?: string | null;
+  metaTitle?: string | null;
+  metaDescription?: string | null;
   parentId?: string | null;
   createdAt: string;
   updatedAt: string;
@@ -293,6 +313,21 @@ export type UsersSummary = {
   inactive: number;
   suspended: number;
   roles: number;
+};
+
+export type DashboardStatsResponse = {
+  tools: {
+    total: number;
+    published: number;
+    draft: number;
+  };
+  categories: {
+    total: number;
+  };
+  users: {
+    total: number;
+    active: number;
+  };
 };
 
 export type AdminSetting = {
@@ -320,6 +355,28 @@ export type AiRevision = {
   reviewNote?: string | null;
   createdAt: string;
   tool?: { id: string; name: string; slug: string };
+};
+
+export type ImportPreviewResponse = {
+  format: "csv" | "json";
+  total: number;
+  records: Array<{
+    index: number;
+    name: string;
+    slug: string;
+    website: string;
+    existing?: { id: string; slug: string; website: string; name: string } | null;
+    warnings: string[];
+  }>;
+  readyToImport: number;
+  duplicates: number;
+};
+
+export type ImportExecuteResponse = {
+  importedCount: number;
+  skippedCount: number;
+  imported: Array<{ id: string; name: string; slug: string }>;
+  skipped: Array<{ name: string; slug: string; reason: string }>;
 };
 
 export type CrawlerDashboard = {
@@ -399,6 +456,72 @@ export function fetchTools() {
   return apiFetch<PaginatedResponse<AdminTool>>("/tools?pageSize=50");
 }
 
+export function fetchToolById(id: string) {
+  return apiFetch<AdminTool & Record<string, unknown>>(`/tools/${id}`);
+}
+
+export function createTool(payload: Record<string, unknown>) {
+  return apiFetch<AdminTool>("/tools", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function updateTool(id: string, payload: Record<string, unknown>) {
+  return apiFetch<AdminTool>(`/tools/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function deleteTool(id: string) {
+  return apiFetch<{ id: string }>(`/tools/${id}`, {
+    method: "DELETE",
+  });
+}
+
+export function previewToolImport(format: "csv" | "json", content: string) {
+  return apiFetch<ImportPreviewResponse>("/tools/import/preview", {
+    method: "POST",
+    body: JSON.stringify({ format, content }),
+  });
+}
+
+export function executeToolImport(format: "csv" | "json", content: string, defaultStatus?: string) {
+  return apiFetch<ImportExecuteResponse>("/tools/import/execute", {
+    method: "POST",
+    body: JSON.stringify({ format, content, defaultStatus }),
+  });
+}
+
+export function bulkUpdateTools(payload: {
+  toolIds: string[];
+  status?: string;
+  pricingModel?: string;
+  categoryIds?: string[];
+  tagIds?: string[];
+  metadata?: Record<string, unknown>;
+}) {
+  return apiFetch<{ updated: number }>("/tools/bulk/update", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function bulkPublishTools(toolIds: string[]) {
+  return apiFetch<{ published: number }>("/tools/bulk/publish", {
+    method: "POST",
+    body: JSON.stringify({ toolIds }),
+  });
+}
+
+export function bulkRefreshToolLogos(toolIds: string[], force = true) {
+  return apiFetch<{ queued: number; jobIds: string[] }>("/tools/bulk/logo-refresh", {
+    method: "POST",
+    body: JSON.stringify({ toolIds, force }),
+  });
+}
+
 export function refreshToolLogo(toolId: string, force = true) {
   return apiFetch<{ jobId: string }>(`/automation/logos/${toolId}`, {
     method: "POST",
@@ -410,12 +533,65 @@ export function fetchCategories() {
   return apiFetch<PaginatedResponse<AdminCategory>>("/categories?pageSize=50");
 }
 
+export function fetchCategoryById(id: string) {
+  return apiFetch<AdminCategory>(`/categories/${id}`);
+}
+
+export function createCategory(payload: Record<string, unknown>) {
+  return apiFetch<AdminCategory>("/categories", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function updateCategory(id: string, payload: Record<string, unknown>) {
+  return apiFetch<AdminCategory>(`/categories/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function deleteCategory(id: string) {
+  return apiFetch<{ id: string }>(`/categories/${id}`, {
+    method: "DELETE",
+  });
+}
+
+export function fetchTags() {
+  return apiFetch<PaginatedResponse<{ id: string; name: string; slug: string }>>(
+    "/tags?pageSize=100",
+  );
+}
+
 export function fetchUsers() {
   return apiFetch<PaginatedResponse<AdminUser>>("/users?pageSize=50");
 }
 
 export function fetchUsersSummary() {
   return apiFetch<UsersSummary>("/users/summary");
+}
+
+export async function fetchDashboardStats(): Promise<DashboardStatsResponse> {
+  const [tools, categories, users] = await Promise.all([
+    fetchTools(),
+    fetchCategories(),
+    fetchUsersSummary(),
+  ]);
+
+  return {
+    tools: {
+      total: tools.total ?? 0,
+      published: tools.items.filter((tool) => tool.status === "PUBLISHED").length,
+      draft: tools.items.filter((tool) => tool.status === "DRAFT").length,
+    },
+    categories: {
+      total: categories.total ?? 0,
+    },
+    users: {
+      total: users.total ?? 0,
+      active: users.active ?? 0,
+    },
+  };
 }
 
 export function fetchSettings() {
@@ -430,6 +606,26 @@ export function fetchAiRevisions(status: string) {
   return apiFetch<PaginatedResponse<AiRevision>>(
     `/ai/revisions?status=${encodeURIComponent(status)}&pageSize=50`,
   );
+}
+
+export function approveAiRevision(id: string, reviewNote?: string) {
+  return apiFetch<AiRevision>(`/ai/revisions/${id}/approve`, {
+    method: "POST",
+    body: JSON.stringify({ reviewNote }),
+  });
+}
+
+export function rejectAiRevision(id: string, reviewNote?: string) {
+  return apiFetch<AiRevision>(`/ai/revisions/${id}/reject`, {
+    method: "POST",
+    body: JSON.stringify({ reviewNote }),
+  });
+}
+
+export function regenerateAiTool(toolId: string) {
+  return apiFetch<{ toolId: string }>(`/ai/tools/${toolId}/regenerate`, {
+    method: "POST",
+  });
 }
 
 export function fetchCrawlerDashboard() {

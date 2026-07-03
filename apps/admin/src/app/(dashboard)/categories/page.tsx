@@ -1,31 +1,72 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { PageHeader } from "@/components/layout/page-header";
 import { RequirePermission } from "@/components/rbac/require-permission";
-import { fetchCategories, getApiErrorMessage, type AdminCategory, type ApiError } from "@/lib/api";
+import {
+  deleteCategory,
+  fetchCategories,
+  getApiErrorMessage,
+  type AdminCategory,
+  type ApiError,
+} from "@/lib/api";
 import { Permission } from "@/lib/permissions";
 
 export default function CategoriesPage() {
+  const searchParams = useSearchParams();
   const [items, setItems] = useState<AdminCategory[]>([]);
   const [total, setTotal] = useState(0);
   const [error, setError] = useState<ApiError | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  const rootCategories = useMemo(() => items.filter((category) => !category.parentId), [items]);
+
+  async function loadCategories() {
+    setIsLoading(true);
+    try {
+      const data = await fetchCategories();
+      setItems(data.items);
+      setTotal(data.total);
+      setError(null);
+    } catch (err) {
+      setError(err as ApiError);
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
   useEffect(() => {
-    fetchCategories()
-      .then((data) => {
-        setItems(data.items);
-        setTotal(data.total);
-      })
-      .catch((err: ApiError) => setError(err))
-      .finally(() => setIsLoading(false));
+    void loadCategories();
   }, []);
+  useEffect(() => {
+    if (searchParams.get("success") === "1") {
+      setMessage("Category changes saved successfully.");
+    }
+  }, [searchParams]);
+
+  async function handleDelete(category: AdminCategory) {
+    const confirmed = window.confirm(`Delete category "${category.name}"?`);
+    if (!confirmed) return;
+
+    try {
+      await deleteCategory(category.id);
+      setMessage(`Category "${category.name}" deleted.`);
+      await loadCategories();
+    } catch (err) {
+      setError(err as ApiError);
+    }
+  }
 
   return (
     <RequirePermission permission={Permission.CategoriesRead}>
       <div>
-        <PageHeader title="Categories" description="Manage taxonomy categories." />
+        <PageHeader
+          title="Categories"
+          description="Create, edit, and manage taxonomy categories."
+        />
 
         <div className="mb-4 grid gap-4 md:grid-cols-3">
           <div className="rounded-lg border bg-card p-4 text-card-foreground shadow-sm">
@@ -34,9 +75,7 @@ export default function CategoriesPage() {
           </div>
           <div className="rounded-lg border bg-card p-4 text-card-foreground shadow-sm">
             <p className="text-sm text-muted-foreground">Root categories</p>
-            <p className="mt-2 text-2xl font-semibold">
-              {items.filter((category) => !category.parentId).length}
-            </p>
+            <p className="mt-2 text-2xl font-semibold">{rootCategories.length}</p>
           </div>
           <div className="rounded-lg border bg-card p-4 text-card-foreground shadow-sm">
             <p className="text-sm text-muted-foreground">Child categories</p>
@@ -46,7 +85,19 @@ export default function CategoriesPage() {
           </div>
         </div>
 
+        <div className="mb-6 flex justify-end">
+          <Link
+            href="/categories/new"
+            className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
+          >
+            New Category
+          </Link>
+        </div>
+
         <div className="overflow-hidden rounded-lg border bg-card text-card-foreground shadow-sm">
+          {message ? (
+            <p className="border-b bg-emerald-50 px-6 py-3 text-sm text-emerald-700">{message}</p>
+          ) : null}
           {isLoading ? (
             <p className="p-6 text-sm text-muted-foreground">Loading categories...</p>
           ) : null}
@@ -66,6 +117,7 @@ export default function CategoriesPage() {
                   <th className="px-4 py-3 font-medium">Slug</th>
                   <th className="px-4 py-3 font-medium">Sort</th>
                   <th className="px-4 py-3 font-medium">Description</th>
+                  <th className="px-4 py-3 font-medium">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -76,6 +128,23 @@ export default function CategoriesPage() {
                     <td className="px-4 py-3">{category.sortOrder}</td>
                     <td className="px-4 py-3 text-muted-foreground">
                       {category.description || "None"}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex gap-2">
+                        <Link
+                          href={`/categories/${category.id}/edit`}
+                          className="rounded-md border px-3 py-2 text-xs font-medium hover:bg-muted"
+                        >
+                          Edit
+                        </Link>
+                        <button
+                          type="button"
+                          className="rounded-md border px-3 py-2 text-xs font-medium hover:bg-muted"
+                          onClick={() => void handleDelete(category)}
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
