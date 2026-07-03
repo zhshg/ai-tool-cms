@@ -1,4 +1,4 @@
-﻿import { prisma, PricingModel, ToolStatus } from "@ai-tool-cms/database";
+import { prisma, PricingModel, ToolStatus } from "@ai-tool-cms/database";
 import type { ComparePageSpec } from "@ai-tool-cms/seo";
 import {
   buildMetadata,
@@ -50,6 +50,12 @@ export type CatalogSearchTool = CatalogTool & {
   id: string;
   website?: string;
   pricingModel?: string;
+  platforms: string[];
+  languages: string[];
+  hasApi?: boolean;
+  isFree?: boolean;
+  isOpenSource?: boolean;
+  reviewScore?: number;
   categorySlugs: string[];
   categoryNames: string[];
   tagSlugs: string[];
@@ -67,6 +73,12 @@ export type CatalogSearchResult = {
   category?: string;
   pricing?: string;
   tag?: string;
+  platform?: string;
+  language?: string;
+  api?: boolean;
+  free?: boolean;
+  openSource?: boolean;
+  sort?: string;
   degraded?: boolean;
   error?: string | null;
 };
@@ -112,6 +124,10 @@ export type ToolsDirectoryResult = {
 export type SearchPageFilters = {
   categories: CatalogSearchFilterOption[];
   tags: CatalogSearchFilterOption[];
+  platforms: CatalogSearchFilterOption[];
+  languages: CatalogSearchFilterOption[];
+  suggestions: string[];
+  recentSearches: string[];
 };
 
 export type PublicShellData = {
@@ -505,21 +521,21 @@ function buildCollectionLinks(locale: string): CategorySidebarLink[] {
 }
 
 function buildBlogGuideLinks(locale: string): CategorySidebarLink[] {
-  const dateLabel = locale === "zh" ? "博客导读" : "Blog guide";
+  const dateLabel = locale === "zh" ? "���͵���" : "Blog guide";
   return [
     {
       href: `/${locale}/blog`,
-      label: locale === "zh" ? "AI 工具目录博客" : "AI Tool Directory Blog",
+      label: locale === "zh" ? "AI ����Ŀ¼����" : "AI Tool Directory Blog",
       description: dateLabel,
     },
     {
       href: `/${locale}/blog`,
-      label: locale === "zh" ? "目录搭建与发布" : "Launch and production notes",
+      label: locale === "zh" ? "Ŀ¼��뷢��" : "Launch and production notes",
       description: dateLabel,
     },
     {
       href: `/${locale}/blog`,
-      label: locale === "zh" ? "比较页与导航策略" : "Comparison and navigation guides",
+      label: locale === "zh" ? "�Ƚ�ҳ�뵼������" : "Comparison and navigation guides",
       description: dateLabel,
     },
   ];
@@ -815,6 +831,12 @@ export async function searchCatalogTools(input: {
   category?: string;
   pricing?: string;
   tag?: string;
+  platform?: string;
+  language?: string;
+  api?: boolean;
+  free?: boolean;
+  openSource?: boolean;
+  sort?: string;
   page?: number;
   pageSize?: number;
 }): Promise<CatalogSearchResult> {
@@ -823,7 +845,7 @@ export async function searchCatalogTools(input: {
   const params = new URLSearchParams({
     page: String(page),
     pageSize: String(pageSize),
-    sort: input.query ? "relevance" : "newest",
+    sort: input.sort ?? (input.query ? "relevance" : "newest"),
   });
 
   if (input.query?.trim()) {
@@ -838,6 +860,21 @@ export async function searchCatalogTools(input: {
   if (input.tag?.trim()) {
     params.set("tag", input.tag.trim());
   }
+  if (input.platform?.trim()) {
+    params.set("platform", input.platform.trim());
+  }
+  if (input.language?.trim()) {
+    params.set("language", input.language.trim());
+  }
+  if (input.api) {
+    params.set("api", "true");
+  }
+  if (input.free) {
+    params.set("free", "true");
+  }
+  if (input.openSource) {
+    params.set("openSource", "true");
+  }
 
   try {
     const response = await fetch(`${getInternalApiUrl()}/v1/search?${params.toString()}`, {
@@ -850,6 +887,12 @@ export async function searchCatalogTools(input: {
         category: input.category?.trim() ?? "",
         pricing: input.pricing?.trim() ?? "",
         tag: input.tag?.trim() ?? "",
+        platform: input.platform?.trim() ?? "",
+        language: input.language?.trim() ?? "",
+        api: Boolean(input.api),
+        free: Boolean(input.free),
+        openSource: Boolean(input.openSource),
+        sort: input.sort ?? (input.query ? "relevance" : "newest"),
         hits: [],
         page,
         pageSize,
@@ -867,6 +910,12 @@ export async function searchCatalogTools(input: {
       category: input.category?.trim() ?? "",
       pricing: input.pricing?.trim() ?? "",
       tag: input.tag?.trim() ?? "",
+      platform: input.platform?.trim() ?? "",
+      language: input.language?.trim() ?? "",
+      api: Boolean(input.api),
+      free: Boolean(input.free),
+      openSource: Boolean(input.openSource),
+      sort: input.sort ?? (input.query ? "relevance" : "newest"),
       degraded: false,
       error: null,
     };
@@ -876,6 +925,12 @@ export async function searchCatalogTools(input: {
       category: input.category?.trim() ?? "",
       pricing: input.pricing?.trim() ?? "",
       tag: input.tag?.trim() ?? "",
+      platform: input.platform?.trim() ?? "",
+      language: input.language?.trim() ?? "",
+      api: Boolean(input.api),
+      free: Boolean(input.free),
+      openSource: Boolean(input.openSource),
+      sort: input.sort ?? (input.query ? "relevance" : "newest"),
       hits: [],
       page,
       pageSize,
@@ -889,7 +944,7 @@ export async function searchCatalogTools(input: {
 }
 
 export async function getSearchPageFilters(): Promise<SearchPageFilters> {
-  const [categories, tags] = await Promise.all([
+  const [categories, tags, tools, recentQueries] = await Promise.all([
     prisma.category.findMany({
       where: activeOnly,
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
@@ -902,11 +957,57 @@ export async function getSearchPageFilters(): Promise<SearchPageFilters> {
       take: 40,
       select: { slug: true, name: true },
     }),
+    prisma.tool.findMany({
+      where: { status: ToolStatus.PUBLISHED, ...activeOnly },
+      orderBy: [{ publishedAt: "desc" }, { name: "asc" }],
+      take: 200,
+      select: { name: true, metadata: true },
+    }),
+    prisma.searchQueryLog.groupBy({
+      by: ["query"],
+      where: { hadResults: true, query: { not: "" } },
+      _count: { query: true },
+      orderBy: { _count: { query: "desc" } },
+      take: 8,
+    }),
   ]);
 
-  return { categories, tags };
+  const platformMap = new Map<string, string>();
+  const languageMap = new Map<string, string>();
+  const suggestions = new Set<string>();
+
+  for (const tool of tools) {
+    suggestions.add(tool.name);
+    const metadata = (tool.metadata ?? {}) as Record<string, unknown>;
+    for (const platform of normalizeCatalogStringList(metadata.aiPlatforms ?? metadata.platforms)) {
+      platformMap.set(slugifyFilterValue(platform), platform);
+    }
+    for (const language of normalizeCatalogStringList(metadata.aiLanguages ?? metadata.languages)) {
+      languageMap.set(slugifyFilterValue(language), language);
+    }
+  }
+
+  return {
+    categories,
+    tags,
+    platforms: [...platformMap.values()].map((name) => ({ slug: name, name })).slice(0, 24),
+    languages: [...languageMap.values()].map((name) => ({ slug: name, name })).slice(0, 24),
+    suggestions: [...suggestions].slice(0, 12),
+    recentSearches: recentQueries.map((item) => item.query).filter(Boolean),
+  };
 }
 
+function normalizeCatalogStringList(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.map((item) => (typeof item === "string" ? item.trim() : "")).filter(Boolean);
+}
+
+function slugifyFilterValue(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
 export async function getPublicShellData(): Promise<PublicShellData> {
   const [categories, popularTools] = await Promise.all([
     fetchCategoryDirectoryData(8),
@@ -994,18 +1095,18 @@ function buildCollectionFaqs(title: string, tools: CatalogTool[], locale: string
   if (locale === "zh") {
     return [
       {
-        question: `${title} 页面如何排序？`,
+        question: `${title} ҳ���������`,
         answer: topNames
-          ? `当前优先展示 ${topNames} 等工具，并结合页面主题使用发布时间、定价或站内热度进行排序。`
-          : `当前列表会根据页面主题使用发布时间、定价或站内热度进行排序。`,
+          ? `��ǰ����չʾ ${topNames} �ȹ��ߣ������ҳ������ʹ�÷���ʱ�䡢���ۻ�վ���ȶȽ�������`
+          : `��ǰ�б�����ҳ������ʹ�÷���ʱ�䡢���ۻ�վ���ȶȽ�������`,
       },
       {
-        question: `这些工具数据来自哪里？`,
-        answer: `页面直接使用站内已发布的真实工具数据，不使用额外的营销占位内容。`,
+        question: `��Щ���������������`,
+        answer: `ҳ��ֱ��ʹ��վ���ѷ�������ʵ�������ݣ���ʹ�ö����Ӫ��ռλ���ݡ�`,
       },
       {
-        question: `如何继续筛选更多工具？`,
-        answer: `你可以继续进入工具详情页、分类页，或打开完整 Tools 与 Search 页面做进一步筛选。`,
+        question: `��μ���ɸѡ���๤�ߣ�`,
+        answer: `����Լ������빤������ҳ������ҳ��������� Tools �� Search ҳ������һ��ɸѡ��`,
       },
     ];
   }
@@ -1048,30 +1149,30 @@ function getCollectionCopy(slug: CollectionPageSlug, locale: string) {
   switch (slug) {
     case "best-ai-tools":
       return {
-        title: isZh ? "最佳 AI 工具榜单" : "Best AI Tools",
+        title: isZh ? "��� AI ���߰�" : "Best AI Tools",
         description: isZh
-          ? "浏览目录中值得优先评估的 AI 工具，查看排序、摘要和内部导航。"
+          ? "���Ŀ¼��ֵ������������ AI ���ߣ��鿴����ժҪ���ڲ�������"
           : "Browse the most useful AI tools in the directory with ranked picks, summaries, and internal links.",
       };
     case "free-ai-tools":
       return {
-        title: isZh ? "免费 AI 工具" : "Free AI Tools",
+        title: isZh ? "��� AI ����" : "Free AI Tools",
         description: isZh
-          ? "查看可免费使用或低门槛试用的 AI 工具，快速找到适合入门和验证的选项。"
+          ? "�鿴�����ʹ�û���ż����õ� AI ���ߣ������ҵ��ʺ����ź���֤��ѡ�"
           : "Discover AI tools you can use for free or try with a low barrier before making a larger commitment.",
       };
     case "new-ai-tools":
       return {
-        title: isZh ? "最新 AI 工具" : "New AI Tools",
+        title: isZh ? "���� AI ����" : "New AI Tools",
         description: isZh
-          ? "按发布时间查看最新收录的 AI 工具，持续追踪目录里的新增产品。"
+          ? "������ʱ��鿴������¼�� AI ���ߣ�����׷��Ŀ¼���������Ʒ��"
           : "Track the newest AI tools added to the directory, ordered by recency and ready for review.",
       };
     case "trending-ai-tools":
       return {
-        title: isZh ? "趋势 AI 工具" : "Trending AI Tools",
+        title: isZh ? "���� AI ����" : "Trending AI Tools",
         description: isZh
-          ? "查看当前更受关注的 AI 工具，结合站内热度与目录数据快速完成发现。"
+          ? "�鿴��ǰ���ܹ�ע�� AI ���ߣ����վ���ȶ���Ŀ¼���ݿ�����ɷ��֡�"
           : "Explore AI tools drawing attention right now, ranked with on-site popularity signals and directory data.",
       };
     default:
@@ -1426,7 +1527,7 @@ export async function getCategoryLanding(
         topCategories: popularCategories.slice(0, 6).map((item) => ({
           href: `/${locale}/category/${item.slug}`,
           label: item.name,
-          description: `${item.toolCount} ${locale === "zh" ? "个工具" : "tools"}`,
+          description: `${item.toolCount} ${locale === "zh" ? "������" : "tools"}`,
         })),
         newestTools: newestTools.map((tool) => ({
           href: `/${locale}/tools/${tool.slug}`,
@@ -1464,7 +1565,7 @@ export async function getTagLanding(
   const path = `/${locale}/tag/${slug}`;
   const url = joinUrl(config.siteUrl, path);
 
-  const aiSummary = `AI tools tagged "${tag.name}" 鈥?reviews, pricing, and alternatives.`;
+  const aiSummary = `AI tools tagged "${tag.name}" �?reviews, pricing, and alternatives.`;
   const faqs = buildTagFaqs(tag.name);
   const relatedTools = tools.slice(0, 8).map((t: CatalogTool) => ({
     slug: t.slug,

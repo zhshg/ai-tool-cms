@@ -1,4 +1,5 @@
-export type SearchSortField = "relevance" | "popularity" | "newest" | "rating";
+export type SearchSortField =
+  "relevance" | "popular" | "popularity" | "trending" | "newest" | "a-z" | "rating";
 
 export type SearchFilters = {
   category?: string | string[];
@@ -6,6 +7,9 @@ export type SearchFilters = {
   pricing?: string | string[];
   language?: string | string[];
   platform?: string | string[];
+  api?: boolean;
+  free?: boolean;
+  openSource?: boolean;
 };
 
 export type SearchQuery = {
@@ -28,6 +32,9 @@ export type SearchFacets = {
   pricing?: SearchFacetValue[];
   platforms?: SearchFacetValue[];
   languages?: SearchFacetValue[];
+  api?: SearchFacetValue[];
+  free?: SearchFacetValue[];
+  openSource?: SearchFacetValue[];
 };
 
 export type SearchHit<T = SearchToolDocument> = {
@@ -67,7 +74,11 @@ export type SearchToolDocument = {
   languages: string[];
   features: string[];
   useCases: string[];
+  hasApi: boolean;
+  isFree: boolean;
+  isOpenSource: boolean;
   popularityScore: number;
+  trendingScore: number;
   reviewScore: number;
   publishedAt?: string;
   updatedAt: string;

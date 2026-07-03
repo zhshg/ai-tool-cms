@@ -34,16 +34,21 @@ export function rerankWithEmbeddings(
 export function sortHits(hits: SearchHit[], sort: SearchSortField = "relevance"): SearchHit[] {
   const copy = [...hits];
   switch (sort) {
+    case "popular":
     case "popularity":
       return copy.sort(
         (a, b) => (b.document.popularityScore ?? 0) - (a.document.popularityScore ?? 0),
       );
+    case "trending":
+      return copy.sort((a, b) => (b.document.trendingScore ?? 0) - (a.document.trendingScore ?? 0));
     case "newest":
       return copy.sort((a, b) => {
         const aDate = a.document.publishedAt ?? a.document.updatedAt;
         const bDate = b.document.publishedAt ?? b.document.updatedAt;
         return bDate.localeCompare(aDate);
       });
+    case "a-z":
+      return copy.sort((a, b) => a.document.name.localeCompare(b.document.name));
     case "rating":
       return copy.sort((a, b) => (b.document.reviewScore ?? 0) - (a.document.reviewScore ?? 0));
     case "relevance":

@@ -27,6 +27,9 @@ export class SearchApiService {
         pricing: query.pricing,
         language: query.language,
         platform: query.platform,
+        api: query.api,
+        free: query.free,
+        openSource: query.openSource,
       },
       sort: query.sort,
       page: query.page,
@@ -131,7 +134,7 @@ export class SearchApiService {
       indexStatus: {
         meilisearch: isMeiliConfigured(),
         autoIndexOnly: true,
-        note: "Index updates via BullMQ search-tool-index queue — no manual rebuild",
+        note: "Index updates via BullMQ search-tool-index queue �?no manual rebuild",
       },
       topQueries: topQueries.map((q) => ({
         query: q.normalizedQuery,
