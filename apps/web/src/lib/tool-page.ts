@@ -35,6 +35,17 @@ type RelatedAlternative = {
   reason: string;
 };
 
+function buildStableJitter(sourceId: string, candidateId: string) {
+  const seed = `${sourceId}:${candidateId}`;
+  let hash = 0;
+
+  for (let index = 0; index < seed.length; index += 1) {
+    hash = (hash * 31 + seed.charCodeAt(index)) % 1000;
+  }
+
+  return hash / 1000;
+}
+
 export type ToolPageData = {
   slug: string;
   name: string;
@@ -348,22 +359,34 @@ async function computeToolAlternatives(toolId: string, limit = 5): Promise<Relat
   });
   if (!source) return [];
 
-  const sourceMeta = (source.metadata ?? {}) as Record<string, unknown>;
-  const sourceEmbedding = Array.isArray(sourceMeta.searchEmbedding)
-    ? (sourceMeta.searchEmbedding as number[])
-    : undefined;
   const sourceCategoryIds = new Set(source.categories.map((item) => item.categoryId));
   const sourceTagIds = new Set(source.tags.map((item) => item.tagId));
 
   const candidates = await prisma.tool.findMany({
-    where: { status: ToolStatus.PUBLISHED, ...activeOnly, NOT: { id: toolId } },
+    where: {
+      status: ToolStatus.PUBLISHED,
+      ...activeOnly,
+      NOT: { id: toolId },
+      OR: [
+        ...(sourceTagIds.size
+          ? [{ tags: { some: { ...activeOnly, tagId: { in: [...sourceTagIds] } } } }]
+          : []),
+        ...(sourceCategoryIds.size
+          ? [
+              {
+                categories: { some: { ...activeOnly, categoryId: { in: [...sourceCategoryIds] } } },
+              },
+            ]
+          : []),
+      ],
+    },
     include: {
       categories: { where: activeOnly },
       tags: { where: activeOnly },
       reviews: { where: { status: ReviewStatus.APPROVED, ...activeOnly } },
     },
-    take: 80,
-    orderBy: { publishedAt: "desc" },
+    take: 60,
+    orderBy: [{ updatedAt: "desc" }, { publishedAt: "desc" }],
   });
 
   const clickCounts = await prisma.searchClickLog.groupBy({
@@ -372,12 +395,9 @@ async function computeToolAlternatives(toolId: string, limit = 5): Promise<Relat
   });
   const clickMap = new Map(clickCounts.map((item) => [item.toolId, item._count.toolId]));
 
-  return candidates
+  const scored = candidates
     .map((candidate) => {
       const metadata = (candidate.metadata ?? {}) as Record<string, unknown>;
-      const candidateEmbedding = Array.isArray(metadata.searchEmbedding)
-        ? (metadata.searchEmbedding as number[])
-        : undefined;
       const candidateCategoryIds = new Set(candidate.categories.map((item) => item.categoryId));
       const candidateTagIds = new Set(candidate.tags.map((item) => item.tagId));
       const reviews = candidate.reviews;
@@ -386,64 +406,48 @@ async function computeToolAlternatives(toolId: string, limit = 5): Promise<Relat
         : 0;
       const sharedCategories = [...sourceCategoryIds].filter((id) => candidateCategoryIds.has(id));
       const sharedTags = [...sourceTagIds].filter((id) => candidateTagIds.has(id));
-
-      let score = 0;
-      const reasons: string[] = [];
-
-      if (sharedCategories.length) {
-        score += sharedCategories.length * 25;
-        reasons.push("same category");
-      }
-
-      if (sharedTags.length) {
-        score += sharedTags.length * 15;
-        reasons.push("shared tags");
-      }
-
-      const popularityScore =
-        typeof metadata.popularityScore === "number" ? metadata.popularityScore : 0;
-      score += popularityScore * 0.2;
-      score += averageRating * 10;
-      score += Math.log10((clickMap.get(candidate.id) ?? 0) + 1) * 8;
-
-      if (sourceEmbedding?.length && candidateEmbedding?.length) {
-        const similarity = cosineSimilarity(sourceEmbedding, candidateEmbedding);
-        score += similarity * 40;
-        if (similarity > 0.5) {
-          reasons.push("semantic similarity");
-        }
-      }
+      const clickBoost = Math.log10((clickMap.get(candidate.id) ?? 0) + 1) * 2;
+      const popularityBoost =
+        typeof metadata.popularityScore === "number" ? metadata.popularityScore * 0.05 : 0;
+      const jitter = buildStableJitter(source.id, candidate.id);
 
       return {
         slug: candidate.slug,
         name: candidate.name,
         summary: candidate.summary,
-        score,
-        reason: reasons.join(", ") || "related tool",
-      } satisfies RelatedAlternative;
+        score:
+          sharedTags.length * 100 +
+          sharedCategories.length * 20 +
+          averageRating * 3 +
+          clickBoost +
+          popularityBoost +
+          jitter,
+        reason: sharedTags.length
+          ? `shared ${sharedTags.length > 1 ? "tags" : "tag"}`
+          : sharedCategories.length
+            ? "same category"
+            : "related tool",
+        sharedTags: sharedTags.length,
+        sharedCategories: sharedCategories.length,
+      };
     })
+    .filter((candidate) => candidate.sharedTags > 0 || candidate.sharedCategories > 0);
+
+  const primaryMatches = scored.filter((candidate) => candidate.sharedTags > 0);
+  const fallbackMatches = scored.filter(
+    (candidate) => candidate.sharedTags === 0 && candidate.sharedCategories > 0,
+  );
+
+  return [...primaryMatches, ...fallbackMatches]
     .sort((left, right) => right.score - left.score)
-    .slice(0, limit);
-}
-
-function cosineSimilarity(left: number[], right: number[]): number {
-  const length = Math.min(left.length, right.length);
-  if (!length) return 0;
-
-  let dot = 0;
-  let leftNorm = 0;
-  let rightNorm = 0;
-
-  for (let index = 0; index < length; index += 1) {
-    const leftValue = left[index] ?? 0;
-    const rightValue = right[index] ?? 0;
-    dot += leftValue * rightValue;
-    leftNorm += leftValue * leftValue;
-    rightNorm += rightValue * rightValue;
-  }
-
-  if (!leftNorm || !rightNorm) return 0;
-  return dot / (Math.sqrt(leftNorm) * Math.sqrt(rightNorm));
+    .slice(0, limit)
+    .map(({ slug, name, summary, score, reason }) => ({
+      slug,
+      name,
+      summary,
+      score,
+      reason,
+    }));
 }
 
 function buildFeatureList(metadata: Record<string, unknown>): string[] {

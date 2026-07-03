@@ -37,6 +37,17 @@ export class ToolMetadataDto {
   aiSummary?: string;
 }
 
+export class ToolFaqDto {
+  @ApiProperty()
+  @IsString()
+  @MaxLength(500)
+  question!: string;
+
+  @ApiProperty()
+  @IsString()
+  answer!: string;
+}
+
 export class CreateToolDto {
   @ApiProperty()
   @IsString()
@@ -105,6 +116,13 @@ export class CreateToolDto {
   @ValidateNested()
   @Type(() => ToolMetadataDto)
   metadata?: ToolMetadataDto;
+
+  @ApiPropertyOptional({ type: [ToolFaqDto] })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ToolFaqDto)
+  faqs?: ToolFaqDto[];
 }
 
 export class UpdateToolDto {
@@ -177,4 +195,11 @@ export class UpdateToolDto {
   @ValidateNested()
   @Type(() => ToolMetadataDto)
   metadata?: ToolMetadataDto;
+
+  @ApiPropertyOptional({ type: [ToolFaqDto] })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ToolFaqDto)
+  faqs?: ToolFaqDto[];
 }

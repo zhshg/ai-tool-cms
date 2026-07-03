@@ -318,14 +318,22 @@ export type AdminTool = {
   name: string;
   slug: string;
   website: string;
+  summary?: string | null;
+  description?: string | null;
+  metaTitle?: string | null;
+  metaDescription?: string | null;
   logoUrl?: string | null;
+  metadata?: Record<string, unknown> | null;
   status: string;
   pricingModel: string;
   createdAt: string;
   updatedAt: string;
   completenessScore?: number;
-  categories?: Array<{ category: { id: string; name: string; slug: string } }>;
+  categories?: Array<{
+    category: { id: string; name: string; slug: string; iconUrl?: string | null };
+  }>;
   tags?: Array<{ tag: { id: string; name: string; slug: string } }>;
+  faqs?: Array<{ id: string; question: string; answer: string; sortOrder: number }>;
 };
 
 export type AdminCategory = {

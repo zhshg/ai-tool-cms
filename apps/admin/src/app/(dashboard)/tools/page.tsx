@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { PageHeader } from "@/components/layout/page-header";
 import { RequirePermission } from "@/components/rbac/require-permission";
+import { ToolLogo } from "@/components/tools/tool-logo";
 import {
   deleteTool,
   fetchTools,
@@ -152,8 +153,25 @@ export default function ToolsPage() {
                 {items.map((tool) => (
                   <tr key={tool.id} className="border-b last:border-0">
                     <td className="px-4 py-3">
-                      <p className="font-medium">{tool.name}</p>
-                      <p className="text-muted-foreground">{tool.slug}</p>
+                      <div className="flex items-center gap-3">
+                        <ToolLogo
+                          name={tool.name}
+                          logoUrl={tool.logoUrl}
+                          fallbackLogoUrl={
+                            typeof tool.metadata?.collectedLogoUrl === "string"
+                              ? tool.metadata.collectedLogoUrl
+                              : typeof tool.metadata?.logo === "string"
+                                ? tool.metadata.logo
+                                : null
+                          }
+                          categoryIconUrl={tool.categories?.[0]?.category?.iconUrl ?? null}
+                          size="sm"
+                        />
+                        <div>
+                          <p className="font-medium">{tool.name}</p>
+                          <p className="text-muted-foreground">{tool.slug}</p>
+                        </div>
+                      </div>
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">
                       {tool.categories?.map((item) => item.category.name).join(", ") || "None"}

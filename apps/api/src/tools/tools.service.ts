@@ -12,12 +12,8 @@ import { GrowthService } from "../growth/growth.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { activeOnly } from "../common/prisma.util";
 import { paginate, type PaginationQueryDto } from "../common/dto/pagination.dto";
-import type {
-  BulkUpdateToolsDto,
-  ImportExecuteDto,
-  ImportPreviewDto,
-} from "./dto/content-ops.dto";
-import type { CreateToolDto, UpdateToolDto } from "./dto/tool.dto";
+import type { BulkUpdateToolsDto, ImportExecuteDto, ImportPreviewDto } from "./dto/content-ops.dto";
+import type { CreateToolDto, ToolFaqDto, UpdateToolDto } from "./dto/tool.dto";
 
 const toolInclude = {
   categories: {
@@ -107,6 +103,9 @@ export class ToolsService {
     if (dto.tagIds?.length) {
       await this.syncTags(tool.id, dto.tagIds);
     }
+    if (dto.faqs) {
+      await this.syncFaqs(tool.id, dto.faqs, actorId);
+    }
 
     if ((dto.status ?? ToolStatus.DRAFT) === ToolStatus.DRAFT) {
       await startAiPipeline(
@@ -153,6 +152,7 @@ export class ToolsService {
 
     if (dto.categoryIds) await this.syncCategories(id, dto.categoryIds);
     if (dto.tagIds) await this.syncTags(id, dto.tagIds);
+    if (dto.faqs) await this.syncFaqs(id, dto.faqs, actorId);
 
     if (dto.status === ToolStatus.PUBLISHED && existing.status !== ToolStatus.PUBLISHED) {
       await this.growth.enqueueToolPublished(id, "manual_publish", actorId);
@@ -364,6 +364,31 @@ export class ToolsService {
     });
     if (existing && existing.id !== excludeId) {
       throw new ConflictException(`Tool slug '${slug}' already exists`);
+    }
+  }
+
+  private async syncFaqs(toolId: string, faqs: ToolFaqDto[], actorId: string) {
+    await this.prisma.client.faq.updateMany({
+      where: { toolId, ...activeOnly },
+      data: { deletedAt: new Date(), deletedById: actorId },
+    });
+
+    for (const [index, faq] of faqs.entries()) {
+      const question = faq.question.trim();
+      const answer = faq.answer.trim();
+      if (!question || !answer) continue;
+
+      await this.prisma.client.faq.create({
+        data: {
+          toolId,
+          slug: slugify(question).slice(0, 120),
+          question,
+          answer,
+          sortOrder: index,
+          createdById: actorId,
+          updatedById: actorId,
+        },
+      });
     }
   }
 
