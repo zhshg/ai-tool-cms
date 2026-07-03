@@ -73,6 +73,52 @@ export function getAdminRouterLoginPath(): string {
   return "/login";
 }
 
+export function normalizeAdminNextPath(nextPath: string | null | undefined): string {
+  const fallback = getAdminRouterDashboardPath();
+  const value = nextPath?.trim();
+
+  if (!value) {
+    return fallback;
+  }
+
+  if (/^[a-zA-Z][a-zA-Z\d+\-.]*:/.test(value) || value.startsWith("//")) {
+    return fallback;
+  }
+
+  const [pathWithQuery = "", hashFragment = ""] = value.split("#", 2);
+  const hash = hashFragment ? `#${hashFragment}` : "";
+  const [pathname = "", query = ""] = pathWithQuery.split("?", 2);
+  const search = query ? `?${query}` : "";
+  const normalizedBasePath = getAdminBasePath();
+
+  if (!pathname || pathname === "/") {
+    return `${fallback}${search}${hash}`;
+  }
+
+  if (!pathname.startsWith("/")) {
+    return `${fallback}${search}${hash}`;
+  }
+
+  if (normalizedBasePath && pathname.startsWith(`${normalizedBasePath}/`)) {
+    const relativePath = pathname.slice(normalizedBasePath.length) || fallback;
+    return `${relativePath}${search}${hash}`;
+  }
+
+  if (pathname === normalizedBasePath) {
+    return `${fallback}${search}${hash}`;
+  }
+
+  if (pathname.startsWith("/admin/")) {
+    return `${pathname.slice("/admin".length)}${search}${hash}`;
+  }
+
+  if (pathname === "/admin") {
+    return `${fallback}${search}${hash}`;
+  }
+
+  return `${pathname}${search}${hash}`;
+}
+
 export function clearAdminTokens() {
   if (typeof window === "undefined") {
     return;
