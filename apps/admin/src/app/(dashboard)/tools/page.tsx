@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { RequirePermission } from "@/components/rbac/require-permission";
 import { ToolLogo } from "@/components/tools/tool-logo";
 import {
+  bulkRefreshToolLogos,
   deleteTool,
   fetchTools,
   getApiErrorMessage,
@@ -24,6 +25,7 @@ export default function ToolsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [message, setMessage] = useState<string | null>(null);
   const [activeToolId, setActiveToolId] = useState<string | null>(null);
+  const [isBulkRefreshingLogos, setIsBulkRefreshingLogos] = useState(false);
 
   async function loadPage() {
     setIsLoading(true);
@@ -63,6 +65,23 @@ export default function ToolsPage() {
       setError(err as ApiError);
     } finally {
       setActiveToolId(null);
+    }
+  }
+
+  async function handleBulkRefreshLogos() {
+    if (!items.length) return;
+    setIsBulkRefreshingLogos(true);
+    setError(null);
+    try {
+      const result = await bulkRefreshToolLogos(
+        items.map((tool) => tool.id),
+        true,
+      );
+      setMessage(`Queued ${result.queued} logo refresh jobs.`);
+    } catch (err) {
+      setError(err as ApiError);
+    } finally {
+      setIsBulkRefreshingLogos(false);
     }
   }
 
@@ -107,7 +126,15 @@ export default function ToolsPage() {
           </div>
         </div>
 
-        <div className="mb-6 flex justify-end">
+        <div className="mb-6 flex flex-wrap justify-end gap-2">
+          <button
+            type="button"
+            className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
+            onClick={() => void handleBulkRefreshLogos()}
+            disabled={!items.length || isBulkRefreshingLogos}
+          >
+            {isBulkRefreshingLogos ? "Queueing..." : "Bulk Refresh Logos"}
+          </button>
           <Link
             href="/tools/new"
             className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"

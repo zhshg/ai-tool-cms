@@ -65,6 +65,12 @@ export class AutomationController {
     return this.automationService.triggerScreenshots(toolId);
   }
 
+  @Get("logos/:toolId/preview")
+  @RequirePermission(PermissionCode.AutomationRead)
+  logoPreview(@Param("toolId") toolId: string) {
+    return this.automationService.previewToolLogo(toolId);
+  }
+
   @Post("logos/:toolId")
   @RequirePermission(PermissionCode.AutomationManage)
   logo(@Param("toolId") toolId: string, @Body() body: { force?: boolean } = {}) {

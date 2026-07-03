@@ -27,7 +27,7 @@ export {
   auditToolLinks,
 } from "./link-check";
 export { runAiRefresh, ensureAiRefreshSchedules, pollDueAiRefresh } from "./ai-refresh";
-export { collectToolLogo } from "./tool-logo";
+export { collectToolLogo, previewToolLogo } from "./tool-logo";
 export { buildSocialPostContent, generateSocialPosts, publishSocialPost } from "./social";
 export type { SocialPostTemplate } from "./social";
 export { submitToSearchEngine, enqueueIndexForUrl, indexPublishedTools } from "./index-submit";

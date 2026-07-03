@@ -3,6 +3,7 @@ import { PrismaService } from "../prisma/prisma.service";
 import {
   bootstrapAutomation,
   enqueueToolLogoCollect,
+  previewToolLogo,
   getAutomationCenterMetrics,
   runDailyAutomationPoll,
   runWeeklyAutomationPoll,
@@ -63,6 +64,10 @@ export class AutomationService {
   async triggerToolLogo(toolId: string, force = true) {
     const jobId = await enqueueToolLogoCollect(toolId, force);
     return { jobId };
+  }
+
+  async previewToolLogo(toolId: string) {
+    return previewToolLogo(this.db, toolId);
   }
 
   async triggerSocial(template: "NEW_AI" | "TRENDING_AI" | "WEEKLY_AI" | "TOP_AI") {

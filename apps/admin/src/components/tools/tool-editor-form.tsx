@@ -23,6 +23,8 @@ import {
   fetchTags,
   fetchToolById,
   getApiErrorMessage,
+  previewToolLogo,
+  refreshToolLogo,
   uploadToolAsset,
   updateTool,
   type AdminCategory,
@@ -92,6 +94,8 @@ export function ToolEditorForm({ mode, toolId }: ToolEditorFormProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [isUploadingScreenshot, setIsUploadingScreenshot] = useState(false);
+  const [isPreviewingLogo, setIsPreviewingLogo] = useState(false);
+  const [isRefreshingLogo, setIsRefreshingLogo] = useState(false);
 
   const primaryCategories = useMemo(
     () => categories.filter((category) => !category.parentId),
@@ -271,6 +275,37 @@ export function ToolEditorForm({ mode, toolId }: ToolEditorFormProps) {
       setError(err as ApiError);
     } finally {
       setIsSaving(false);
+    }
+  }
+
+  async function handleLogoPreview() {
+    if (!toolId) return;
+    setIsPreviewingLogo(true);
+    setError(null);
+    try {
+      const preview = await previewToolLogo(toolId);
+      const validCount = preview.candidates.filter((candidate) => candidate.ok).length;
+      setMessage(
+        `Logo preview found ${validCount} valid candidate(s). Recommended source: ${preview.recommendedSource ?? "none"}.`,
+      );
+    } catch (err) {
+      setError(err as ApiError);
+    } finally {
+      setIsPreviewingLogo(false);
+    }
+  }
+
+  async function handleLogoRefresh() {
+    if (!toolId) return;
+    setIsRefreshingLogo(true);
+    setError(null);
+    try {
+      const result = await refreshToolLogo(toolId, true);
+      setMessage(`Logo refresh queued. Job: ${result.jobId}.`);
+    } catch (err) {
+      setError(err as ApiError);
+    } finally {
+      setIsRefreshingLogo(false);
     }
   }
 
@@ -590,12 +625,34 @@ export function ToolEditorForm({ mode, toolId }: ToolEditorFormProps) {
                   categoryIconUrl={primaryCategory?.iconUrl ?? null}
                   size="lg"
                 />
-                <UploadButton
-                  label={isUploadingLogo ? "Uploading..." : "Upload"}
-                  isLoading={isUploadingLogo}
-                  icon="image"
-                  onChange={handleLogoUpload}
-                />
+                <div className="flex flex-wrap gap-2">
+                  <UploadButton
+                    label={isUploadingLogo ? "Uploading..." : "Upload"}
+                    isLoading={isUploadingLogo}
+                    icon="image"
+                    onChange={handleLogoUpload}
+                  />
+                  {mode === "edit" ? (
+                    <button
+                      type="button"
+                      className="rounded-md border px-3 py-2 text-xs font-medium hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
+                      onClick={() => void handleLogoPreview()}
+                      disabled={isPreviewingLogo || isRefreshingLogo}
+                    >
+                      {isPreviewingLogo ? "Previewing..." : "Preview Logo"}
+                    </button>
+                  ) : null}
+                  {mode === "edit" ? (
+                    <button
+                      type="button"
+                      className="rounded-md border px-3 py-2 text-xs font-medium hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
+                      onClick={() => void handleLogoRefresh()}
+                      disabled={isPreviewingLogo || isRefreshingLogo}
+                    >
+                      {isRefreshingLogo ? "Queueing..." : "Refresh Logo"}
+                    </button>
+                  ) : null}
+                </div>
               </div>
             </EditorCard>
             <EditorCard title="Overview">
@@ -621,7 +678,7 @@ export function ToolEditorForm({ mode, toolId }: ToolEditorFormProps) {
               </button>
               <a
                 className="inline-flex items-center gap-2 rounded-md border px-4 py-2 text-sm hover:bg-muted"
-                href={form.slug ? `/tools/${form.slug}` : form.website || "#"}
+                href={form.slug ? `/en/tools/${form.slug}` : form.website || "#"}
                 target="_blank"
                 rel="noreferrer"
               >

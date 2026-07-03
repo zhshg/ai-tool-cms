@@ -434,6 +434,23 @@ export type ImportPreviewResponse = {
   duplicates: number;
 };
 
+export type ToolLogoPreviewResponse = {
+  ok: boolean;
+  reason?: string;
+  storedLogoUrl?: string | null;
+  cachedLogoUrl?: string | null;
+  recommendedUrl?: string | null;
+  recommendedSource?: string | null;
+  candidates: Array<{
+    candidate: { url: string; source: string; priority: number };
+    ok: boolean;
+    reason?: string;
+    mimeType?: string;
+    byteLength?: number;
+    width?: number | null;
+    height?: number | null;
+  }>;
+};
 export type ImportExecuteResponse = {
   importedCount: number;
   skippedCount: number;
@@ -584,6 +601,9 @@ export function bulkRefreshToolLogos(toolIds: string[], force = true) {
   });
 }
 
+export function previewToolLogo(toolId: string) {
+  return apiFetch<ToolLogoPreviewResponse>(`/automation/logos/${toolId}/preview`);
+}
 export function refreshToolLogo(toolId: string, force = true) {
   return apiFetch<{ jobId: string }>(`/automation/logos/${toolId}`, {
     method: "POST",
