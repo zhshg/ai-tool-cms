@@ -56,7 +56,7 @@ export function ToolEditorForm({ mode, toolId }: ToolEditorFormProps) {
   const [tags, setTags] = useState<Array<{ id: string; name: string; slug: string }>>([]);
   const [error, setError] = useState<ApiError | null>(null);
   const [message, setMessage] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(mode === "edit");
+  const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
   const primaryCategories = useMemo(
@@ -112,18 +112,29 @@ export function ToolEditorForm({ mode, toolId }: ToolEditorFormProps) {
   }, [loadForm]);
 
   async function handleSubmit() {
-    if (!form.name.trim() || !form.website.trim()) {
+    const name = form.name.trim();
+    const website = form.website.trim();
+
+    if (!name || !website) {
       setError({ status: 400, message: "Name and website are required." });
+      return;
+    }
+
+    try {
+      new URL(website);
+    } catch {
+      setError({ status: 400, message: "Website must be a valid URL." });
       return;
     }
 
     setIsSaving(true);
     setMessage(null);
+    setError(null);
 
     const payload = {
-      name: form.name.trim(),
+      name,
       slug: form.slug.trim() || undefined,
-      website: form.website.trim(),
+      website,
       summary: form.summary.trim() || undefined,
       description: form.description.trim() || undefined,
       logoUrl: form.logoUrl.trim() || undefined,
@@ -192,15 +203,23 @@ export function ToolEditorForm({ mode, toolId }: ToolEditorFormProps) {
         {isLoading ? <p className="text-sm text-muted-foreground">Loading tool editor...</p> : null}
 
         {!isLoading ? (
-          <div className="grid gap-4 md:grid-cols-2">
+          <form
+            className="grid gap-4 md:grid-cols-2"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void handleSubmit();
+            }}
+          >
             <label className="space-y-2 text-sm">
               <span className="font-medium">Name</span>
               <input
+                required
                 className="w-full rounded-md border bg-background px-3 py-2"
                 value={form.name}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, name: event.target.value }))
-                }
+                onChange={(event) => {
+                  setError(null);
+                  setForm((current) => ({ ...current, name: event.target.value }));
+                }}
               />
             </label>
 
@@ -209,20 +228,23 @@ export function ToolEditorForm({ mode, toolId }: ToolEditorFormProps) {
               <input
                 className="w-full rounded-md border bg-background px-3 py-2"
                 value={form.slug}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, slug: event.target.value }))
-                }
+                onChange={(event) => {
+                  setError(null);
+                  setForm((current) => ({ ...current, slug: event.target.value }));
+                }}
               />
             </label>
 
             <label className="space-y-2 text-sm md:col-span-2">
               <span className="font-medium">Website</span>
               <input
+                required
                 className="w-full rounded-md border bg-background px-3 py-2"
                 value={form.website}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, website: event.target.value }))
-                }
+                onChange={(event) => {
+                  setError(null);
+                  setForm((current) => ({ ...current, website: event.target.value }));
+                }}
               />
             </label>
 
@@ -231,9 +253,9 @@ export function ToolEditorForm({ mode, toolId }: ToolEditorFormProps) {
               <textarea
                 className="min-h-24 w-full rounded-md border bg-background px-3 py-2"
                 value={form.summary}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, summary: event.target.value }))
-                }
+                onChange={(event) => {
+                  setForm((current) => ({ ...current, summary: event.target.value }));
+                }}
               />
             </label>
 
@@ -242,9 +264,9 @@ export function ToolEditorForm({ mode, toolId }: ToolEditorFormProps) {
               <textarea
                 className="min-h-24 w-full rounded-md border bg-background px-3 py-2"
                 value={form.description}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, description: event.target.value }))
-                }
+                onChange={(event) => {
+                  setForm((current) => ({ ...current, description: event.target.value }));
+                }}
               />
             </label>
 
@@ -253,9 +275,10 @@ export function ToolEditorForm({ mode, toolId }: ToolEditorFormProps) {
               <input
                 className="w-full rounded-md border bg-background px-3 py-2"
                 value={form.logoUrl}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, logoUrl: event.target.value }))
-                }
+                onChange={(event) => {
+                  setError(null);
+                  setForm((current) => ({ ...current, logoUrl: event.target.value }));
+                }}
               />
             </label>
 
@@ -264,9 +287,9 @@ export function ToolEditorForm({ mode, toolId }: ToolEditorFormProps) {
               <select
                 className="w-full rounded-md border bg-background px-3 py-2"
                 value={form.status}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, status: event.target.value }))
-                }
+                onChange={(event) => {
+                  setForm((current) => ({ ...current, status: event.target.value }));
+                }}
               >
                 <option value="DRAFT">DRAFT</option>
                 <option value="IN_REVIEW">IN_REVIEW</option>
@@ -281,9 +304,9 @@ export function ToolEditorForm({ mode, toolId }: ToolEditorFormProps) {
               <select
                 className="w-full rounded-md border bg-background px-3 py-2"
                 value={form.primaryCategoryId}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, primaryCategoryId: event.target.value }))
-                }
+                onChange={(event) => {
+                  setForm((current) => ({ ...current, primaryCategoryId: event.target.value }));
+                }}
               >
                 <option value="">None</option>
                 {primaryCategories.map((category) => (
@@ -299,9 +322,9 @@ export function ToolEditorForm({ mode, toolId }: ToolEditorFormProps) {
               <select
                 className="w-full rounded-md border bg-background px-3 py-2"
                 value={form.pricingModel}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, pricingModel: event.target.value }))
-                }
+                onChange={(event) => {
+                  setForm((current) => ({ ...current, pricingModel: event.target.value }));
+                }}
               >
                 <option value="FREE">FREE</option>
                 <option value="FREEMIUM">FREEMIUM</option>
@@ -312,31 +335,37 @@ export function ToolEditorForm({ mode, toolId }: ToolEditorFormProps) {
 
             <label className="space-y-2 text-sm md:col-span-2">
               <span className="font-medium">Tags</span>
-              <div className="grid gap-2 md:grid-cols-3">
-                {tags.map((tag) => {
-                  const checked = form.tagIds.includes(tag.id);
-                  return (
-                    <label
-                      key={tag.id}
-                      className="flex items-center gap-2 rounded-md border p-2 text-sm"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        onChange={(event) =>
-                          setForm((current) => ({
-                            ...current,
-                            tagIds: event.target.checked
-                              ? [...current.tagIds, tag.id]
-                              : current.tagIds.filter((id) => id !== tag.id),
-                          }))
-                        }
-                      />
-                      <span>{tag.name}</span>
-                    </label>
-                  );
-                })}
-              </div>
+              {tags.length === 0 ? (
+                <p className="rounded-md border border-dashed p-3 text-sm text-muted-foreground">
+                  No tags available yet.
+                </p>
+              ) : (
+                <div className="grid gap-2 md:grid-cols-3">
+                  {tags.map((tag) => {
+                    const checked = form.tagIds.includes(tag.id);
+                    return (
+                      <label
+                        key={tag.id}
+                        className="flex items-center gap-2 rounded-md border p-2 text-sm"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={(event) =>
+                            setForm((current) => ({
+                              ...current,
+                              tagIds: event.target.checked
+                                ? [...current.tagIds, tag.id]
+                                : current.tagIds.filter((id) => id !== tag.id),
+                            }))
+                          }
+                        />
+                        <span>{tag.name}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
             </label>
 
             <label className="space-y-2 text-sm">
@@ -344,9 +373,9 @@ export function ToolEditorForm({ mode, toolId }: ToolEditorFormProps) {
               <input
                 className="w-full rounded-md border bg-background px-3 py-2"
                 value={form.metaTitle}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, metaTitle: event.target.value }))
-                }
+                onChange={(event) => {
+                  setForm((current) => ({ ...current, metaTitle: event.target.value }));
+                }}
               />
             </label>
 
@@ -355,12 +384,14 @@ export function ToolEditorForm({ mode, toolId }: ToolEditorFormProps) {
               <textarea
                 className="min-h-24 w-full rounded-md border bg-background px-3 py-2"
                 value={form.metaDescription}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, metaDescription: event.target.value }))
-                }
+                onChange={(event) => {
+                  setForm((current) => ({ ...current, metaDescription: event.target.value }));
+                }}
               />
             </label>
-          </div>
+
+            <button type="submit" className="hidden" aria-hidden="true" />
+          </form>
         ) : null}
       </div>
     </div>

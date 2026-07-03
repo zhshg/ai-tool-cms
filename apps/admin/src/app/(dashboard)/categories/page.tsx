@@ -21,6 +21,7 @@ export default function CategoriesPage() {
   const [error, setError] = useState<ApiError | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null);
 
   const rootCategories = useMemo(() => items.filter((category) => !category.parentId), [items]);
 
@@ -51,12 +52,16 @@ export default function CategoriesPage() {
     const confirmed = window.confirm(`Delete category "${category.name}"?`);
     if (!confirmed) return;
 
+    setActiveCategoryId(category.id);
+    setError(null);
     try {
       await deleteCategory(category.id);
       setMessage(`Category "${category.name}" deleted.`);
       await loadCategories();
     } catch (err) {
       setError(err as ApiError);
+    } finally {
+      setActiveCategoryId(null);
     }
   }
 
@@ -107,7 +112,15 @@ export default function CategoriesPage() {
             </p>
           ) : null}
           {!isLoading && !error && items.length === 0 ? (
-            <p className="p-6 text-sm text-muted-foreground">No categories found.</p>
+            <div className="p-6">
+              <p className="text-sm text-muted-foreground">No categories found.</p>
+              <Link
+                href="/categories/new"
+                className="mt-4 inline-flex rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted"
+              >
+                Create your first category
+              </Link>
+            </div>
           ) : null}
           {!isLoading && !error && items.length > 0 ? (
             <table className="w-full text-sm">
@@ -139,10 +152,11 @@ export default function CategoriesPage() {
                         </Link>
                         <button
                           type="button"
-                          className="rounded-md border px-3 py-2 text-xs font-medium hover:bg-muted"
+                          className="rounded-md border px-3 py-2 text-xs font-medium hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
                           onClick={() => void handleDelete(category)}
+                          disabled={activeCategoryId === category.id}
                         >
-                          Delete
+                          {activeCategoryId === category.id ? "Working..." : "Delete"}
                         </button>
                       </div>
                     </td>

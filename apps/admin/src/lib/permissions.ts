@@ -1,7 +1,13 @@
 export const Permission = {
   DashboardView: "dashboard:view",
   ToolsRead: "tools:read",
+  ToolsCreate: "tools:create",
+  ToolsUpdate: "tools:update",
+  ToolsDelete: "tools:delete",
   CategoriesRead: "categories:read",
+  CategoriesCreate: "categories:create",
+  CategoriesUpdate: "categories:update",
+  CategoriesDelete: "categories:delete",
   UsersManage: "users:manage",
   SettingsRead: "settings:read",
   CrawlerRead: "crawler:read",
@@ -32,7 +38,13 @@ export type PermissionCode = (typeof Permission)[keyof typeof Permission];
 
 const permissionAliases: Record<string, PermissionCode> = {
   "tool:read": Permission.ToolsRead,
+  "tool:create": Permission.ToolsCreate,
+  "tool:update": Permission.ToolsUpdate,
+  "tool:delete": Permission.ToolsDelete,
   "category:read": Permission.CategoriesRead,
+  "category:create": Permission.CategoriesCreate,
+  "category:update": Permission.CategoriesUpdate,
+  "category:delete": Permission.CategoriesDelete,
 };
 
 export function normalizePermissionCode(permission: string): PermissionCode | null {
@@ -47,7 +59,13 @@ export const RolePermissions: Record<string, PermissionCode[]> = {
   admin: [
     Permission.DashboardView,
     Permission.ToolsRead,
+    Permission.ToolsCreate,
+    Permission.ToolsUpdate,
+    Permission.ToolsDelete,
     Permission.CategoriesRead,
+    Permission.CategoriesCreate,
+    Permission.CategoriesUpdate,
+    Permission.CategoriesDelete,
     Permission.CrawlerRead,
     Permission.CrawlerManage,
     Permission.CrawlerRun,

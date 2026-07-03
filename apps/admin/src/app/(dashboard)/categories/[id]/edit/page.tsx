@@ -11,7 +11,7 @@ export default function EditCategoryPage() {
   const categoryId = typeof params?.id === "string" ? params.id : "";
 
   return (
-    <RequirePermission permission={Permission.CategoriesRead}>
+    <RequirePermission permission={Permission.CategoriesUpdate}>
       <div className="space-y-6">
         <PageHeader title="Edit Category" description="Update taxonomy structure and metadata." />
         <CategoryEditorForm mode="edit" categoryId={categoryId} />

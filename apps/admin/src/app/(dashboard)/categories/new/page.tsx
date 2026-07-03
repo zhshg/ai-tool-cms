@@ -7,7 +7,7 @@ import { Permission } from "@/lib/permissions";
 
 export default function NewCategoryPage() {
   return (
-    <RequirePermission permission={Permission.CategoriesRead}>
+    <RequirePermission permission={Permission.CategoriesCreate}>
       <div className="space-y-6">
         <PageHeader title="New Category" description="Create a new taxonomy category." />
         <CategoryEditorForm mode="create" />

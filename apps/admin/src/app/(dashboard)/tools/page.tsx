@@ -9,6 +9,7 @@ import {
   deleteTool,
   fetchTools,
   getApiErrorMessage,
+  updateTool,
   type AdminTool,
   type ApiError,
 } from "@/lib/api";
@@ -21,6 +22,7 @@ export default function ToolsPage() {
   const [error, setError] = useState<ApiError | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [message, setMessage] = useState<string | null>(null);
+  const [activeToolId, setActiveToolId] = useState<string | null>(null);
 
   async function loadPage() {
     setIsLoading(true);
@@ -50,12 +52,33 @@ export default function ToolsPage() {
     const confirmed = window.confirm(`Delete tool "${tool.name}"?`);
     if (!confirmed) return;
 
+    setActiveToolId(tool.id);
+    setError(null);
     try {
       await deleteTool(tool.id);
       setMessage(`Tool "${tool.name}" deleted.`);
       await loadPage();
     } catch (err) {
       setError(err as ApiError);
+    } finally {
+      setActiveToolId(null);
+    }
+  }
+
+  async function handleArchive(tool: AdminTool) {
+    const confirmed = window.confirm(`Archive tool "${tool.name}"?`);
+    if (!confirmed) return;
+
+    setActiveToolId(tool.id);
+    setError(null);
+    try {
+      await updateTool(tool.id, { status: "ARCHIVED" });
+      setMessage(`Tool "${tool.name}" archived.`);
+      await loadPage();
+    } catch (err) {
+      setError(err as ApiError);
+    } finally {
+      setActiveToolId(null);
     }
   }
 
@@ -103,7 +126,15 @@ export default function ToolsPage() {
             </p>
           ) : null}
           {!isLoading && !error && items.length === 0 ? (
-            <p className="p-6 text-sm text-muted-foreground">No tools found.</p>
+            <div className="p-6">
+              <p className="text-sm text-muted-foreground">No tools found.</p>
+              <Link
+                href="/tools/new"
+                className="mt-4 inline-flex rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted"
+              >
+                Create your first tool
+              </Link>
+            </div>
           ) : null}
           {!isLoading && !error && items.length > 0 ? (
             <table className="w-full text-sm">
@@ -140,12 +171,23 @@ export default function ToolsPage() {
                         >
                           Edit
                         </Link>
+                        {tool.status !== "ARCHIVED" ? (
+                          <button
+                            type="button"
+                            className="rounded-md border px-3 py-2 text-xs font-medium hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
+                            onClick={() => void handleArchive(tool)}
+                            disabled={activeToolId === tool.id}
+                          >
+                            {activeToolId === tool.id ? "Working..." : "Archive"}
+                          </button>
+                        ) : null}
                         <button
                           type="button"
-                          className="rounded-md border px-3 py-2 text-xs font-medium hover:bg-muted"
+                          className="rounded-md border px-3 py-2 text-xs font-medium hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
                           onClick={() => void handleDelete(tool)}
+                          disabled={activeToolId === tool.id}
                         >
-                          Delete
+                          {activeToolId === tool.id ? "Working..." : "Delete"}
                         </button>
                       </div>
                     </td>

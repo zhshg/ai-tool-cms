@@ -46,7 +46,7 @@ export function CategoryEditorForm({ mode, categoryId }: CategoryEditorFormProps
   const [form, setForm] = useState<CategoryFormState>(emptyForm);
   const [error, setError] = useState<ApiError | null>(null);
   const [message, setMessage] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(mode === "edit");
+  const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
   const rootCategories = useMemo(() => items.filter((category) => !category.parentId), [items]);
@@ -92,8 +92,18 @@ export function CategoryEditorForm({ mode, categoryId }: CategoryEditorFormProps
       return;
     }
 
+    if (form.iconUrl.trim()) {
+      try {
+        new URL(form.iconUrl.trim());
+      } catch {
+        setError({ status: 400, message: "Icon URL must be a valid URL." });
+        return;
+      }
+    }
+
     setIsSaving(true);
     setMessage(null);
+    setError(null);
 
     const payload = {
       name: form.name.trim(),
@@ -165,15 +175,23 @@ export function CategoryEditorForm({ mode, categoryId }: CategoryEditorFormProps
         ) : null}
 
         {!isLoading ? (
-          <div className="grid gap-4 md:grid-cols-2">
+          <form
+            className="grid gap-4 md:grid-cols-2"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void handleSubmit();
+            }}
+          >
             <label className="space-y-2 text-sm">
               <span className="font-medium">Name</span>
               <input
+                required
                 className="w-full rounded-md border bg-background px-3 py-2"
                 value={form.name}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, name: event.target.value }))
-                }
+                onChange={(event) => {
+                  setError(null);
+                  setForm((current) => ({ ...current, name: event.target.value }));
+                }}
               />
             </label>
 
@@ -182,9 +200,10 @@ export function CategoryEditorForm({ mode, categoryId }: CategoryEditorFormProps
               <input
                 className="w-full rounded-md border bg-background px-3 py-2"
                 value={form.slug}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, slug: event.target.value }))
-                }
+                onChange={(event) => {
+                  setError(null);
+                  setForm((current) => ({ ...current, slug: event.target.value }));
+                }}
               />
             </label>
 
@@ -193,9 +212,9 @@ export function CategoryEditorForm({ mode, categoryId }: CategoryEditorFormProps
               <textarea
                 className="min-h-24 w-full rounded-md border bg-background px-3 py-2"
                 value={form.description}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, description: event.target.value }))
-                }
+                onChange={(event) => {
+                  setForm((current) => ({ ...current, description: event.target.value }));
+                }}
               />
             </label>
 
@@ -204,9 +223,9 @@ export function CategoryEditorForm({ mode, categoryId }: CategoryEditorFormProps
               <select
                 className="w-full rounded-md border bg-background px-3 py-2"
                 value={form.parentId}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, parentId: event.target.value }))
-                }
+                onChange={(event) => {
+                  setForm((current) => ({ ...current, parentId: event.target.value }));
+                }}
               >
                 <option value="">None</option>
                 {rootCategories
@@ -224,9 +243,10 @@ export function CategoryEditorForm({ mode, categoryId }: CategoryEditorFormProps
               <input
                 className="w-full rounded-md border bg-background px-3 py-2"
                 value={form.iconUrl}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, iconUrl: event.target.value }))
-                }
+                onChange={(event) => {
+                  setError(null);
+                  setForm((current) => ({ ...current, iconUrl: event.target.value }));
+                }}
               />
             </label>
 
@@ -236,9 +256,9 @@ export function CategoryEditorForm({ mode, categoryId }: CategoryEditorFormProps
                 type="number"
                 className="w-full rounded-md border bg-background px-3 py-2"
                 value={form.sortOrder}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, sortOrder: event.target.value }))
-                }
+                onChange={(event) => {
+                  setForm((current) => ({ ...current, sortOrder: event.target.value }));
+                }}
               />
             </label>
 
@@ -247,9 +267,9 @@ export function CategoryEditorForm({ mode, categoryId }: CategoryEditorFormProps
               <input
                 className="w-full rounded-md border bg-background px-3 py-2"
                 value={form.metaTitle}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, metaTitle: event.target.value }))
-                }
+                onChange={(event) => {
+                  setForm((current) => ({ ...current, metaTitle: event.target.value }));
+                }}
               />
             </label>
 
@@ -258,12 +278,14 @@ export function CategoryEditorForm({ mode, categoryId }: CategoryEditorFormProps
               <textarea
                 className="min-h-24 w-full rounded-md border bg-background px-3 py-2"
                 value={form.metaDescription}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, metaDescription: event.target.value }))
-                }
+                onChange={(event) => {
+                  setForm((current) => ({ ...current, metaDescription: event.target.value }));
+                }}
               />
             </label>
-          </div>
+
+            <button type="submit" className="hidden" aria-hidden="true" />
+          </form>
         ) : null}
       </div>
     </div>

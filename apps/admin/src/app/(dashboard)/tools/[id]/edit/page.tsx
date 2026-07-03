@@ -11,7 +11,7 @@ export default function EditToolPage() {
   const toolId = typeof params?.id === "string" ? params.id : "";
 
   return (
-    <RequirePermission permission={Permission.ToolsRead}>
+    <RequirePermission permission={Permission.ToolsUpdate}>
       <div className="space-y-6">
         <PageHeader
           title="Edit Tool"

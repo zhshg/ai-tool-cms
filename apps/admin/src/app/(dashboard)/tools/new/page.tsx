@@ -7,7 +7,7 @@ import { Permission } from "@/lib/permissions";
 
 export default function NewToolPage() {
   return (
-    <RequirePermission permission={Permission.ToolsRead}>
+    <RequirePermission permission={Permission.ToolsCreate}>
       <div className="space-y-6">
         <PageHeader title="New Tool" description="Create a new tool entry for the directory." />
         <ToolEditorForm mode="create" />
