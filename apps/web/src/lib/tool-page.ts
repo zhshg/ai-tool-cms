@@ -35,6 +35,14 @@ type RelatedAlternative = {
   reason: string;
 };
 
+type SerializedScreenshot = {
+  variant: string;
+  imageUrl: string;
+  targetUrl: string;
+  width: number;
+  height: number;
+};
+
 function buildStableJitter(sourceId: string, candidateId: string) {
   const seed = `${sourceId}:${candidateId}`;
   let hash = 0;
@@ -155,6 +163,7 @@ export async function getToolPage(
     name: item.tag.name,
   }));
   const faqs = tool.faqs.map((f: ToolFaqRow) => ({ question: f.question, answer: f.answer }));
+  const screenshots = buildToolScreenshots(tool.toolScreenshots, metadata, tool.website);
   const categoryIds = tool.categories.map((item) => item.categoryId);
   const tagIds = tool.tags.map((item) => item.tagId);
   const similarToolsPromise = prisma.tool.findMany({
@@ -306,17 +315,7 @@ export async function getToolPage(
         description: plan.description,
         isFeatured: plan.isFeatured,
       })),
-      screenshots: tool.toolScreenshots
-        .map((screenshot) => ({
-          variant: screenshot.variant,
-          imageUrl: resolveScreenshotUrl(screenshot.storageKey, screenshot.metadata),
-          targetUrl: screenshot.targetUrl,
-          width: screenshot.width,
-          height: screenshot.height,
-        }))
-        .filter((screenshot): screenshot is NonNullable<typeof screenshot> & { imageUrl: string } =>
-          Boolean(screenshot.imageUrl),
-        ),
+      screenshots,
       alternatives,
       similarTools: similarTools.map((item) => ({
         slug: item.slug,
@@ -501,4 +500,40 @@ function resolveScreenshotUrl(storageKey: string, metadata: unknown): string {
     if (typeof value === "string" && /^https?:\/\//.test(value)) return value;
   }
   return "";
+}
+
+function buildToolScreenshots(
+  toolScreenshots: Array<{
+    variant: string;
+    storageKey: string;
+    metadata: unknown;
+    targetUrl: string;
+    width: number;
+    height: number;
+  }>,
+  metadata: Record<string, unknown>,
+  website: string,
+): SerializedScreenshot[] {
+  const relationScreenshots = toolScreenshots
+    .map((screenshot) => ({
+      variant: screenshot.variant,
+      imageUrl: resolveScreenshotUrl(screenshot.storageKey, screenshot.metadata),
+      targetUrl: screenshot.targetUrl,
+      width: screenshot.width,
+      height: screenshot.height,
+    }))
+    .filter((screenshot): screenshot is SerializedScreenshot => Boolean(screenshot.imageUrl));
+
+  if (relationScreenshots.length > 0) {
+    return relationScreenshots;
+  }
+
+  const metadataScreenshots = normalizeStringList(metadata.screenshots);
+  return metadataScreenshots.map((imageUrl, index) => ({
+    variant: `MANUAL_${index + 1}`,
+    imageUrl,
+    targetUrl: website,
+    width: 1280,
+    height: 720,
+  }));
 }

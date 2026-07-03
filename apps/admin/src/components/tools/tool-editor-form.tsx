@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { X } from "lucide-react";
+import { Search, X } from "lucide-react";
 import { ToolLogo } from "@/components/tools/tool-logo";
 import {
   createTool,
@@ -65,6 +65,7 @@ export function ToolEditorForm({ mode, toolId }: ToolEditorFormProps) {
   const [categories, setCategories] = useState<AdminCategory[]>([]);
   const [tags, setTags] = useState<Array<{ id: string; name: string; slug: string }>>([]);
   const [showTagPicker, setShowTagPicker] = useState(false);
+  const [tagQuery, setTagQuery] = useState("");
   const [error, setError] = useState<ApiError | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -82,6 +83,22 @@ export function ToolEditorForm({ mode, toolId }: ToolEditorFormProps) {
     () => primaryCategories.find((category) => category.id === form.primaryCategoryId) ?? null,
     [form.primaryCategoryId, primaryCategories],
   );
+  const availableTags = useMemo(() => {
+    const normalizedQuery = tagQuery.trim().toLowerCase();
+    const unselectedTags = tags.filter((tag) => !form.tagIds.includes(tag.id));
+
+    if (!normalizedQuery) {
+      return unselectedTags.slice(0, 12);
+    }
+
+    return unselectedTags
+      .filter(
+        (tag) =>
+          tag.name.toLowerCase().includes(normalizedQuery) ||
+          tag.slug.toLowerCase().includes(normalizedQuery),
+      )
+      .slice(0, 12);
+  }, [form.tagIds, tagQuery, tags]);
 
   const loadForm = useCallback(async () => {
     setIsLoading(true);
@@ -416,7 +433,10 @@ export function ToolEditorForm({ mode, toolId }: ToolEditorFormProps) {
                   <button
                     type="button"
                     className="rounded-md border px-3 py-2 text-sm hover:bg-muted"
-                    onClick={() => setShowTagPicker((current) => !current)}
+                    onClick={() => {
+                      setShowTagPicker((current) => !current);
+                      setTagQuery("");
+                    }}
                   >
                     {showTagPicker ? "Hide tag picker" : "Add tag"}
                   </button>
@@ -453,38 +473,45 @@ export function ToolEditorForm({ mode, toolId }: ToolEditorFormProps) {
                 )}
 
                 {showTagPicker ? (
-                  <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                  <div className="mt-4 space-y-3">
+                    <label className="relative block">
+                      <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                      <input
+                        className="w-full rounded-md border bg-background py-2 pl-9 pr-3 text-sm"
+                        value={tagQuery}
+                        placeholder="Search tags"
+                        onChange={(event) => setTagQuery(event.target.value)}
+                      />
+                    </label>
+
                     {tags.length === 0 ? (
-                      <p className="rounded-md border border-dashed p-3 text-sm text-muted-foreground sm:col-span-2">
+                      <p className="rounded-md border border-dashed p-3 text-sm text-muted-foreground">
                         No tags available yet.
                       </p>
-                    ) : null}
-                    {tags.map((tag) => {
-                      const checked = form.tagIds.includes(tag.id);
-                      return (
-                        <label
-                          key={tag.id}
-                          className={[
-                            "flex items-center gap-2 rounded-md border p-3 text-sm transition",
-                            checked ? "border-primary bg-primary/5" : "hover:bg-muted/40",
-                          ].join(" ")}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={checked}
-                            onChange={(event) =>
+                    ) : availableTags.length === 0 ? (
+                      <p className="rounded-md border border-dashed p-3 text-sm text-muted-foreground">
+                        No matching tags found.
+                      </p>
+                    ) : (
+                      <div className="grid gap-2 sm:grid-cols-2">
+                        {availableTags.map((tag) => (
+                          <button
+                            key={tag.id}
+                            type="button"
+                            className="flex items-center justify-between rounded-md border p-3 text-left text-sm transition hover:bg-muted/40"
+                            onClick={() =>
                               setForm((current) => ({
                                 ...current,
-                                tagIds: event.target.checked
-                                  ? [...current.tagIds, tag.id]
-                                  : current.tagIds.filter((id) => id !== tag.id),
+                                tagIds: [...current.tagIds, tag.id],
                               }))
                             }
-                          />
-                          <span>{tag.name}</span>
-                        </label>
-                      );
-                    })}
+                          >
+                            <span>{tag.name}</span>
+                            <span className="text-xs text-muted-foreground">Add</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ) : null}
               </div>
@@ -589,20 +616,32 @@ function EditableStringListSection({
         ) : null}
 
         {items.map((item, index) => (
-          <div key={`${title}-${index}`} className="flex gap-2">
-            <input
-              className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-              value={item}
-              placeholder={placeholder}
-              onChange={(event) => updateItem(index, event.target.value)}
-            />
-            <button
-              type="button"
-              className="rounded-md border px-3 py-2 text-sm hover:bg-muted"
-              onClick={() => removeItem(index)}
-            >
-              Remove
-            </button>
+          <div key={`${title}-${index}`} className="space-y-2">
+            <div className="flex gap-2">
+              <input
+                className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                value={item}
+                placeholder={placeholder}
+                onChange={(event) => updateItem(index, event.target.value)}
+              />
+              <button
+                type="button"
+                className="rounded-md border px-3 py-2 text-sm hover:bg-muted"
+                onClick={() => removeItem(index)}
+              >
+                Remove
+              </button>
+            </div>
+            {title === "Screenshots" && item.trim() ? (
+              <div className="overflow-hidden rounded-md border bg-muted/20 p-2">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={item}
+                  alt={`Screenshot preview ${index + 1}`}
+                  className="aspect-video w-full rounded object-cover"
+                />
+              </div>
+            ) : null}
           </div>
         ))}
 

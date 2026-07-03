@@ -27,6 +27,14 @@ const toolInclude = {
   pricingPlans: { where: activeOnly },
 } satisfies Prisma.ToolInclude;
 
+const toolDetailInclude = {
+  ...toolInclude,
+  faqs: {
+    where: activeOnly,
+    orderBy: { sortOrder: "asc" },
+  },
+} satisfies Prisma.ToolInclude;
+
 @Injectable()
 export class ToolsService {
   constructor(
@@ -60,7 +68,7 @@ export class ToolsService {
   async findById(id: string) {
     const tool = await this.prisma.client.tool.findFirst({
       where: { id, ...activeOnly },
-      include: toolInclude,
+      include: toolDetailInclude,
     });
     if (!tool) throw new NotFoundException("Tool not found");
     return tool;
