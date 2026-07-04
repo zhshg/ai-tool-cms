@@ -31,6 +31,7 @@ import { UsersModule } from "./users/users.module";
 import { SettingsModule } from "./settings/settings.module";
 import { OperationsModule } from "./operations/operations.module";
 import { CollectionsModule } from "./collections/collections.module";
+import { BlogModule } from "./blog/blog.module";
 import { ContentModule } from "./content/content.module";
 
 @Module({
@@ -74,6 +75,7 @@ import { ContentModule } from "./content/content.module";
     SettingsModule,
     OperationsModule,
     CollectionsModule,
+    BlogModule,
     ContentModule,
   ],
   providers: [
@@ -84,3 +86,5 @@ import { ContentModule } from "./content/content.module";
   ],
 })
 export class AppModule {}
+
+

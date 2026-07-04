@@ -2,6 +2,7 @@ import {
   Activity,
   BarChart3,
   Bot,
+  BookOpen,
   Cog,
   DollarSign,
   FileWarning,
@@ -48,6 +49,12 @@ export const navItems: NavItem[] = [
     href: "/categories",
     icon: FolderTree,
     permission: Permission.CategoriesRead,
+  },
+  {
+    title: "Blog",
+    href: "/blog",
+    icon: BookOpen,
+    permission: Permission.SeoRead,
   },
   {
     title: "Content Dataset",
@@ -163,6 +170,7 @@ export const breadcrumbLabels: Record<string, string> = {
   "": "Dashboard",
   tools: "Tools",
   categories: "Categories",
+  blog: "Blog",
   content: "Content Dataset",
   collections: "Collections",
   import: "Import Center",
@@ -182,3 +190,5 @@ export const breadcrumbLabels: Record<string, string> = {
   users: "Users",
   settings: "Settings",
 };
+
+

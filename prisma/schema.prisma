@@ -1,5 +1,5 @@
 // =============================================================================
-// AI Tool CMS â€” Prisma Schema v1 (Commit 011)
+// AI Tool CMS â€?Prisma Schema v1 (Commit 011)
 // Production-grade baseline. Minimize future breaking migrations.
 // =============================================================================
 //
@@ -353,6 +353,7 @@ model User {
   reviewVotes       ReviewVote[]
   favorites         Favorite[]
   collections       Collection[]
+  blogArticles      BlogArticle[]
   auditLogs         AuditLog[]         @relation("AuditActor")
   aiGenerationTasks AiGenerationTask[]
 
@@ -423,7 +424,7 @@ model Permission {
   @@map("permissions")
 }
 
-/// User â†” Role assignment.
+/// User â†?Role assignment.
 model UserRole {
   id        String    @id @default(uuid()) @db.Uuid
   userId    String    @map("user_id") @db.Uuid
@@ -444,7 +445,7 @@ model UserRole {
   @@map("user_roles")
 }
 
-/// Role â†” Permission assignment.
+/// Role â†?Permission assignment.
 model RolePermission {
   id           String    @id @default(uuid()) @db.Uuid
   roleId       String    @map("role_id") @db.Uuid
@@ -644,7 +645,7 @@ model Tool {
   @@map("tools")
 }
 
-/// Tool â†” Category (M:N).
+/// Tool â†?Category (M:N).
 model ToolCategory {
   id         String    @id @default(uuid()) @db.Uuid
   toolId     String    @map("tool_id") @db.Uuid
@@ -666,7 +667,7 @@ model ToolCategory {
   @@map("tool_categories")
 }
 
-/// Tool â†” Tag (M:N).
+/// Tool â†?Tag (M:N).
 model ToolTag {
   id        String    @id @default(uuid()) @db.Uuid
   toolId    String    @map("tool_id") @db.Uuid
@@ -1181,7 +1182,7 @@ model ContentRevision {
 }
 
 // -----------------------------------------------------------------------------
-// SEO platform (Commits 041â€“050)
+// SEO platform (Commits 041â€?50)
 // -----------------------------------------------------------------------------
 
 /// Programmatic compare / alternatives / list pages.
@@ -1251,7 +1252,7 @@ model SeoHealthSnapshot {
 }
 
 // -----------------------------------------------------------------------------
-// Search platform (Commits 051â€“060)
+// Search platform (Commits 051â€?60)
 // -----------------------------------------------------------------------------
 
 /// Search query log for analytics dashboard (Commit 059).
@@ -1316,7 +1317,7 @@ model ToolPopularitySnapshot {
 }
 
 // -----------------------------------------------------------------------------
-// Monetization â€” Affiliate (Commit 061)
+// Monetization â€?Affiliate (Commit 061)
 // -----------------------------------------------------------------------------
 
 /// Affiliate program (Amazon, Impact, CJ, etc.).
@@ -1346,7 +1347,7 @@ model AffiliateProgram {
   @@map("affiliate_programs")
 }
 
-/// Tool affiliate link (official URL â†’ affiliate redirect).
+/// Tool affiliate link (official URL â†?affiliate redirect).
 model AffiliateLink {
   id          String              @id @default(uuid()) @db.Uuid
   toolId      String              @map("tool_id") @db.Uuid
@@ -1448,7 +1449,7 @@ model AffiliateCampaign {
 }
 
 // -----------------------------------------------------------------------------
-// Monetization â€” Sponsored (Commit 062)
+// Monetization â€?Sponsored (Commit 062)
 // -----------------------------------------------------------------------------
 
 model SponsoredPlacement {
@@ -1481,7 +1482,7 @@ model SponsoredPlacement {
 }
 
 // -----------------------------------------------------------------------------
-// Monetization â€” Ads (Commit 063)
+// Monetization â€?Ads (Commit 063)
 // -----------------------------------------------------------------------------
 
 model AdSlot {
@@ -1510,7 +1511,7 @@ model AdSlot {
 }
 
 // -----------------------------------------------------------------------------
-// Newsletter & Email (Commits 064â€“065)
+// Newsletter & Email (Commits 064â€?65)
 // -----------------------------------------------------------------------------
 
 model NewsletterSubscriber {
@@ -1592,7 +1593,7 @@ model EmailSendLog {
 }
 
 // -----------------------------------------------------------------------------
-// Platform â€” Webhooks (Commit 067)
+// Platform â€?Webhooks (Commit 067)
 // -----------------------------------------------------------------------------
 
 model Webhook {
@@ -1640,7 +1641,7 @@ model WebhookDelivery {
 }
 
 // -----------------------------------------------------------------------------
-// Partner & Revenue (Commits 068â€“069)
+// Partner & Revenue (Commits 068â€?69)
 // -----------------------------------------------------------------------------
 
 model PartnerAccount {
@@ -1682,10 +1683,10 @@ model RevenueSnapshot {
 }
 
 // -----------------------------------------------------------------------------
-// Internationalization (Commits 071â€“080)
+// Internationalization (Commits 071â€?80)
 // -----------------------------------------------------------------------------
 
-/// Per-locale tool content (Commit 072) â€” AI-generated per language, not machine-translated.
+/// Per-locale tool content (Commit 072) â€?AI-generated per language, not machine-translated.
 model ToolTranslation {
   id              String            @id @default(uuid()) @db.Uuid
   toolId          String            @map("tool_id") @db.Uuid
@@ -1810,7 +1811,7 @@ model CountryAnalyticsSnapshot {
 }
 
 // -----------------------------------------------------------------------------
-// Autonomous Platform â€” Automation 2.0 (Commits 081â€“090)
+// Autonomous Platform â€?Automation 2.0 (Commits 081â€?90)
 // -----------------------------------------------------------------------------
 
 enum DiscoverySourceKind {
@@ -2216,7 +2217,7 @@ model AutomationRun {
 }
 
 // -----------------------------------------------------------------------------
-// Open Ecosystem â€” Platform (Commits 091â€“100)
+// Open Ecosystem â€?Platform (Commits 091â€?00)
 // -----------------------------------------------------------------------------
 
 enum WorkflowRunStatus {
@@ -2375,4 +2376,103 @@ model Setting {
   @@index([deletedAt])
   @@index([updatedAt])
   @@map("settings")
+}
+
+// -----------------------------------------------------------------------------
+// Blog CMS
+// -----------------------------------------------------------------------------
+
+model BlogCategory {
+  id              String    @id @default(uuid()) @db.Uuid
+  slug            String    @unique @db.VarChar(120)
+  name            String    @db.VarChar(160)
+  description     String?   @db.Text
+  sortOrder       Int       @default(0) @map("sort_order")
+  metaTitle       String?   @map("meta_title") @db.VarChar(160)
+  metaDescription String?   @map("meta_description") @db.VarChar(320)
+  metadata        Json      @default("{}")
+  createdById     String?   @map("created_by_id") @db.Uuid
+  updatedById     String?   @map("updated_by_id") @db.Uuid
+  deletedById     String?   @map("deleted_by_id") @db.Uuid
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  deletedAt       DateTime? @map("deleted_at")
+
+  articles BlogArticle[]
+
+  @@index([sortOrder])
+  @@index([deletedAt])
+  @@map("blog_categories")
+}
+
+model BlogTag {
+  id          String    @id @default(uuid()) @db.Uuid
+  slug        String    @unique @db.VarChar(120)
+  name        String    @db.VarChar(120)
+  description String?   @db.Text
+  metadata    Json      @default("{}")
+  createdById String?   @map("created_by_id") @db.Uuid
+  updatedById String?   @map("updated_by_id") @db.Uuid
+  deletedById String?   @map("deleted_by_id") @db.Uuid
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  articles BlogArticleTag[]
+
+  @@index([deletedAt])
+  @@map("blog_tags")
+}
+
+model BlogArticle {
+  id              String     @id @default(uuid()) @db.Uuid
+  slug            String     @unique @db.VarChar(160)
+  title           String     @db.VarChar(220)
+  excerpt         String?    @db.VarChar(500)
+  content         String     @db.Text
+  status          ToolStatus @default(DRAFT)
+  coverImageUrl   String?    @map("cover_image_url") @db.VarChar(2048)
+  categoryId      String?    @map("category_id") @db.Uuid
+  authorId        String?    @map("author_id") @db.Uuid
+  scheduledAt     DateTime?  @map("scheduled_at")
+  publishedAt     DateTime?  @map("published_at")
+  metaTitle       String?    @map("meta_title") @db.VarChar(160)
+  metaDescription String?    @map("meta_description") @db.VarChar(320)
+  ogImageUrl      String?    @map("og_image_url") @db.VarChar(2048)
+  canonicalUrl    String?    @map("canonical_url") @db.VarChar(2048)
+  metadata        Json       @default("{}")
+  createdById     String?    @map("created_by_id") @db.Uuid
+  updatedById     String?    @map("updated_by_id") @db.Uuid
+  deletedById     String?    @map("deleted_by_id") @db.Uuid
+  createdAt       DateTime   @default(now()) @map("created_at")
+  updatedAt       DateTime   @updatedAt @map("updated_at")
+  deletedAt       DateTime?  @map("deleted_at")
+
+  category BlogCategory?    @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  author   User?            @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  tags     BlogArticleTag[]
+
+  @@index([status])
+  @@index([categoryId])
+  @@index([authorId])
+  @@index([publishedAt])
+  @@index([scheduledAt])
+  @@index([deletedAt])
+  @@map("blog_articles")
+}
+
+model BlogArticleTag {
+  id        String    @id @default(uuid()) @db.Uuid
+  articleId String    @map("article_id") @db.Uuid
+  tagId     String    @map("tag_id") @db.Uuid
+  createdAt DateTime  @default(now()) @map("created_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  article BlogArticle @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  tag     BlogTag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([articleId, tagId])
+  @@index([tagId])
+  @@index([deletedAt])
+  @@map("blog_article_tags")
 }

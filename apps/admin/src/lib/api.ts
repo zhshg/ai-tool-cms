@@ -393,6 +393,43 @@ export type AdminCollection = {
     };
   }>;
 };
+
+export type BlogCategory = {
+  id: string;
+  slug: string;
+  name: string;
+  description?: string | null;
+  sortOrder: number;
+  metaTitle?: string | null;
+  metaDescription?: string | null;
+};
+
+export type BlogTag = {
+  id: string;
+  slug: string;
+  name: string;
+  description?: string | null;
+};
+
+export type BlogArticle = {
+  id: string;
+  slug: string;
+  title: string;
+  excerpt?: string | null;
+  content: string;
+  status: string;
+  coverImageUrl?: string | null;
+  scheduledAt?: string | null;
+  publishedAt?: string | null;
+  metaTitle?: string | null;
+  metaDescription?: string | null;
+  ogImageUrl?: string | null;
+  canonicalUrl?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  category?: BlogCategory | null;
+  tags?: Array<{ tag: BlogTag }>;
+};
 export type AdminUser = {
   id: string;
   email: string;
@@ -945,6 +982,75 @@ export function fetchCollections() {
 export function fetchCollectionById(id: string) {
   return apiFetch<AdminCollection>(`/collections/${id}`);
 }
+export function fetchBlogArticles() {
+  return apiFetch<PaginatedResponse<BlogArticle>>("/blog/articles?pageSize=50");
+}
+
+export function fetchBlogArticleById(id: string) {
+  return apiFetch<BlogArticle>(`/blog/articles/${id}`);
+}
+
+export function createBlogArticle(payload: Record<string, unknown>) {
+  return apiFetch<BlogArticle>("/blog/articles", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function updateBlogArticle(id: string, payload: Record<string, unknown>) {
+  return apiFetch<BlogArticle>(`/blog/articles/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function deleteBlogArticle(id: string) {
+  return apiFetch<{ id: string }>(`/blog/articles/${id}`, { method: "DELETE" });
+}
+
+export function fetchBlogCategories() {
+  return apiFetch<PaginatedResponse<BlogCategory>>("/blog/categories?pageSize=100");
+}
+
+export function createBlogCategory(payload: Record<string, unknown>) {
+  return apiFetch<BlogCategory>("/blog/categories", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function updateBlogCategory(id: string, payload: Record<string, unknown>) {
+  return apiFetch<BlogCategory>(`/blog/categories/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function deleteBlogCategory(id: string) {
+  return apiFetch<{ id: string }>(`/blog/categories/${id}`, { method: "DELETE" });
+}
+
+export function fetchBlogTags() {
+  return apiFetch<PaginatedResponse<BlogTag>>("/blog/tags?pageSize=100");
+}
+
+export function createBlogTag(payload: Record<string, unknown>) {
+  return apiFetch<BlogTag>("/blog/tags", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function updateBlogTag(id: string, payload: Record<string, unknown>) {
+  return apiFetch<BlogTag>(`/blog/tags/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function deleteBlogTag(id: string) {
+  return apiFetch<{ id: string }>(`/blog/tags/${id}`, { method: "DELETE" });
+}
 
 export function createCollection(payload: Record<string, unknown>) {
   return apiFetch<AdminCollection>("/collections", {
@@ -1113,3 +1219,7 @@ export function fetchCrawlerDashboard() {
 export function fetchCrawlSources() {
   return apiFetch<PaginatedResponse<CrawlSource>>("/crawler/sources?pageSize=50");
 }
+
+
+
+
