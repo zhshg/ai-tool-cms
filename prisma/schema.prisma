@@ -1,5 +1,5 @@
 // =============================================================================
-// AI Tool CMS â€?Prisma Schema v1 (Commit 011)
+// AI Tool CMS éˆ¥?Prisma Schema v1 (Commit 011)
 // Production-grade baseline. Minimize future breaking migrations.
 // =============================================================================
 //
@@ -424,7 +424,7 @@ model Permission {
   @@map("permissions")
 }
 
-/// User â†?Role assignment.
+/// User éˆ«?Role assignment.
 model UserRole {
   id        String    @id @default(uuid()) @db.Uuid
   userId    String    @map("user_id") @db.Uuid
@@ -445,7 +445,7 @@ model UserRole {
   @@map("user_roles")
 }
 
-/// Role â†?Permission assignment.
+/// Role éˆ«?Permission assignment.
 model RolePermission {
   id           String    @id @default(uuid()) @db.Uuid
   roleId       String    @map("role_id") @db.Uuid
@@ -645,7 +645,7 @@ model Tool {
   @@map("tools")
 }
 
-/// Tool â†?Category (M:N).
+/// Tool éˆ«?Category (M:N).
 model ToolCategory {
   id         String    @id @default(uuid()) @db.Uuid
   toolId     String    @map("tool_id") @db.Uuid
@@ -667,7 +667,7 @@ model ToolCategory {
   @@map("tool_categories")
 }
 
-/// Tool â†?Tag (M:N).
+/// Tool éˆ«?Tag (M:N).
 model ToolTag {
   id        String    @id @default(uuid()) @db.Uuid
   toolId    String    @map("tool_id") @db.Uuid
@@ -1182,7 +1182,7 @@ model ContentRevision {
 }
 
 // -----------------------------------------------------------------------------
-// SEO platform (Commits 041â€?50)
+// SEO platform (Commits 041éˆ¥?50)
 // -----------------------------------------------------------------------------
 
 /// Programmatic compare / alternatives / list pages.
@@ -1252,7 +1252,7 @@ model SeoHealthSnapshot {
 }
 
 // -----------------------------------------------------------------------------
-// Search platform (Commits 051â€?60)
+// Search platform (Commits 051éˆ¥?60)
 // -----------------------------------------------------------------------------
 
 /// Search query log for analytics dashboard (Commit 059).
@@ -1317,7 +1317,7 @@ model ToolPopularitySnapshot {
 }
 
 // -----------------------------------------------------------------------------
-// Monetization â€?Affiliate (Commit 061)
+// Monetization éˆ¥?Affiliate (Commit 061)
 // -----------------------------------------------------------------------------
 
 /// Affiliate program (Amazon, Impact, CJ, etc.).
@@ -1347,7 +1347,7 @@ model AffiliateProgram {
   @@map("affiliate_programs")
 }
 
-/// Tool affiliate link (official URL â†?affiliate redirect).
+/// Tool affiliate link (official URL éˆ«?affiliate redirect).
 model AffiliateLink {
   id          String              @id @default(uuid()) @db.Uuid
   toolId      String              @map("tool_id") @db.Uuid
@@ -1449,7 +1449,7 @@ model AffiliateCampaign {
 }
 
 // -----------------------------------------------------------------------------
-// Monetization â€?Sponsored (Commit 062)
+// Monetization éˆ¥?Sponsored (Commit 062)
 // -----------------------------------------------------------------------------
 
 model SponsoredPlacement {
@@ -1482,7 +1482,7 @@ model SponsoredPlacement {
 }
 
 // -----------------------------------------------------------------------------
-// Monetization â€?Ads (Commit 063)
+// Monetization éˆ¥?Ads (Commit 063)
 // -----------------------------------------------------------------------------
 
 model AdSlot {
@@ -1511,7 +1511,7 @@ model AdSlot {
 }
 
 // -----------------------------------------------------------------------------
-// Newsletter & Email (Commits 064â€?65)
+// Newsletter & Email (Commits 064éˆ¥?65)
 // -----------------------------------------------------------------------------
 
 model NewsletterSubscriber {
@@ -1593,7 +1593,7 @@ model EmailSendLog {
 }
 
 // -----------------------------------------------------------------------------
-// Platform â€?Webhooks (Commit 067)
+// Platform éˆ¥?Webhooks (Commit 067)
 // -----------------------------------------------------------------------------
 
 model Webhook {
@@ -1641,7 +1641,7 @@ model WebhookDelivery {
 }
 
 // -----------------------------------------------------------------------------
-// Partner & Revenue (Commits 068â€?69)
+// Partner & Revenue (Commits 068éˆ¥?69)
 // -----------------------------------------------------------------------------
 
 model PartnerAccount {
@@ -1683,10 +1683,10 @@ model RevenueSnapshot {
 }
 
 // -----------------------------------------------------------------------------
-// Internationalization (Commits 071â€?80)
+// Internationalization (Commits 071éˆ¥?80)
 // -----------------------------------------------------------------------------
 
-/// Per-locale tool content (Commit 072) â€?AI-generated per language, not machine-translated.
+/// Per-locale tool content (Commit 072) éˆ¥?AI-generated per language, not machine-translated.
 model ToolTranslation {
   id              String            @id @default(uuid()) @db.Uuid
   toolId          String            @map("tool_id") @db.Uuid
@@ -1811,7 +1811,7 @@ model CountryAnalyticsSnapshot {
 }
 
 // -----------------------------------------------------------------------------
-// Autonomous Platform â€?Automation 2.0 (Commits 081â€?90)
+// Autonomous Platform éˆ¥?Automation 2.0 (Commits 081éˆ¥?90)
 // -----------------------------------------------------------------------------
 
 enum DiscoverySourceKind {
@@ -2217,7 +2217,7 @@ model AutomationRun {
 }
 
 // -----------------------------------------------------------------------------
-// Open Ecosystem â€?Platform (Commits 091â€?00)
+// Open Ecosystem éˆ¥?Platform (Commits 091éˆ¥?00)
 // -----------------------------------------------------------------------------
 
 enum WorkflowRunStatus {
