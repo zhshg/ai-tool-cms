@@ -50,6 +50,24 @@ docker compose --env-file .env.production -f docker-compose.prod.yml ps
 - Admin: `http://localhost/admin`
 - API health: `http://localhost/api/health`
 
+## Reset local admin password
+
+If login returns `401` for `admin@ai-tool-cms.local / Admin123!`, run the demo-only reset command inside the running `api` container:
+
+```bash
+docker compose --env-file .env.production -f docker-compose.prod.yml build api
+docker compose --env-file .env.production -f docker-compose.prod.yml up -d api
+docker compose --env-file .env.production -f docker-compose.prod.yml exec api sh -lc "cd /app && ALLOW_DEMO_ADMIN_RESET=true pnpm run demo:reset-admin"
+```
+
+Expected account after reset:
+
+- Email: `admin@ai-tool-cms.local`
+- Password: `Admin123!`
+- Role: `Administrator`
+
+This command only runs when `ALLOW_DEMO_ADMIN_RESET=true` is provided explicitly.
+
 ## Notes
 
 - App images are built locally from `.` using:
