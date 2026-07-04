@@ -493,6 +493,15 @@ export type AnalyticsOverviewResponse = {
   crawlerStatistics: { total: number; success: number; failed: number; pending: number };
   note: string;
 };
+export type OperationsRecentActivity = {
+  id: string;
+  type: string;
+  label: string;
+  status: string;
+  href?: string;
+  createdAt: string;
+};
+
 export type DashboardStatsResponse = {
   totalTools: number;
   publishedTools: number;
@@ -508,14 +517,70 @@ export type DashboardStatsResponse = {
   schedulerJobs: number;
   searchIndex: number;
   lastCrawl: string | null;
+  contentScore: number;
+  seoScore: number;
+  brokenLinks: number;
+  missingLogos: number;
+  importQueue: number;
+  aiQueue: number;
+  storage: string;
+  database: boolean;
   systemHealth: {
     status: string;
     database: boolean;
     redis: boolean;
     meilisearch: boolean;
+    storage?: string;
   };
+  content: {
+    contentScore: number;
+    seoScore: number;
+    totalTools: number;
+    missingLogos: number;
+    missingDescriptions: number;
+    missingFeatures: number;
+    missingFaq: number;
+    missingScreenshots: number;
+    launchReadyTools: number;
+    needsWork: number;
+  };
+  seo: {
+    indexedTools: number;
+    seoScore: number;
+    brokenLinks: number;
+    missingMetadata: number;
+    lastSnapshotAt: string | null;
+  };
+  crawler: {
+    crawlerJobs: number;
+    workerQueue: number;
+    schedulerJobs: number;
+    failedJobs: number;
+    importQueue: number;
+    recentImportRuns: number;
+    aiQueue: number;
+    failedAiTasks: number;
+    crawlerStatus: string;
+    lastCrawl: string | null;
+  };
+  worker: { status: string; queueDepth: number; failedJobs: number };
+  import: { queued: number; recentRuns: number };
+  ai: { queued: number; pendingReview: number; failedTasks: number };
+  search: {
+    searchIndex: number;
+    status: string;
+    indexedTools: number;
+    weeklyQueries: number;
+    weeklyClicks: number;
+  };
+  infrastructure: {
+    storage: string;
+    searchIndex: string;
+    database: string;
+    redis: string;
+  };
+  recentActivity: OperationsRecentActivity[];
 };
-
 export type AdminSetting = {
   id: string;
   key: string;
@@ -1157,10 +1222,56 @@ export async function fetchDashboardStats(): Promise<DashboardStatsResponse> {
     })),
   ]);
 
+  const content = stats.content ?? {
+    contentScore: stats.contentScore ?? 0,
+    seoScore: stats.seoScore ?? 0,
+    totalTools: stats.totalTools ?? 0,
+    missingLogos: stats.missingLogos ?? 0,
+    missingDescriptions: 0,
+    missingFeatures: 0,
+    missingFaq: 0,
+    missingScreenshots: 0,
+    launchReadyTools: 0,
+    needsWork: 0,
+  };
+  const seo = stats.seo ?? {
+    indexedTools: stats.indexedTools ?? 0,
+    seoScore: stats.seoScore ?? 0,
+    brokenLinks: stats.brokenLinks ?? 0,
+    missingMetadata: 0,
+    lastSnapshotAt: null,
+  };
+  const crawler = stats.crawler ?? {
+    crawlerJobs: stats.crawlerJobs ?? 0,
+    workerQueue: stats.workerQueue ?? 0,
+    schedulerJobs: stats.schedulerJobs ?? 0,
+    failedJobs: 0,
+    importQueue: stats.importQueue ?? 0,
+    recentImportRuns: 0,
+    aiQueue: stats.aiQueue ?? 0,
+    failedAiTasks: 0,
+    crawlerStatus: "unknown",
+    lastCrawl: stats.lastCrawl ?? null,
+  };
+  const search = stats.search ?? {
+    searchIndex: stats.searchIndex ?? 0,
+    status: "unknown",
+    indexedTools: stats.indexedTools ?? 0,
+    weeklyQueries: 0,
+    weeklyClicks: 0,
+  };
+  const systemHealth = stats.systemHealth ?? {
+    status: "unknown",
+    database: false,
+    redis: false,
+    meilisearch: false,
+    storage: "unknown",
+  };
+
   return {
     ...stats,
     users: stats.users ?? users.total ?? 0,
-    activeUsers: users.active ?? 0,
+    activeUsers: users.active ?? stats.activeUsers ?? 0,
     totalTools: stats.totalTools ?? 0,
     publishedTools: stats.publishedTools ?? 0,
     draftTools: stats.draftTools ?? 0,
@@ -1173,12 +1284,37 @@ export async function fetchDashboardStats(): Promise<DashboardStatsResponse> {
     schedulerJobs: stats.schedulerJobs ?? 0,
     searchIndex: stats.searchIndex ?? 0,
     lastCrawl: stats.lastCrawl ?? null,
-    systemHealth: stats.systemHealth ?? {
-      status: "unknown",
-      database: false,
-      redis: false,
-      meilisearch: false,
+    contentScore: stats.contentScore ?? content.contentScore ?? 0,
+    seoScore: stats.seoScore ?? seo.seoScore ?? 0,
+    brokenLinks: stats.brokenLinks ?? seo.brokenLinks ?? 0,
+    missingLogos: stats.missingLogos ?? content.missingLogos ?? 0,
+    importQueue: stats.importQueue ?? crawler.importQueue ?? 0,
+    aiQueue: stats.aiQueue ?? crawler.aiQueue ?? 0,
+    storage: stats.storage ?? systemHealth.storage ?? "unknown",
+    database: stats.database ?? systemHealth.database ?? false,
+    systemHealth,
+    content,
+    seo,
+    crawler,
+    worker: stats.worker ?? {
+      status: crawler.workerQueue > 0 ? "busy" : "idle",
+      queueDepth: crawler.workerQueue,
+      failedJobs: crawler.failedJobs,
     },
+    import: stats.import ?? { queued: crawler.importQueue, recentRuns: crawler.recentImportRuns },
+    ai: stats.ai ?? {
+      queued: crawler.aiQueue,
+      pendingReview: stats.pendingAiReview ?? 0,
+      failedTasks: crawler.failedAiTasks,
+    },
+    search,
+    infrastructure: stats.infrastructure ?? {
+      storage: systemHealth.storage ?? "unknown",
+      searchIndex: search.status,
+      database: systemHealth.database ? "healthy" : "degraded",
+      redis: systemHealth.redis ? "healthy" : "degraded",
+    },
+    recentActivity: stats.recentActivity ?? [],
   };
 }
 
