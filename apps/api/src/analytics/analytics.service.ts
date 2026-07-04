@@ -60,6 +60,8 @@ export class AnalyticsService {
       recentClicks,
       recentCrawlerJobs,
       popularitySnapshots,
+      topCollections,
+      trafficSourceRows,
     ] = await Promise.all([
       this.prisma.client.searchQueryLog.count({ where: { createdAt: { gte: since } } }),
       this.prisma.client.searchQueryLog.count({
@@ -128,6 +130,24 @@ export class AnalyticsService {
         orderBy: { createdAt: "asc" },
         take: 5000,
       }),
+      this.prisma.client.collection.findMany({
+        where: { deletedAt: null, isPublic: true },
+        orderBy: [{ updatedAt: "desc" }, { name: "asc" }],
+        take: 8,
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          _count: { select: { items: { where: { deletedAt: null } } } },
+        },
+      }),
+      this.prisma.client.affiliateClick.groupBy({
+        by: ["referrer"],
+        where: { createdAt: { gte: since }, referrer: { not: null } },
+        _count: { referrer: true },
+        orderBy: { _count: { referrer: "desc" } },
+        take: 8,
+      }),
     ]);
 
     const [topTools, topCategories] = await Promise.all([
@@ -161,6 +181,19 @@ export class AnalyticsService {
         searches: row._count.normalizedQuery,
         avgLatencyMs: Math.round(row._avg.latencyMs ?? 0),
       })),
+      collections: topCollections.map((collection) => ({
+        id: collection.id,
+        name: collection.name,
+        slug: collection.slug,
+        toolCount: collection._count.items,
+      })),
+      trafficSources: trafficSourceRows
+        .filter((row) => Boolean(row.referrer))
+        .map((row) => ({
+          source: normalizeTrafficSource(row.referrer),
+          referrer: row.referrer ?? "",
+          visits: row._count.referrer,
+        })),
       trends: buildTrends(
         normalizedPeriod,
         since,
@@ -204,6 +237,18 @@ export class AnalyticsService {
         keyword.keyword,
         String(keyword.searches),
         `${keyword.avgLatencyMs}ms`,
+      ]),
+      ...overview.collections.map((collection) => [
+        "collection",
+        collection.name,
+        String(collection.toolCount),
+        collection.slug,
+      ]),
+      ...overview.trafficSources.map((source) => [
+        "traffic_source",
+        source.source,
+        String(source.visits),
+        source.referrer,
       ]),
       ...overview.trends.map((trend) => [
         "trend",
@@ -327,4 +372,14 @@ function incrementBucket(
 function escapeCsv(value: string) {
   const escaped = value.replace(/"/g, '""');
   return /[",\n]/.test(escaped) ? `"${escaped}"` : escaped;
+}
+
+function normalizeTrafficSource(referrer: string | null) {
+  if (!referrer) return "Direct / Unknown";
+  try {
+    const host = new URL(referrer).hostname.replace(/^www\./, "");
+    return host || referrer;
+  } catch {
+    return referrer;
+  }
 }

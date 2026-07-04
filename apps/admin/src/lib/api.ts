@@ -482,6 +482,8 @@ export type AnalyticsOverviewResponse = {
   }>;
   topCategories: Array<{ id: string; name: string; slug: string; toolCount: number }>;
   searchKeywords: Array<{ keyword: string; searches: number; avgLatencyMs: number }>;
+  collections: Array<{ id: string; name: string; slug: string; toolCount: number }>;
+  trafficSources: Array<{ source: string; referrer: string; visits: number }>;
   trends: Array<{
     label: string;
     searches: number;

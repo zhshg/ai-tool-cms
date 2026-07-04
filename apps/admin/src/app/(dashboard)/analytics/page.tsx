@@ -196,6 +196,27 @@ export default function AnalyticsPage() {
               />
             </div>
 
+            <div className="grid gap-6 xl:grid-cols-2">
+              <RankTable
+                title="Collections"
+                rows={data.collections.map((collection) => ({
+                  name: collection.name,
+                  value: collection.toolCount,
+                  hint: collection.slug,
+                }))}
+                empty="No public collections yet."
+              />
+              <RankTable
+                title="Traffic Sources"
+                rows={data.trafficSources.map((source) => ({
+                  name: source.source,
+                  value: source.visits,
+                  hint: source.referrer,
+                }))}
+                empty="No tracked traffic sources yet."
+              />
+            </div>
+
             <div className="grid gap-6 lg:grid-cols-2">
               <StatsPanel
                 title="Import Statistics"
