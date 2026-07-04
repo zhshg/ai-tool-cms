@@ -1,4 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import { startAiPipeline } from "@ai-tool-cms/ai";
+import { enqueueAiJob, type AiQueueName } from "@ai-tool-cms/queue";
 import type { Prisma } from "@ai-tool-cms/database";
 import { ToolStatus } from "@ai-tool-cms/database";
 import { PrismaService } from "../prisma/prisma.service";
@@ -23,6 +25,7 @@ const contentToolInclude = {
 } satisfies Prisma.ToolInclude;
 
 const REPORT_LIMIT = 50;
+const QUALITY_RANKING_LIMIT = 25;
 
 @Injectable()
 export class ContentService {
@@ -102,6 +105,60 @@ export class ContentService {
 
   async getBrokenWebsiteReport() {
     return this.buildBrokenWebsiteReport(await this.loadTools());
+  }
+
+  async getQualityDashboard() {
+    const tools = await this.loadTools();
+    const items = tools.map((tool) => this.computeQualityProfile(tool));
+    const sortedByQuality = [...items].sort((a, b) => a.contentScore - b.contentScore);
+    const topMissingContent = sortedByQuality
+      .filter((item) => item.missing.length > 0)
+      .slice(0, QUALITY_RANKING_LIMIT);
+
+    return {
+      generatedAt: new Date().toISOString(),
+      summary: {
+        totalTools: items.length,
+        averageContentScore: average(items.map((item) => item.contentScore)),
+        averageSeoScore: average(items.map((item) => item.seoScore)),
+        averageCompletenessScore: average(items.map((item) => item.completenessScore)),
+        averageReadability: average(items.map((item) => item.readability)),
+        excellentTools: items.filter((item) => item.contentScore >= 90).length,
+        needsImprovement: items.filter((item) => item.contentScore < 70).length,
+      },
+      topMissingContent,
+      qualityRanking: sortedByQuality.slice(0, QUALITY_RANKING_LIMIT),
+      bestQuality: [...items]
+        .sort((a, b) => b.contentScore - a.contentScore)
+        .slice(0, QUALITY_RANKING_LIMIT),
+      metrics: this.buildQualityMetricSummary(items),
+    };
+  }
+
+  async bulkImprove(toolIds: string[] | undefined, actorId: string) {
+    const requestedIds = [...new Set(toolIds ?? [])].filter(Boolean);
+    const tools = requestedIds.length
+      ? await this.prisma.client.tool.findMany({
+          where: { id: { in: requestedIds }, ...activeOnly },
+          select: { id: true },
+        })
+      : (await this.loadTools())
+          .map((tool) => this.computeQualityProfile(tool))
+          .filter((profile) => profile.contentScore < 80 || profile.missing.length > 0)
+          .slice(0, QUALITY_RANKING_LIMIT)
+          .map((profile) => ({ id: profile.id }));
+
+    const results: Array<{ toolId: string; pipelineRunId: string; jobId: string }> = [];
+    for (const tool of tools) {
+      const result = await startAiPipeline(
+        tool.id,
+        (queue, job, payload) => enqueueAiJob(queue as AiQueueName, job, payload),
+        actorId,
+      );
+      results.push({ toolId: tool.id, ...result });
+    }
+
+    return { queued: results.length, results };
   }
 
   async mergeDuplicate(dto: MergeDuplicateToolsDto, actorId: string) {
@@ -338,31 +395,103 @@ export class ContentService {
   }
 
   private computeContentScore(tool: ToolWithContent) {
-    const metadata = (tool.metadata ?? {}) as Record<string, unknown>;
-    const checks = [
-      Boolean(tool.name),
-      Boolean(tool.slug),
-      Boolean(tool.website),
-      hasLogo(tool),
-      Boolean(tool.summary?.trim()),
-      Boolean(getLongDescription(tool)),
-      tool.categories.some((item) => item.isPrimary),
-      tool.categories.length > 0,
-      tool.tags.length > 0,
-      Boolean(tool.pricingModel) || tool.pricingPlans.length > 0,
-      normalizeStringList(metadata.platforms ?? metadata.aiPlatforms).length > 0,
-      normalizeStringList(metadata.languages ?? metadata.aiLanguages).length > 0,
-      typeof metadata.hasApi === "boolean" || typeof metadata.apiAccess === "boolean",
-      typeof metadata.openSource === "boolean" || typeof metadata.isOpenSource === "boolean",
-      normalizeStringList(metadata.features).length > 0,
-      normalizeStringList(metadata.useCases).length > 0,
-      getScreenshots(tool).length > 0,
-      tool.faqs.length > 0,
-      normalizeStringList(metadata.alternatives).length > 0,
-      Boolean(tool.metaTitle?.trim()) && Boolean(tool.metaDescription?.trim()),
-    ];
+    return this.computeQualityProfile(tool).contentScore;
+  }
 
-    return Math.round((checks.filter(Boolean).length / checks.length) * 100);
+  private computeQualityProfile(tool: ToolWithContent) {
+    const metadata = (tool.metadata ?? {}) as Record<string, unknown>;
+    const description = getLongDescription(tool);
+    const features = normalizeStringList(metadata.features);
+    const screenshots = getScreenshots(tool);
+    const alternatives = normalizeStringList(metadata.alternatives);
+    const useCases = normalizeStringList(metadata.useCases);
+
+    const breakdown = {
+      logo: scoreBoolean(hasLogo(tool), "Logo is available", "Missing logo"),
+      description: scoreDescription(tool.summary, description),
+      features: scoreCount(features.length, 3, "Feature list"),
+      faq: scoreCount(tool.faqs.length, 3, "FAQ"),
+      screenshots: scoreCount(screenshots.length, 2, "Screenshots"),
+      seo: scoreSeo(tool),
+      pricing: scoreBoolean(
+        Boolean(tool.pricingModel) || tool.pricingPlans.length > 0,
+        "Pricing is defined",
+        "Missing pricing",
+      ),
+      alternatives: scoreCount(alternatives.length, 3, "Alternatives"),
+      category: scoreBoolean(
+        tool.categories.some((item) => item.isPrimary),
+        "Primary category is assigned",
+        "Missing primary category",
+      ),
+      tags: scoreCount(tool.tags.length, 3, "Tags"),
+      useCases: scoreCount(useCases.length, 3, "Use cases"),
+    };
+
+    const completenessScore = Math.round(
+      average(Object.values(breakdown).map((item) => item.score)),
+    );
+    const seoScore = breakdown.seo.score;
+    const readability = scoreReadability(`${tool.summary ?? ""} ${description}`);
+    const contentScore = Math.round(completenessScore * 0.5 + seoScore * 0.25 + readability * 0.25);
+    const missing = Object.entries(breakdown)
+      .filter(([, value]) => value.score < 70)
+      .map(([key, value]) => ({
+        key,
+        label: value.label,
+        reason: value.reason,
+        score: value.score,
+      }));
+
+    return {
+      id: tool.id,
+      name: tool.name,
+      slug: tool.slug,
+      website: tool.website,
+      status: tool.status,
+      contentScore,
+      seoScore,
+      completenessScore,
+      readability,
+      breakdown,
+      missing,
+      recommendedAction: missing.length
+        ? `Improve ${missing
+            .slice(0, 3)
+            .map((item) => item.label.toLowerCase())
+            .join(", ")}`
+        : "Ready for launch",
+      updatedAt: tool.updatedAt.toISOString(),
+    };
+  }
+
+  private buildQualityMetricSummary(
+    items: Array<ReturnType<ContentService["computeQualityProfile"]>>,
+  ) {
+    const keys = [
+      "logo",
+      "description",
+      "features",
+      "faq",
+      "screenshots",
+      "seo",
+      "pricing",
+      "alternatives",
+    ] as const;
+
+    return Object.fromEntries(
+      keys.map((key) => {
+        const scores = items.map((item) => item.breakdown[key].score);
+        return [
+          key,
+          {
+            averageScore: average(scores),
+            passing: scores.filter((score) => score >= 70).length,
+            failing: scores.filter((score) => score < 70).length,
+          },
+        ];
+      }),
+    );
   }
 }
 
@@ -470,4 +599,86 @@ function dedupeDuplicateGroups(
     seen.add(signature);
     return true;
   });
+}
+
+type QualityMetricScore = {
+  score: number;
+  label: string;
+  reason: string;
+};
+
+function scoreBoolean(ok: boolean, passReason: string, failReason: string): QualityMetricScore {
+  return {
+    score: ok ? 100 : 0,
+    label: passReason.replace(/^(.+?) is .+$/, "$1"),
+    reason: ok ? passReason : failReason,
+  };
+}
+
+function scoreCount(count: number, target: number, label: string): QualityMetricScore {
+  const score = Math.min(100, Math.round((count / target) * 100));
+  return {
+    score,
+    label,
+    reason:
+      score >= 100
+        ? `${label} coverage is strong`
+        : `${label} has ${count}/${target} recommended items`,
+  };
+}
+
+function scoreDescription(summary: string | null, description: string): QualityMetricScore {
+  const summaryLength = summary?.trim().length ?? 0;
+  const descriptionLength = description.trim().length;
+  const score = Math.min(
+    100,
+    Math.round(
+      (summaryLength >= 80 ? 35 : (summaryLength / 80) * 35) +
+        (descriptionLength >= 400 ? 65 : (descriptionLength / 400) * 65),
+    ),
+  );
+  return {
+    score,
+    label: "Description",
+    reason:
+      score >= 80
+        ? "Description is detailed enough"
+        : "Short or full description needs more original detail",
+  };
+}
+
+function scoreSeo(tool: ToolWithContent): QualityMetricScore {
+  const titleLength = tool.metaTitle?.trim().length ?? 0;
+  const descriptionLength = tool.metaDescription?.trim().length ?? 0;
+  const titleScore = titleLength >= 35 && titleLength <= 70 ? 50 : titleLength > 0 ? 25 : 0;
+  const descriptionScore =
+    descriptionLength >= 120 && descriptionLength <= 170 ? 50 : descriptionLength > 0 ? 25 : 0;
+  const score = titleScore + descriptionScore;
+  return {
+    score,
+    label: "SEO",
+    reason:
+      score >= 80
+        ? "SEO title and description are launch-ready"
+        : "SEO title or description is missing or outside recommended length",
+  };
+}
+
+function scoreReadability(text: string) {
+  const normalized = text.replace(/\s+/g, " ").trim();
+  if (!normalized) return 0;
+  const words = normalized.split(" ").filter(Boolean);
+  const sentences = normalized.split(/[.!?������]+/).filter((item) => item.trim()).length || 1;
+  const averageWordsPerSentence = words.length / sentences;
+  const lengthScore = Math.min(100, Math.round((words.length / 120) * 100));
+  const sentenceScore =
+    averageWordsPerSentence <= 24
+      ? 100
+      : Math.max(40, 100 - Math.round((averageWordsPerSentence - 24) * 3));
+  return Math.round(lengthScore * 0.45 + sentenceScore * 0.55);
+}
+
+function average(values: number[]) {
+  if (!values.length) return 0;
+  return Math.round(values.reduce((sum, value) => sum + value, 0) / values.length);
 }

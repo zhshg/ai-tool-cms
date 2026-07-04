@@ -1,5 +1,5 @@
-import { ApiProperty } from "@nestjs/swagger";
-import { IsUUID } from "class-validator";
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
+import { IsArray, IsOptional, IsUUID } from "class-validator";
 
 export class MergeDuplicateToolsDto {
   @ApiProperty()
@@ -9,4 +9,12 @@ export class MergeDuplicateToolsDto {
   @ApiProperty()
   @IsUUID("4")
   targetToolId!: string;
+}
+
+export class BulkImproveContentDto {
+  @ApiPropertyOptional({ type: [String] })
+  @IsOptional()
+  @IsArray()
+  @IsUUID("4", { each: true })
+  toolIds?: string[];
 }

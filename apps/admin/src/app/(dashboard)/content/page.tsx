@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import {
+  Activity,
   AlertTriangle,
   CheckCircle2,
   Database,
@@ -14,12 +15,16 @@ import {
 import { PageHeader } from "@/components/layout/page-header";
 import { RequirePermission } from "@/components/rbac/require-permission";
 import {
+  bulkImproveContent,
   fetchContentDataset,
+  fetchContentQuality,
   getApiErrorMessage,
   mergeDuplicateTools,
   type ApiError,
   type ContentDatasetResponse,
   type ContentIssueReport,
+  type ContentQualityItem,
+  type ContentQualityResponse,
 } from "@/lib/api";
 import { Permission } from "@/lib/permissions";
 
@@ -44,16 +49,22 @@ const missingSections: Array<{ key: string; title: string; description: string }
 
 export default function ContentDatasetPage() {
   const [data, setData] = useState<ContentDatasetResponse | null>(null);
+  const [quality, setQuality] = useState<ContentQualityResponse | null>(null);
   const [error, setError] = useState<ApiError | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [message, setMessage] = useState<string | null>(null);
   const [mergeKey, setMergeKey] = useState<string | null>(null);
+  const [isImproving, setIsImproving] = useState(false);
 
   async function loadDataset() {
     setIsLoading(true);
     try {
-      const response = await fetchContentDataset();
+      const [response, qualityResponse] = await Promise.all([
+        fetchContentDataset(),
+        fetchContentQuality(),
+      ]);
       setData(response);
+      setQuality(qualityResponse);
       setError(null);
     } catch (err) {
       setError(err as ApiError);
@@ -82,6 +93,27 @@ export default function ContentDatasetPage() {
       { label: "Broken Links", value: issues?.brokenWebsites ?? 0, icon: Link2Off },
     ];
   }, [data]);
+
+  async function handleBulkImprove(toolIds?: string[]) {
+    const confirmed = window.confirm(
+      toolIds?.length
+        ? "Queue AI improvement for the selected low-quality tools?"
+        : "Queue AI improvement for the top low-quality tools?",
+    );
+    if (!confirmed) return;
+
+    setIsImproving(true);
+    setError(null);
+    try {
+      const result = await bulkImproveContent(toolIds);
+      setMessage(`AI content improvement queued for ${result.queued} tool(s).`);
+      await loadDataset();
+    } catch (err) {
+      setError(err as ApiError);
+    } finally {
+      setIsImproving(false);
+    }
+  }
 
   async function handleMerge(sourceToolId: string, targetToolId: string) {
     const confirmed = window.confirm(
@@ -161,6 +193,74 @@ export default function ContentDatasetPage() {
 
         {data ? (
           <>
+            {quality ? (
+              <section className="rounded-lg border bg-card p-5 shadow-sm">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <h2 className="font-semibold">Content Quality Engine</h2>
+                    <p className="text-sm text-muted-foreground">
+                      AI-assisted scoring for content, SEO, completeness, readability, and launch
+                      gaps.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground disabled:opacity-60"
+                    disabled={isImproving}
+                    onClick={() => void handleBulkImprove()}
+                  >
+                    <Activity className="h-4 w-4" />
+                    {isImproving ? "Queueing..." : "Bulk Improve"}
+                  </button>
+                </div>
+                <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-6">
+                  <QualityStat
+                    label="Content Score"
+                    value={`${quality.summary.averageContentScore}%`}
+                  />
+                  <QualityStat label="SEO Score" value={`${quality.summary.averageSeoScore}%`} />
+                  <QualityStat
+                    label="Completeness"
+                    value={`${quality.summary.averageCompletenessScore}%`}
+                  />
+                  <QualityStat
+                    label="Readability"
+                    value={`${quality.summary.averageReadability}%`}
+                  />
+                  <QualityStat label="Excellent" value={quality.summary.excellentTools} />
+                  <QualityStat label="Needs Work" value={quality.summary.needsImprovement} />
+                </div>
+                <div className="mt-5 grid gap-6 xl:grid-cols-2">
+                  <QualityList
+                    title="Top Missing Content"
+                    description="Lowest-scoring tools with actionable missing content."
+                    items={quality.topMissingContent}
+                    actionLabel="Improve"
+                    onAction={(tool) => void handleBulkImprove([tool.id])}
+                    isActionDisabled={isImproving}
+                  />
+                  <QualityList
+                    title="Quality Ranking"
+                    description="Tools ranked from weakest to strongest launch quality."
+                    items={quality.qualityRanking}
+                  />
+                </div>
+                <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                  {Object.entries(quality.metrics).map(([key, metric]) => (
+                    <div key={key} className="rounded-md border p-3">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="capitalize text-muted-foreground">{key}</span>
+                        <span className="font-medium">{metric.averageScore}%</span>
+                      </div>
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        {metric.passing} passing / {metric.failing} failing
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            ) : null}
+
             <section className="rounded-lg border bg-card p-5 shadow-sm">
               <h2 className="font-semibold">Coverage</h2>
               <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -319,5 +419,91 @@ function IssuePanel({
         )}
       </div>
     </section>
+  );
+}
+
+function QualityStat({ label, value }: { label: string; value: string | number }) {
+  return (
+    <div className="rounded-md border p-3">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="mt-2 text-xl font-semibold">{value}</p>
+    </div>
+  );
+}
+
+function QualityList({
+  title,
+  description,
+  items,
+  actionLabel,
+  onAction,
+  isActionDisabled = false,
+}: {
+  title: string;
+  description: string;
+  items: ContentQualityItem[];
+  actionLabel?: string;
+  onAction?: (tool: ContentQualityItem) => void;
+  isActionDisabled?: boolean;
+}) {
+  return (
+    <div className="rounded-md border p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h3 className="text-sm font-semibold">{title}</h3>
+          <p className="text-xs text-muted-foreground">{description}</p>
+        </div>
+        <span className="rounded-md bg-muted px-2 py-1 text-xs font-medium">{items.length}</span>
+      </div>
+      <div className="mt-4 space-y-3">
+        {items.length ? (
+          items.slice(0, 8).map((tool) => (
+            <div key={`${title}-${tool.id}`} className="rounded-md border p-3 text-sm">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="truncate font-medium">{tool.name}</p>
+                  <p className="truncate text-xs text-muted-foreground">{tool.recommendedAction}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="rounded-md bg-muted px-2 py-1 text-xs font-medium">
+                    {tool.contentScore}%
+                  </span>
+                  {onAction && actionLabel ? (
+                    <button
+                      type="button"
+                      className="rounded-md border px-3 py-1.5 text-xs hover:bg-muted disabled:opacity-60"
+                      disabled={isActionDisabled}
+                      onClick={() => onAction(tool)}
+                    >
+                      {actionLabel}
+                    </button>
+                  ) : null}
+                  <Link
+                    href={`/tools/${tool.id}/edit`}
+                    className="rounded-md border px-3 py-1.5 text-xs hover:bg-muted"
+                  >
+                    Edit
+                  </Link>
+                </div>
+              </div>
+              {tool.missing.length ? (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {tool.missing.slice(0, 4).map((item) => (
+                    <span
+                      key={`${tool.id}-${item.key}`}
+                      className="rounded-full bg-muted px-2 py-1 text-xs"
+                    >
+                      {item.label}: {item.score}%
+                    </span>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          ))
+        ) : (
+          <p className="text-sm text-muted-foreground">No tools to show.</p>
+        )}
+      </div>
+    </div>
   );
 }

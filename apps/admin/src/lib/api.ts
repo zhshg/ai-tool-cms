@@ -692,6 +692,44 @@ export type ContentDatasetResponse = {
     groups: ContentDuplicateGroup[];
   };
 };
+export type ContentQualityMetric = {
+  score: number;
+  label: string;
+  reason: string;
+};
+
+export type ContentQualityItem = {
+  id: string;
+  name: string;
+  slug: string;
+  website: string;
+  status: string;
+  contentScore: number;
+  seoScore: number;
+  completenessScore: number;
+  readability: number;
+  breakdown: Record<string, ContentQualityMetric>;
+  missing: Array<{ key: string; label: string; reason: string; score: number }>;
+  recommendedAction: string;
+  updatedAt: string;
+};
+
+export type ContentQualityResponse = {
+  generatedAt: string;
+  summary: {
+    totalTools: number;
+    averageContentScore: number;
+    averageSeoScore: number;
+    averageCompletenessScore: number;
+    averageReadability: number;
+    excellentTools: number;
+    needsImprovement: number;
+  };
+  topMissingContent: ContentQualityItem[];
+  qualityRanking: ContentQualityItem[];
+  bestQuality: ContentQualityItem[];
+  metrics: Record<string, { averageScore: number; passing: number; failing: number }>;
+};
 export type MonetizationDashboardResponse = {
   generatedAt: string;
   period: string;
@@ -760,6 +798,20 @@ export type RevenueOverviewResponse = {
 
 export function fetchContentDataset() {
   return apiFetch<ContentDatasetResponse>("/content/dataset");
+}
+
+export function fetchContentQuality() {
+  return apiFetch<ContentQualityResponse>("/content/quality");
+}
+
+export function bulkImproveContent(toolIds?: string[]) {
+  return apiFetch<{
+    queued: number;
+    results: Array<{ toolId: string; pipelineRunId: string; jobId: string }>;
+  }>("/content/quality/bulk-improve", {
+    method: "POST",
+    body: JSON.stringify({ toolIds }),
+  });
 }
 
 export function mergeDuplicateTools(sourceToolId: string, targetToolId: string) {

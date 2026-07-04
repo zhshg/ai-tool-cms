@@ -3,7 +3,7 @@ import { ApiOperation, ApiTags } from "@nestjs/swagger";
 import { PermissionCode } from "@ai-tool-cms/auth";
 import { CurrentUser, RequirePermission, type RequestUser } from "../common/decorators";
 import { ContentService } from "./content.service";
-import { MergeDuplicateToolsDto } from "./dto/content-ops.dto";
+import { BulkImproveContentDto, MergeDuplicateToolsDto } from "./dto/content-ops.dto";
 
 @ApiTags("content")
 @Controller("content")
@@ -29,6 +29,20 @@ export class ContentController {
   @ApiOperation({ summary: "Report tools missing launch-critical content fields" })
   missingContent() {
     return this.contentService.getMissingContentReport();
+  }
+
+  @Get("quality")
+  @RequirePermission(PermissionCode.ToolRead)
+  @ApiOperation({ summary: "AI content quality dashboard" })
+  quality() {
+    return this.contentService.getQualityDashboard();
+  }
+
+  @Post("quality/bulk-improve")
+  @RequirePermission(PermissionCode.ToolUpdate)
+  @ApiOperation({ summary: "Queue AI improvement for low-quality tools" })
+  bulkImprove(@Body() dto: BulkImproveContentDto, @CurrentUser() user: RequestUser) {
+    return this.contentService.bulkImprove(dto.toolIds, user.id);
   }
 
   @Get("broken-websites")
