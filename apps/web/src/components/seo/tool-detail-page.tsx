@@ -23,7 +23,10 @@ export function ToolDetailPage({ data, locale }: ToolDetailPageProps) {
     data.categories.find((category) => category.isPrimary) ?? data.categories[0];
   const featureItems = data.features.length ? data.features : data.useCases;
   const hasAlternatives = data.alternatives.length > 0;
-  const hasRelatedTools = data.similarTools.length > 0;
+  const hasSimilarTools = data.similarTools.length > 0;
+  const hasMoreLikeThis = data.moreLikeThis.length > 0;
+  const hasTrendingTools = data.trendingTools.length > 0;
+  const hasRelatedCategories = data.relatedCategories.length > 0;
 
   const toc: TocItem[] = [
     { id: "overview", label: "Overview", visible: Boolean(data.aiSummary || data.longDescription) },
@@ -47,8 +50,11 @@ export function ToolDetailPage({ data, locale }: ToolDetailPageProps) {
       visible: data.screenshots.length > 0 || data.videos.length > 0,
     },
     { id: "faq", label: "FAQ", visible: data.faqs.length > 0 },
+    { id: "similar", label: "Similar Tools", visible: hasSimilarTools },
     { id: "alternatives", label: "Alternatives", visible: hasAlternatives },
-    { id: "related", label: "Related Tools", visible: hasRelatedTools },
+    { id: "more-like-this", label: "More Like This", visible: hasMoreLikeThis },
+    { id: "trending", label: "Trending", visible: hasTrendingTools },
+    { id: "related-categories", label: "Related Categories", visible: hasRelatedCategories },
     { id: "reviews", label: "Reviews", visible: data.reviews.length > 0 },
     { id: "structured-data", label: "Structured Data", visible: data.jsonLd.length > 0 },
   ].filter((item) => item.visible);
@@ -272,6 +278,14 @@ export function ToolDetailPage({ data, locale }: ToolDetailPageProps) {
               </Section>
             ) : null}
 
+            {hasSimilarTools ? (
+              <ToolGrid
+                id="similar"
+                title="Similar Tools"
+                tools={data.similarTools}
+                locale={locale}
+              />
+            ) : null}
             {hasAlternatives ? (
               <ToolGrid
                 id="alternatives"
@@ -280,11 +294,25 @@ export function ToolDetailPage({ data, locale }: ToolDetailPageProps) {
                 locale={locale}
               />
             ) : null}
-            {hasRelatedTools ? (
+            {hasMoreLikeThis ? (
               <ToolGrid
-                id="related"
-                title="Related Tools"
-                tools={data.similarTools}
+                id="more-like-this"
+                title="More Like This"
+                tools={data.moreLikeThis}
+                locale={locale}
+              />
+            ) : null}
+            {hasTrendingTools ? (
+              <ToolGrid
+                id="trending"
+                title="Trending"
+                tools={data.trendingTools}
+                locale={locale}
+              />
+            ) : null}
+            {hasRelatedCategories ? (
+              <RelatedCategories
+                categories={data.relatedCategories}
                 locale={locale}
               />
             ) : null}
@@ -505,6 +533,44 @@ function VideoGallery({ videos }: { videos: ToolPageData["videos"] }) {
   );
 }
 
+function RelatedCategories({
+  categories,
+  locale,
+}: {
+  categories: ToolPageData["relatedCategories"];
+  locale: string;
+}) {
+  return (
+    <Section id="related-categories" title="Related Categories">
+      <div className="grid gap-3 sm:grid-cols-2">
+        {categories.map((category) => (
+          <Link
+            key={category.slug}
+            href={`/${locale}/category/${category.slug}`}
+            className="flex items-center justify-between gap-4 rounded-2xl border bg-card p-4 shadow-sm transition hover:border-primary/40"
+          >
+            <span className="min-w-0">
+              <span className="block truncate text-sm font-medium">{category.name}</span>
+              <span className="mt-1 block text-xs text-muted-foreground">
+                {category.toolCount} tools · {formatAlternativeReason(category.reason)}
+              </span>
+            </span>
+            {category.iconUrl ? (
+              <Image
+                src={category.iconUrl}
+                alt=""
+                width={32}
+                height={32}
+                className="size-8 rounded-lg object-contain"
+                unoptimized
+              />
+            ) : null}
+          </Link>
+        ))}
+      </div>
+    </Section>
+  );
+}
 function ToolGrid({
   id,
   title,

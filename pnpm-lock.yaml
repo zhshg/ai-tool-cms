@@ -323,6 +323,9 @@ importers:
       '@ai-tool-cms/geo':
         specifier: workspace:*
         version: link:../../packages/geo
+      '@ai-tool-cms/recommendation':
+        specifier: workspace:*
+        version: link:../../packages/recommendation
       '@ai-tool-cms/seo':
         specifier: workspace:*
         version: link:../../packages/seo

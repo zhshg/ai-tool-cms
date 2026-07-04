@@ -17,6 +17,7 @@
     "@ai-tool-cms/config": "workspace:*",
     "@ai-tool-cms/database": "workspace:*",
     "@ai-tool-cms/geo": "workspace:*",
+    "@ai-tool-cms/recommendation": "workspace:*",
     "@ai-tool-cms/seo": "workspace:*",
     "@radix-ui/react-slot": "^1.1.2",
     "@tanstack/react-query": "^5.64.2",

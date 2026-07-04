@@ -1,4 +1,5 @@
 import { prisma, PricingModel, ReviewStatus, ToolStatus } from "@ai-tool-cms/database";
+import { buildToolRecommendations } from "@ai-tool-cms/recommendation";
 import { buildGeoContentBlocks, type GeoPageDocument } from "@ai-tool-cms/geo";
 import {
   buildToolMetadata,
@@ -27,13 +28,6 @@ type ToolInternalLinkRow = {
   linkType: string;
 };
 
-type RelatedAlternative = {
-  slug: string;
-  name: string;
-  summary: string | null;
-  score: number;
-  reason: string;
-};
 
 type SerializedScreenshot = {
   variant: string;
@@ -57,16 +51,16 @@ type SerializedReview = {
   createdAt: string;
 };
 
-function buildStableJitter(sourceId: string, candidateId: string) {
-  const seed = `${sourceId}:${candidateId}`;
-  let hash = 0;
-
-  for (let index = 0; index < seed.length; index += 1) {
-    hash = (hash * 31 + seed.charCodeAt(index)) % 1000;
-  }
-
-  return hash / 1000;
-}
+type RecommendedToolCard = {
+  slug: string;
+  name: string;
+  summary: string | null;
+  logoUrl: string | null;
+  collectedLogoUrl: string | null;
+  categoryIconUrl: string | null;
+  pricingModel: PricingModel;
+  reason: string | null;
+};
 
 export type ToolPageData = {
   slug: string;
@@ -113,15 +107,10 @@ export type ToolPageData = {
     pricingModel: PricingModel;
     reason: string | null;
   }>;
-  similarTools: Array<{
-    slug: string;
-    name: string;
-    summary: string | null;
-    logoUrl: string | null;
-    collectedLogoUrl: string | null;
-    categoryIconUrl: string | null;
-    pricingModel: PricingModel;
-  }>;
+  similarTools: RecommendedToolCard[];
+  moreLikeThis: RecommendedToolCard[];
+  trendingTools: RecommendedToolCard[];
+  relatedCategories: Array<{`r`n    slug: string;`r`n    name: string;`r`n    iconUrl: string | null;`r`n    toolCount: number;`r`n    reason: string;`r`n  }>;
   faqs: Array<{ question: string; answer: string }>;
   reviews: SerializedReview[];
   internalLinks: ToolPageLink[];
@@ -192,100 +181,20 @@ export async function getToolPage(
   }));
   const faqs = tool.faqs.map((f: ToolFaqRow) => ({ question: f.question, answer: f.answer }));
   const screenshots = buildToolScreenshots(tool.toolScreenshots, metadata, tool.website);
-  const categoryIds = tool.categories.map((item) => item.categoryId);
-  const tagIds = tool.tags.map((item) => item.tagId);
-  const similarToolsPromise = prisma.tool.findMany({
-    where: {
-      id: { not: tool.id },
-      status: ToolStatus.PUBLISHED,
-      ...activeOnly,
-      OR: [
-        ...(categoryIds.length
-          ? [{ categories: { some: { ...activeOnly, categoryId: { in: categoryIds } } } }]
-          : []),
-        ...(tagIds.length ? [{ tags: { some: { ...activeOnly, tagId: { in: tagIds } } } }] : []),
-      ],
-    },
-    orderBy: [{ publishedAt: "desc" }, { name: "asc" }],
-    take: 6,
-    select: {
-      slug: true,
-      name: true,
-      summary: true,
-      logoUrl: true,
-      metadata: true,
-      categories: {
-        where: activeOnly,
-        orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }],
-        take: 1,
-        select: {
-          category: {
-            select: {
-              iconUrl: true,
-            },
-          },
-        },
-      },
-      pricingModel: true,
-    },
-  });
-  const recommendedAlternativesPromise = computeToolAlternatives(tool.id, 5);
-  const [similarTools, recommendedAlternatives] = await Promise.all([
-    categoryIds.length || tagIds.length ? similarToolsPromise : Promise.resolve([]),
-    recommendedAlternativesPromise,
+  const recommendations = await buildToolRecommendations(prisma, tool.id, 6);
+  const [alternatives, similarTools, moreLikeThis, trendingTools] = await Promise.all([
+    hydrateRecommendedToolCards(recommendations.alternatives),
+    hydrateRecommendedToolCards(recommendations.similarTools),
+    hydrateRecommendedToolCards(recommendations.moreLikeThis),
+    hydrateRecommendedToolCards(recommendations.trendingTools),
   ]);
-  const alternativeLookup = new Map<string, RelatedAlternative>(
-    recommendedAlternatives.map((item: RelatedAlternative) => [item.slug, item]),
-  );
-  const alternativeDetails = recommendedAlternatives.length
-    ? await prisma.tool.findMany({
-        where: {
-          slug: { in: recommendedAlternatives.map((item: RelatedAlternative) => item.slug) },
-          status: ToolStatus.PUBLISHED,
-          ...activeOnly,
-        },
-        select: {
-          slug: true,
-          name: true,
-          summary: true,
-          logoUrl: true,
-          metadata: true,
-          pricingModel: true,
-          categories: {
-            where: activeOnly,
-            orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }],
-            take: 1,
-            select: {
-              category: {
-                select: {
-                  iconUrl: true,
-                },
-              },
-            },
-          },
-        },
-      })
-    : [];
-  const alternatives = recommendedAlternatives
-    .map((item: RelatedAlternative) => {
-      const detail = alternativeDetails.find((candidate) => candidate.slug === item.slug);
-      if (!detail) return null;
-
-      return {
-        slug: detail.slug,
-        name: detail.name,
-        summary: detail.summary,
-        logoUrl: detail.logoUrl,
-        collectedLogoUrl: resolveCollectedLogoUrl(
-          detail.logoUrl,
-          (detail.metadata ?? {}) as Record<string, unknown>,
-        ),
-        categoryIconUrl: detail.categories[0]?.category.iconUrl ?? null,
-        pricingModel: detail.pricingModel,
-        reason: alternativeLookup.get(detail.slug)?.reason ?? null,
-      };
-    })
-    .filter((item): item is NonNullable<typeof item> => Boolean(item));
+  const relatedCategories = recommendations.relatedCategories.map((category) => ({
+    slug: category.slug,
+    name: category.name,
+    iconUrl: category.iconUrl ?? null,
+    toolCount: category.toolCount,
+    reason: category.reason,
+  }));
   const firstPricingPlan = tool.pricingPlans[0];
 
   const jsonLd = buildToolPageJsonLd({
@@ -349,18 +258,10 @@ export async function getToolPage(
       })),
       screenshots,
       alternatives,
-      similarTools: similarTools.map((item) => ({
-        slug: item.slug,
-        name: item.name,
-        summary: item.summary,
-        logoUrl: item.logoUrl,
-        collectedLogoUrl: resolveCollectedLogoUrl(
-          item.logoUrl,
-          (item.metadata ?? {}) as Record<string, unknown>,
-        ),
-        categoryIconUrl: item.categories[0]?.category.iconUrl ?? null,
-        pricingModel: item.pricingModel,
-      })),
+      similarTools,
+      moreLikeThis,
+      trendingTools,
+      relatedCategories,
       faqs,
       reviews: tool.reviews.map((review) => ({
         title: review.title,
@@ -386,108 +287,62 @@ function normalizeStringList(value: unknown): string[] {
   return value.map((item) => (typeof item === "string" ? item.trim() : "")).filter(Boolean);
 }
 
-async function computeToolAlternatives(toolId: string, limit = 5): Promise<RelatedAlternative[]> {
-  const source = await prisma.tool.findFirst({
-    where: { id: toolId, status: ToolStatus.PUBLISHED, ...activeOnly },
-    include: {
-      categories: { where: activeOnly },
-      tags: { where: activeOnly },
-      reviews: { where: { status: ReviewStatus.APPROVED, ...activeOnly } },
-    },
-  });
-  if (!source) return [];
+async function hydrateRecommendedToolCards(
+  recommendations: Array<{ slug: string; reason: string }>,
+): Promise<RecommendedToolCard[]> {
+  if (!recommendations.length) return [];
 
-  const sourceCategoryIds = new Set(source.categories.map((item) => item.categoryId));
-  const sourceTagIds = new Set(source.tags.map((item) => item.tagId));
-
-  const candidates = await prisma.tool.findMany({
+  const details = await prisma.tool.findMany({
     where: {
+      slug: { in: recommendations.map((item) => item.slug) },
       status: ToolStatus.PUBLISHED,
       ...activeOnly,
-      NOT: { id: toolId },
-      OR: [
-        ...(sourceTagIds.size
-          ? [{ tags: { some: { ...activeOnly, tagId: { in: [...sourceTagIds] } } } }]
-          : []),
-        ...(sourceCategoryIds.size
-          ? [
-              {
-                categories: { some: { ...activeOnly, categoryId: { in: [...sourceCategoryIds] } } },
-              },
-            ]
-          : []),
-      ],
     },
-    include: {
-      categories: { where: activeOnly },
-      tags: { where: activeOnly },
-      reviews: { where: { status: ReviewStatus.APPROVED, ...activeOnly } },
+    select: {
+      slug: true,
+      name: true,
+      summary: true,
+      logoUrl: true,
+      metadata: true,
+      pricingModel: true,
+      categories: {
+        where: activeOnly,
+        orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }],
+        take: 1,
+        select: {
+          category: {
+            select: {
+              iconUrl: true,
+            },
+          },
+        },
+      },
     },
-    take: 60,
-    orderBy: [{ updatedAt: "desc" }, { publishedAt: "desc" }],
   });
+  const detailBySlug = new Map(details.map((detail) => [detail.slug, detail]));
 
-  const clickCounts = await prisma.searchClickLog.groupBy({
-    by: ["toolId"],
-    _count: { toolId: true },
-  });
-  const clickMap = new Map(clickCounts.map((item) => [item.toolId, item._count.toolId]));
+  const cards: RecommendedToolCard[] = [];
+  for (const item of recommendations) {
+    const detail = detailBySlug.get(item.slug);
+    if (!detail) continue;
 
-  const scored = candidates
-    .map((candidate) => {
-      const metadata = (candidate.metadata ?? {}) as Record<string, unknown>;
-      const candidateCategoryIds = new Set(candidate.categories.map((item) => item.categoryId));
-      const candidateTagIds = new Set(candidate.tags.map((item) => item.tagId));
-      const reviews = candidate.reviews;
-      const averageRating = reviews.length
-        ? reviews.reduce((total, review) => total + review.rating, 0) / reviews.length
-        : 0;
-      const sharedCategories = [...sourceCategoryIds].filter((id) => candidateCategoryIds.has(id));
-      const sharedTags = [...sourceTagIds].filter((id) => candidateTagIds.has(id));
-      const clickBoost = Math.log10((clickMap.get(candidate.id) ?? 0) + 1) * 2;
-      const popularityBoost =
-        typeof metadata.popularityScore === "number" ? metadata.popularityScore * 0.05 : 0;
-      const jitter = buildStableJitter(source.id, candidate.id);
+    cards.push({
+      slug: detail.slug,
+      name: detail.name,
+      summary: detail.summary,
+      logoUrl: detail.logoUrl,
+      collectedLogoUrl: resolveCollectedLogoUrl(
+        detail.logoUrl,
+        (detail.metadata ?? {}) as Record<string, unknown>,
+      ),
+      categoryIconUrl: detail.categories[0]?.category.iconUrl ?? null,
+      pricingModel: detail.pricingModel,
+      reason: item.reason,
+    });
+  }
 
-      return {
-        slug: candidate.slug,
-        name: candidate.name,
-        summary: candidate.summary,
-        score:
-          sharedTags.length * 100 +
-          sharedCategories.length * 20 +
-          averageRating * 3 +
-          clickBoost +
-          popularityBoost +
-          jitter,
-        reason: sharedTags.length
-          ? `shared ${sharedTags.length > 1 ? "tags" : "tag"}`
-          : sharedCategories.length
-            ? "same category"
-            : "related tool",
-        sharedTags: sharedTags.length,
-        sharedCategories: sharedCategories.length,
-      };
-    })
-    .filter((candidate) => candidate.sharedTags > 0 || candidate.sharedCategories > 0);
-
-  const primaryMatches = scored.filter((candidate) => candidate.sharedTags > 0);
-  const fallbackMatches = scored.filter(
-    (candidate) => candidate.sharedTags === 0 && candidate.sharedCategories > 0,
-  );
-
-  return [...primaryMatches, ...fallbackMatches]
-    .sort((left, right) => right.score - left.score)
-    .slice(0, limit)
-    .map(({ slug, name, summary, score, reason }) => ({
-      slug,
-      name,
-      summary,
-      score,
-      reason,
-    }));
+  return cards;
 }
-
 function buildFeatureList(metadata: Record<string, unknown>): string[] {
   const explicitFeatures = normalizeStringList(metadata.aiFeatures);
   if (explicitFeatures.length) {
