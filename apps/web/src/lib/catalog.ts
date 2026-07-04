@@ -128,6 +128,8 @@ export type SearchPageFilters = {
   languages: CatalogSearchFilterOption[];
   suggestions: string[];
   recentSearches: string[];
+  popularSearches: string[];
+  synonyms: string[];
 };
 
 export type PublicShellData = {
@@ -944,7 +946,7 @@ export async function searchCatalogTools(input: {
 }
 
 export async function getSearchPageFilters(): Promise<SearchPageFilters> {
-  const [categories, tags, tools, recentQueries] = await Promise.all([
+  const [categories, tags, tools, recentQueries, apiSuggestions] = await Promise.all([
     prisma.category.findMany({
       where: activeOnly,
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
@@ -970,6 +972,7 @@ export async function getSearchPageFilters(): Promise<SearchPageFilters> {
       orderBy: { _count: { query: "desc" } },
       take: 8,
     }),
+    fetchSearchSuggestions(),
   ]);
 
   const platformMap = new Map<string, string>();
@@ -992,11 +995,49 @@ export async function getSearchPageFilters(): Promise<SearchPageFilters> {
     tags,
     platforms: [...platformMap.values()].map((name) => ({ slug: name, name })).slice(0, 24),
     languages: [...languageMap.values()].map((name) => ({ slug: name, name })).slice(0, 24),
-    suggestions: [...suggestions].slice(0, 12),
-    recentSearches: recentQueries.map((item) => item.query).filter(Boolean),
+    suggestions: dedupeStrings([
+      ...apiSuggestions.autocomplete.map((item) => item.label),
+      ...apiSuggestions.synonyms,
+      ...suggestions,
+    ]).slice(0, 12),
+    recentSearches: dedupeStrings([
+      ...apiSuggestions.recent.map((item) => item.query),
+      ...recentQueries.map((item) => item.query).filter(Boolean),
+    ]).slice(0, 8),
+    popularSearches: apiSuggestions.popular.map((item) => item.query).slice(0, 8),
+    synonyms: apiSuggestions.synonyms.slice(0, 8),
   };
 }
 
+type SearchSuggestionsResponse = {
+  autocomplete: Array<{ type: string; label: string; value: string }>;
+  synonyms: string[];
+  popular: Array<{ query: string; count: number }>;
+  recent: Array<{ query: string; createdAt: string }>;
+};
+
+async function fetchSearchSuggestions(): Promise<SearchSuggestionsResponse> {
+  try {
+    const response = await fetch(`${getInternalApiUrl()}/v1/search/suggestions?limit=12`, {
+      next: { revalidate: 300 },
+    });
+    if (!response.ok) throw new Error(`Search suggestions API returned ${response.status}`);
+    return (await response.json()) as SearchSuggestionsResponse;
+  } catch {
+    return { autocomplete: [], synonyms: [], popular: [], recent: [] };
+  }
+}
+
+function dedupeStrings(items: string[]) {
+  const seen = new Set<string>();
+  return items.filter((item) => {
+    const value = item.trim();
+    const key = value.toLowerCase();
+    if (!value || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
 function normalizeCatalogStringList(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
   return value.map((item) => (typeof item === "string" ? item.trim() : "")).filter(Boolean);
@@ -1149,14 +1190,14 @@ function getCollectionCopy(slug: CollectionPageSlug, locale: string) {
   switch (slug) {
     case "best-ai-tools":
       return {
-        title: isZh ? "��� AI ���߰�" : "Best AI Tools",
+        title: isZh ? "���?AI ���߰�" : "Best AI Tools",
         description: isZh
-          ? "���Ŀ¼��ֵ������������ AI ���ߣ��鿴����ժҪ���ڲ�������"
+          ? "���Ŀ¼��ֵ������������?AI ���ߣ��鿴����ժҪ���ڲ�������"
           : "Browse the most useful AI tools in the directory with ranked picks, summaries, and internal links.",
       };
     case "free-ai-tools":
       return {
-        title: isZh ? "��� AI ����" : "Free AI Tools",
+        title: isZh ? "���?AI ����" : "Free AI Tools",
         description: isZh
           ? "�鿴�����ʹ�û���ż����õ� AI ���ߣ������ҵ��ʺ����ź���֤��ѡ�"
           : "Discover AI tools you can use for free or try with a low barrier before making a larger commitment.",
@@ -1165,7 +1206,7 @@ function getCollectionCopy(slug: CollectionPageSlug, locale: string) {
       return {
         title: isZh ? "���� AI ����" : "New AI Tools",
         description: isZh
-          ? "������ʱ��鿴������¼�� AI ���ߣ�����׷��Ŀ¼���������Ʒ��"
+          ? "������ʱ��������¼���Ŀ¼�� AI ���ߣ��ʺ�׷����Ʒ�Ϳ���������"
           : "Track the newest AI tools added to the directory, ordered by recency and ready for review.",
       };
     case "trending-ai-tools":

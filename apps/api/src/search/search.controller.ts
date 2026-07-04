@@ -6,6 +6,7 @@ import { Public, RequirePermission } from "../common/decorators";
 import {
   HomeRecommendationsQueryDto,
   PublicSearchQueryDto,
+  SearchSuggestionQueryDto,
   TrendingQueryDto,
 } from "./dto/search-query.dto";
 import { SearchApiService } from "./search.service";
@@ -21,6 +22,34 @@ export class SearchController {
   @ApiOperation({ summary: "Public search API (Commit 060)" })
   search(@Query() query: PublicSearchQueryDto) {
     return this.searchService.search(query);
+  }
+
+  @Public()
+  @Get("search/autocomplete")
+  @ApiOperation({ summary: "Autocomplete tool, category, tag, and query suggestions" })
+  autocomplete(@Query() query: SearchSuggestionQueryDto) {
+    return this.searchService.autocomplete(query.q ?? "", query.limit ?? 10);
+  }
+
+  @Public()
+  @Get("search/suggestions")
+  @ApiOperation({ summary: "Search suggestions with synonyms and popular queries" })
+  suggestions(@Query() query: SearchSuggestionQueryDto) {
+    return this.searchService.suggestions(query.q ?? "", query.limit ?? 10);
+  }
+
+  @Public()
+  @Get("search/popular")
+  @ApiOperation({ summary: "Popular search queries" })
+  popularSearches(@Query() query: SearchSuggestionQueryDto) {
+    return this.searchService.popularSearches(query.limit ?? 10);
+  }
+
+  @Public()
+  @Get("search/recent")
+  @ApiOperation({ summary: "Recent successful search queries" })
+  recentSearches(@Query() query: SearchSuggestionQueryDto) {
+    return this.searchService.recentSearches(query.limit ?? 10);
   }
 
   @Public()

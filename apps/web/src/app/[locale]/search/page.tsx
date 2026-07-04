@@ -179,7 +179,12 @@ export default async function SearchPage({ params, searchParams }: SearchPagePro
                 className="h-10 w-full rounded-md border bg-background pl-9 pr-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-ring"
               />
               <datalist id="search-suggestions">
-                {[...filterOptions.suggestions, ...filterOptions.recentSearches].map((item) => (
+                {[
+                  ...filterOptions.suggestions,
+                  ...filterOptions.synonyms,
+                  ...filterOptions.popularSearches,
+                  ...filterOptions.recentSearches,
+                ].map((item) => (
                   <option key={item} value={item} />
                 ))}
               </datalist>
@@ -236,6 +241,16 @@ export default async function SearchPage({ params, searchParams }: SearchPagePro
           locale={locale}
           title="Suggestions"
           items={filterOptions.suggestions.slice(0, 8)}
+        />
+        <SuggestionLinks
+          locale={locale}
+          title="Synonyms"
+          items={filterOptions.synonyms.slice(0, 8)}
+        />
+        <SuggestionLinks
+          locale={locale}
+          title="Popular searches"
+          items={filterOptions.popularSearches.slice(0, 8)}
         />
         <SuggestionLinks
           locale={locale}

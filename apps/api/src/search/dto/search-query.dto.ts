@@ -115,3 +115,18 @@ export class HomeRecommendationsQueryDto {
   @Max(20)
   limit?: number;
 }
+
+export class SearchSuggestionQueryDto {
+  @ApiPropertyOptional({ description: "Partial query for autocomplete" })
+  @IsOptional()
+  @IsString()
+  q?: string;
+
+  @ApiPropertyOptional({ default: 10 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(20)
+  limit?: number;
+}
