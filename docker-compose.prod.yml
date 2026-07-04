@@ -79,7 +79,8 @@ services:
       dockerfile: docker/Dockerfile.node
       args:
         APP_NAME: api
-    image: ${IMAGE_REGISTRY:-ghcr.io/zhshg}/ai-tool-cms-api:${IMAGE_TAG:-latest}
+    image: ai-tool-cms-api:${IMAGE_TAG:-local}
+    pull_policy: never
     restart: "no"
     command: pnpm db:migrate:deploy
     environment:
@@ -97,7 +98,8 @@ services:
       dockerfile: docker/Dockerfile.node
       args:
         APP_NAME: api
-    image: ${IMAGE_REGISTRY:-ghcr.io/zhshg}/ai-tool-cms-api:${IMAGE_TAG:-latest}
+    image: ai-tool-cms-api:${IMAGE_TAG:-local}
+    pull_policy: never
     restart: "no"
     command:
       [
@@ -139,7 +141,8 @@ services:
       dockerfile: docker/Dockerfile.node
       args:
         APP_NAME: api
-    image: ${IMAGE_REGISTRY:-ghcr.io/zhshg}/ai-tool-cms-api:${IMAGE_TAG:-latest}
+    image: ai-tool-cms-api:${IMAGE_TAG:-local}
+    pull_policy: never
     restart: unless-stopped
     environment:
       NODE_ENV: production
@@ -211,7 +214,8 @@ services:
       dockerfile: docker/Dockerfile.node
       args:
         APP_NAME: worker
-    image: ${IMAGE_REGISTRY:-ghcr.io/zhshg}/ai-tool-cms-worker:${IMAGE_TAG:-latest}
+    image: ai-tool-cms-worker:${IMAGE_TAG:-local}
+    pull_policy: never
     restart: unless-stopped
     environment:
       NODE_ENV: production
@@ -263,7 +267,8 @@ services:
       dockerfile: docker/Dockerfile.node
       args:
         APP_NAME: scheduler
-    image: ${IMAGE_REGISTRY:-ghcr.io/zhshg}/ai-tool-cms-scheduler:${IMAGE_TAG:-latest}
+    image: ai-tool-cms-scheduler:${IMAGE_TAG:-local}
+    pull_policy: never
     restart: unless-stopped
     environment:
       NODE_ENV: production
@@ -308,7 +313,8 @@ services:
         APP_NAME: web
         NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
-    image: ${IMAGE_REGISTRY:-ghcr.io/zhshg}/ai-tool-cms-web:${IMAGE_TAG:-latest}
+    image: ai-tool-cms-web:${IMAGE_TAG:-local}
+    pull_policy: never
     restart: unless-stopped
     environment:
       NODE_ENV: production
@@ -359,7 +365,8 @@ services:
         ADMIN_BASE_PATH: /admin
         NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
-    image: ${IMAGE_REGISTRY:-ghcr.io/zhshg}/ai-tool-cms-admin:${IMAGE_TAG:-latest}
+    image: ai-tool-cms-admin:${IMAGE_TAG:-local}
+    pull_policy: never
     restart: unless-stopped
     environment:
       NODE_ENV: production
