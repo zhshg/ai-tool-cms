@@ -1,8 +1,14 @@
-import type { PrismaClient } from "@ai-tool-cms/database";
+﻿import type { PrismaClient } from "@ai-tool-cms/database";
 import { ToolStatus } from "@ai-tool-cms/database";
 import { computeTrending } from "@ai-tool-cms/ranking";
 import { computeRelatedTools } from "./related-tools";
-import type {`r`n  HomeSection,`r`n  HomeSectionKind,`r`n  RecommendationBreakdown,`r`n  RecommendationContext,`r`n  RelatedTool,`r`n} from "./types";
+import type {
+  HomeSection,
+  HomeSectionKind,
+  RecommendationBreakdown,
+  RecommendationContext,
+  RelatedTool,
+} from "./types";
 
 const activeOnly = { deletedAt: null } as const;
 
@@ -15,6 +21,7 @@ const emptyBreakdown: RecommendationBreakdown = {
   freshness: 0,
   semanticSimilarity: 0,
 };
+
 const SECTION_TITLES: Record<string, Partial<Record<HomeSectionKind, string>>> = {
   en: {
     because_you_viewed: "Because you viewed",
@@ -26,33 +33,34 @@ const SECTION_TITLES: Record<string, Partial<Record<HomeSectionKind, string>>> =
     compare: "Compare",
   },
   "zh-CN": {
-    because_you_viewed: "鍥犱负浣犳祻瑙堣繃",
-    similar_ai: "鐩镐技 AI",
-    trending_in_category: "鍒嗙被鐑棬",
-    popular_this_week: "鏈懆鐑棬",
-    recently_added: "鏈€鏂颁笂鏋?,
-    alternatives: "鏇夸唬宸ュ叿",
-    compare: "瀵规瘮",
+    because_you_viewed: "基于你的浏览",
+    similar_ai: "相似 AI 工具",
+    trending_in_category: "分类热门",
+    popular_this_week: "本周热门",
+    recently_added: "最新收录",
+    alternatives: "替代工具",
+    compare: "对比",
   },
   ja: {
-    because_you_viewed: "闁茶Η灞ユ銇熀銇ャ亸銇娿仚銇欍倎",
-    similar_ai: "椤炰技 AI",
-    trending_in_category: "銈儐銈淬儶銇儓銉兂銉?,
-    popular_this_week: "浠婇€便伄浜烘皸",
-    recently_added: "鏂扮潃 AI",
-    alternatives: "浠ｆ浛銉勩兗銉?,
-    compare: "姣旇純",
+    because_you_viewed: "閲覧履歴に基づくおすすめ",
+    similar_ai: "類似 AI ツール",
+    trending_in_category: "カテゴリー内のトレンド",
+    popular_this_week: "今週の人気",
+    recently_added: "新着ツール",
+    alternatives: "代替ツール",
+    compare: "比較",
   },
   "zh-TW": {
-    because_you_viewed: "鍥犵偤浣犵€忚閬?,
-    similar_ai: "鐩镐技 AI",
-    trending_in_category: "鍒嗛鐔遍杸",
-    popular_this_week: "鏈€辩啽闁€",
-    recently_added: "鏈€鏂颁笂鏋?,
-    alternatives: "鏇夸唬宸ュ叿",
-    compare: "姣旇純",
+    because_you_viewed: "根據你的瀏覽",
+    similar_ai: "相似 AI 工具",
+    trending_in_category: "分類熱門",
+    popular_this_week: "本週熱門",
+    recently_added: "最新收錄",
+    alternatives: "替代工具",
+    compare: "比較",
   },
 };
+
 function sectionTitle(kind: HomeSectionKind, locale = "en"): string {
   const titles = SECTION_TITLES[locale] ?? SECTION_TITLES.en ?? {};
   return titles[kind] ?? SECTION_TITLES.en?.[kind] ?? kind;
@@ -87,7 +95,7 @@ async function fetchRecentTools(prisma: PrismaClient, limit: number): Promise<Re
   }));
 }
 
-/** Commit 055 閳?dynamic homepage recommendation sections. */
+/** Build dynamic homepage recommendation sections. */
 export async function buildHomeSections(
   prisma: PrismaClient,
   context: RecommendationContext = {},

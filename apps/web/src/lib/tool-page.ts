@@ -28,7 +28,6 @@ type ToolInternalLinkRow = {
   linkType: string;
 };
 
-
 type SerializedScreenshot = {
   variant: string;
   imageUrl: string;
@@ -110,7 +109,13 @@ export type ToolPageData = {
   similarTools: RecommendedToolCard[];
   moreLikeThis: RecommendedToolCard[];
   trendingTools: RecommendedToolCard[];
-  relatedCategories: Array<{`r`n    slug: string;`r`n    name: string;`r`n    iconUrl: string | null;`r`n    toolCount: number;`r`n    reason: string;`r`n  }>;
+  relatedCategories: Array<{
+    slug: string;
+    name: string;
+    iconUrl: string | null;
+    toolCount: number;
+    reason: string;
+  }>;
   faqs: Array<{ question: string; answer: string }>;
   reviews: SerializedReview[];
   internalLinks: ToolPageLink[];

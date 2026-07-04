@@ -8,6 +8,7 @@ export {
   SeoComparePageType,
   AiGenerationTaskStatus,
   ApiKeyStatus,
+  AutomationRunStatus,
   AuditAction,
   BillingPeriod,
   CrawlJobStatus,

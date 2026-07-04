@@ -47,29 +47,37 @@ type MetadataField = "industries" | "targetUsers" | "countries" | "languages";
 
 const activeOnly = { deletedAt: null } as const;
 
-const SEGMENT_COPY: Record<SeoGrowthSegment, { title: string; description: string; field?: MetadataField }> = {
+const SEGMENT_COPY: Record<
+  SeoGrowthSegment,
+  { title: string; description: string; field?: MetadataField }
+> = {
   industry: {
     title: "AI Tools by Industry",
-    description: "Explore AI tools organized by industry needs, workflows, and operational use cases.",
+    description:
+      "Explore AI tools organized by industry needs, workflows, and operational use cases.",
     field: "industries",
   },
   job: {
     title: "AI Tools by Job",
-    description: "Find AI tools for writers, marketers, engineers, designers, operators, and other job roles.",
+    description:
+      "Find AI tools for writers, marketers, engineers, designers, operators, and other job roles.",
     field: "targetUsers",
   },
   category: {
     title: "AI Tools by Category",
-    description: "Browse AI tools by the directory taxonomy and compare options across major software categories.",
+    description:
+      "Browse AI tools by the directory taxonomy and compare options across major software categories.",
   },
   country: {
     title: "AI Tools by Country",
-    description: "Discover AI tools with country or regional availability signals where the directory has verified data.",
+    description:
+      "Discover AI tools with country or regional availability signals where the directory has verified data.",
     field: "countries",
   },
   language: {
     title: "AI Tools by Language",
-    description: "Find AI tools by supported languages and localization signals from the catalog dataset.",
+    description:
+      "Find AI tools by supported languages and localization signals from the catalog dataset.",
     field: "languages",
   },
 };
@@ -144,25 +152,41 @@ async function fetchTopTools(limit = 12): Promise<SeoGrowthTool[]> {
 async function fetchCategoryFacets(locale: string): Promise<SeoGrowthFacet[]> {
   const categories = await prisma.category.findMany({
     where: activeOnly,
-    orderBy: [{ isFeatured: "desc" }, { sortOrder: "asc" }, { name: "asc" }],
+    orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
     take: 36,
     select: {
+      id: true,
       slug: true,
       name: true,
       description: true,
-      _count: { select: { tools: { where: { deletedAt: null, tool: { status: ToolStatus.PUBLISHED, deletedAt: null } } } } },
     },
   });
 
-  return categories.map((category) => ({
+  const counts = await Promise.all(
+    categories.map((category) =>
+      prisma.toolCategory.count({
+        where: {
+          categoryId: category.id,
+          deletedAt: null,
+          tool: { status: ToolStatus.PUBLISHED, deletedAt: null },
+        },
+      }),
+    ),
+  );
+
+  return categories.map((category, index) => ({
     label: category.name,
     href: `/${locale}/category/${category.slug}`,
     description: category.description ?? `Browse published AI tools in ${category.name}.`,
-    count: category._count.tools,
+    count: counts[index] ?? 0,
   }));
 }
 
-async function fetchMetadataFacets(locale: string, segment: SeoGrowthSegment, field: MetadataField): Promise<SeoGrowthFacet[]> {
+async function fetchMetadataFacets(
+  locale: string,
+  segment: SeoGrowthSegment,
+  field: MetadataField,
+): Promise<SeoGrowthFacet[]> {
   const tools = await prisma.tool.findMany({
     where: { status: ToolStatus.PUBLISHED, ...activeOnly },
     orderBy: [{ publishedAt: "desc" }, { name: "asc" }],
@@ -189,7 +213,10 @@ async function fetchMetadataFacets(locale: string, segment: SeoGrowthSegment, fi
     }));
 }
 
-async function fetchFallbackFacets(locale: string, segment: SeoGrowthSegment): Promise<SeoGrowthFacet[]> {
+async function fetchFallbackFacets(
+  locale: string,
+  segment: SeoGrowthSegment,
+): Promise<SeoGrowthFacet[]> {
   const tags = await prisma.tag.findMany({
     where: activeOnly,
     orderBy: [{ name: "asc" }],
@@ -198,13 +225,19 @@ async function fetchFallbackFacets(locale: string, segment: SeoGrowthSegment): P
       slug: true,
       name: true,
       description: true,
-      _count: { select: { tools: { where: { deletedAt: null, tool: { status: ToolStatus.PUBLISHED, deletedAt: null } } } } },
+      _count: {
+        select: {
+          tools: {
+            where: { deletedAt: null, tool: { status: ToolStatus.PUBLISHED, deletedAt: null } },
+          },
+        },
+      },
     },
   });
 
   return tags.map((tag) => ({
     label: tag.name,
-    href: `/${locale}/tag/${tag.slug}`,
+    href: `/${locale}/search?${segment}=${encodeURIComponent(tag.slug)}`,
     description: tag.description ?? `Explore AI tools tagged ${tag.name}.`,
     count: tag._count.tools,
   }));
@@ -260,7 +293,8 @@ function buildJsonLd(input: {
 export async function getTopAiToolsLanding(locale: string) {
   const path = `/${locale}/top-ai-tools`;
   const title = "Top AI Tools";
-  const description = "Discover top AI tools from the production directory, organized for fast evaluation and comparison.";
+  const description =
+    "Discover top AI tools from the production directory, organized for fast evaluation and comparison.";
   const [relatedTools, trendingTools, facets] = await Promise.all([
     fetchTopTools(12),
     fetchTrendingTools(8),
@@ -273,7 +307,10 @@ export async function getTopAiToolsLanding(locale: string) {
       title,
       description,
       path,
-      hreflang: getSiteConfig().locales.map((loc) => ({ locale: loc, path: `/${loc}/top-ai-tools` })),
+      hreflang: getSiteConfig().locales.map((loc) => ({
+        locale: loc,
+        path: `/${loc}/top-ai-tools`,
+      })),
     }),
     data: {
       title,
@@ -305,7 +342,10 @@ export async function getSeoGrowthLanding(segment: SeoGrowthSegment, locale: str
       title: copy.title,
       description: copy.description,
       path,
-      hreflang: getSiteConfig().locales.map((loc) => ({ locale: loc, path: `/${loc}/ai/${segment}` })),
+      hreflang: getSiteConfig().locales.map((loc) => ({
+        locale: loc,
+        path: `/${loc}/ai/${segment}`,
+      })),
     }),
     data: {
       title: copy.title,

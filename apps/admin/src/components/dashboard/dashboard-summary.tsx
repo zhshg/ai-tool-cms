@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import {
   Activity,
-  AlertTriangle,
   Bot,
   Database,
   FolderTree,
@@ -104,12 +103,21 @@ export function DashboardSummary() {
       <div className="grid gap-4 xl:grid-cols-[1.2fr_1fr]">
         <Panel title="Content Operations" icon={Gauge}>
           <div className="grid gap-3 sm:grid-cols-2">
-            <StatusRow label="Launch-ready tools" value={statsData?.content.launchReadyTools ?? 0} />
+            <StatusRow
+              label="Launch-ready tools"
+              value={statsData?.content.launchReadyTools ?? 0}
+            />
             <StatusRow label="Needs content work" value={statsData?.content.needsWork ?? 0} />
-            <StatusRow label="Missing descriptions" value={statsData?.content.missingDescriptions ?? 0} />
+            <StatusRow
+              label="Missing descriptions"
+              value={statsData?.content.missingDescriptions ?? 0}
+            />
             <StatusRow label="Missing features" value={statsData?.content.missingFeatures ?? 0} />
             <StatusRow label="Missing FAQ" value={statsData?.content.missingFaq ?? 0} />
-            <StatusRow label="Missing screenshots" value={statsData?.content.missingScreenshots ?? 0} />
+            <StatusRow
+              label="Missing screenshots"
+              value={statsData?.content.missingScreenshots ?? 0}
+            />
           </div>
         </Panel>
 
@@ -127,7 +135,10 @@ export function DashboardSummary() {
       <div className="grid gap-4 xl:grid-cols-3">
         <Panel title="Queues" icon={HardDriveDownload}>
           <div className="space-y-3">
-            <StatusRow label="Crawler status" value={statsData?.crawler.crawlerStatus ?? "unknown"} />
+            <StatusRow
+              label="Crawler status"
+              value={statsData?.crawler.crawlerStatus ?? "unknown"}
+            />
             <StatusRow label="Worker status" value={statsData?.worker.status ?? "unknown"} />
             <StatusRow label="Failed jobs" value={statsData?.worker.failedJobs ?? 0} />
             <StatusRow label="Scheduler jobs" value={statsData?.schedulerJobs ?? 0} />
@@ -140,7 +151,10 @@ export function DashboardSummary() {
             <StatusRow label="Database" value={statsData?.infrastructure.database ?? "unknown"} />
             <StatusRow label="Redis" value={statsData?.infrastructure.redis ?? "unknown"} />
             <StatusRow label="Storage" value={statsData?.infrastructure.storage ?? "unknown"} />
-            <StatusRow label="Search index" value={statsData?.infrastructure.searchIndex ?? "unknown"} />
+            <StatusRow
+              label="Search index"
+              value={statsData?.infrastructure.searchIndex ?? "unknown"}
+            />
             <StatusRow label="System health" value={statsData?.systemHealth.status ?? "unknown"} />
           </div>
         </Panel>
@@ -263,7 +277,9 @@ function StatusRow({ label, value }: { label: string; value: string | number }) 
 }
 
 function EmptyState({ text }: { text: string }) {
-  return <div className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">{text}</div>;
+  return (
+    <div className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">{text}</div>
+  );
 }
 
 function formatLastCrawl(value: string | null | undefined) {
