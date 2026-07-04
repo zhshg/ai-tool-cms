@@ -603,6 +603,58 @@ export type CrawlSource = {
   nextRunAt?: string | null;
 };
 
+export type ContentIssueTool = {
+  id: string;
+  name: string;
+  slug: string;
+  website: string;
+  status: string;
+  reason: string;
+  updatedAt: string;
+};
+
+export type ContentIssueReport = {
+  total: number;
+  items: ContentIssueTool[];
+};
+
+export type ContentDuplicateGroup = {
+  reason: string;
+  key: string;
+  tools: ContentIssueTool[];
+};
+
+export type ContentDatasetResponse = {
+  generatedAt: string;
+  targets: { initial: number; ready: number; scale: number };
+  summary: {
+    totalTools: number;
+    publishedTools: number;
+    draftTools: number;
+    inReviewTools: number;
+    archivedTools: number;
+    architectureReadyFor2000: boolean;
+    scalableTo10000: boolean;
+    averageContentScore: number;
+  };
+  coverage: Record<string, { covered: number; missing: number; percent: number }>;
+  issues: {
+    duplicateGroups: number;
+    duplicateTools: number;
+    missingLogo: number;
+    missingDescription: number;
+    missingFeatures: number;
+    missingFaq: number;
+    brokenWebsites: number;
+  };
+  missing: Record<string, ContentIssueReport>;
+  brokenWebsites: ContentIssueReport & { note: string };
+  duplicates: {
+    totalGroups: number;
+    totalTools: number;
+    groups: ContentDuplicateGroup[];
+  };
+};
 export type MonetizationDashboardResponse = {
   generatedAt: string;
   period: string;
@@ -669,6 +721,19 @@ export type RevenueOverviewResponse = {
   bySource: Record<string, number>;
 };
 
+export function fetchContentDataset() {
+  return apiFetch<ContentDatasetResponse>("/content/dataset");
+}
+
+export function mergeDuplicateTools(sourceToolId: string, targetToolId: string) {
+  return apiFetch<{ sourceToolId: string; targetToolId: string; status: string }>(
+    "/content/duplicates/merge",
+    {
+      method: "POST",
+      body: JSON.stringify({ sourceToolId, targetToolId }),
+    },
+  );
+}
 export function fetchMonetizationDashboard() {
   return apiFetch<MonetizationDashboardResponse>("/monetization/dashboard");
 }

@@ -31,6 +31,7 @@ import { UsersModule } from "./users/users.module";
 import { SettingsModule } from "./settings/settings.module";
 import { OperationsModule } from "./operations/operations.module";
 import { CollectionsModule } from "./collections/collections.module";
+import { ContentModule } from "./content/content.module";
 
 @Module({
   imports: [
@@ -73,6 +74,7 @@ import { CollectionsModule } from "./collections/collections.module";
     SettingsModule,
     OperationsModule,
     CollectionsModule,
+    ContentModule,
   ],
   providers: [
     PlatformBootstrapService,

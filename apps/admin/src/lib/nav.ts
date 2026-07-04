@@ -4,6 +4,7 @@ import {
   Bot,
   Cog,
   DollarSign,
+  FileWarning,
   FolderTree,
   Globe,
   Handshake,
@@ -47,6 +48,12 @@ export const navItems: NavItem[] = [
     href: "/categories",
     icon: FolderTree,
     permission: Permission.CategoriesRead,
+  },
+  {
+    title: "Content Dataset",
+    href: "/content",
+    icon: FileWarning,
+    permission: Permission.ToolsRead,
   },
   {
     title: "Collections",
@@ -156,6 +163,7 @@ export const breadcrumbLabels: Record<string, string> = {
   "": "Dashboard",
   tools: "Tools",
   categories: "Categories",
+  content: "Content Dataset",
   collections: "Collections",
   import: "Import Center",
   crawler: "Crawler",
