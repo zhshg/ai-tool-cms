@@ -883,6 +883,16 @@ export function bulkRefreshToolLogos(toolIds: string[], force = true) {
   });
 }
 
+export function bulkRefreshToolScreenshots(
+  toolIds: string[],
+  variants?: Array<"DESKTOP" | "MOBILE" | "DARK">,
+) {
+  return apiFetch<{ queued: number; jobIds: string[] }>("/tools/bulk/screenshot-refresh", {
+    method: "POST",
+    body: JSON.stringify({ toolIds, variants }),
+  });
+}
+
 export function previewToolLogo(toolId: string) {
   return apiFetch<ToolLogoPreviewResponse>(`/automation/logos/${toolId}/preview`);
 }
@@ -1219,7 +1229,3 @@ export function fetchCrawlerDashboard() {
 export function fetchCrawlSources() {
   return apiFetch<PaginatedResponse<CrawlSource>>("/crawler/sources?pageSize=50");
 }
-
-
-
-

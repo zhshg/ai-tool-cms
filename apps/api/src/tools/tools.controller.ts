@@ -18,6 +18,7 @@ import { CurrentUser, RequirePermission, type RequestUser } from "../common/deco
 import { PaginationQueryDto } from "../common/dto/pagination.dto";
 import {
   BulkLogoRefreshDto,
+  BulkScreenshotRefreshDto,
   BulkPublishToolsDto,
   BulkUpdateToolsDto,
   ImportExecuteDto,
@@ -147,6 +148,13 @@ export class ToolsController {
   @ApiOperation({ summary: "Bulk refresh tool logos" })
   bulkLogoRefresh(@Body() dto: BulkLogoRefreshDto) {
     return this.toolsService.bulkRefreshLogos(dto.toolIds, dto.force ?? true);
+  }
+
+  @Post("bulk/screenshot-refresh")
+  @RequirePermission(PermissionCode.ToolUpdate)
+  @ApiOperation({ summary: "Bulk refresh tool screenshots" })
+  bulkScreenshotRefresh(@Body() dto: BulkScreenshotRefreshDto) {
+    return this.toolsService.bulkRefreshScreenshots(dto.toolIds, dto.variants);
   }
 
   @Post("assets/upload")

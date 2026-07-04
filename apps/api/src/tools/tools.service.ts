@@ -5,6 +5,7 @@ import { slugify } from "@ai-tool-cms/common";
 import { startAiPipeline } from "@ai-tool-cms/ai";
 import { emitWebhookEvent } from "@ai-tool-cms/api-platform";
 import { enqueueToolLogoCollect } from "@ai-tool-cms/automation";
+import { enqueueScreenshotCapture } from "@ai-tool-cms/screenshot";
 import { runPluginLifecycle } from "@ai-tool-cms/plugins";
 import { enqueueAiJob, type AiQueueName } from "@ai-tool-cms/queue";
 import { enqueueSearchIndex } from "@ai-tool-cms/search";
@@ -337,6 +338,14 @@ export class ToolsService {
     const jobIds: string[] = [];
     for (const toolId of toolIds) {
       jobIds.push(await enqueueToolLogoCollect(toolId, force));
+    }
+    return { queued: jobIds.length, jobIds };
+  }
+
+  async bulkRefreshScreenshots(toolIds: string[], variants?: Array<"DESKTOP" | "MOBILE" | "DARK">) {
+    const jobIds: string[] = [];
+    for (const toolId of toolIds) {
+      jobIds.push(await enqueueScreenshotCapture(toolId, variants));
     }
     return { queued: jobIds.length, jobIds };
   }

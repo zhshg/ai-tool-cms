@@ -19,7 +19,7 @@ export class ToolAssetsService {
   async uploadAsset(
     file: UploadedImageFile | undefined,
     kind: "logo" | "screenshot",
-  ): Promise<{ url: string; filename: string; mimeType: string; size: number }> {
+  ): Promise<UploadedAssetResponse> {
     if (!file) {
       throw new BadRequestException("Image file is required.");
     }
@@ -43,11 +43,39 @@ export class ToolAssetsService {
     await mkdir(root, { recursive: true });
     await writeFile(join(root, filename), file.buffer);
 
+    const url = buildPublicUrl(kind, filename);
+    const thumbnailUrl = buildPublicUrl(kind, filename);
+
     return {
-      url: buildPublicUrl(kind, filename),
+      url,
       filename,
       mimeType: file.mimetype,
       size: file.size,
+      storageKey: filename,
+      kind,
+      cdnReady: true,
+      cacheControl: "public, max-age=86400, stale-while-revalidate=604800",
+      optimized: file.mimetype === "image/webp",
+      thumbnailUrl,
+      variants:
+        kind === "screenshot"
+          ? [
+              {
+                type: "original",
+                url,
+                width: null,
+                height: null,
+                compressed: file.mimetype === "image/webp",
+              },
+              {
+                type: "thumbnail",
+                url: thumbnailUrl,
+                width: null,
+                height: null,
+                compressed: file.mimetype === "image/webp",
+              },
+            ]
+          : undefined,
     };
   }
 }
@@ -82,3 +110,23 @@ function buildPublicUrl(kind: "logo" | "screenshot", filename: string) {
 
   return `${appUrl}/screenshots/${filename}`;
 }
+
+type UploadedAssetResponse = {
+  url: string;
+  filename: string;
+  mimeType: string;
+  size: number;
+  storageKey: string;
+  kind: "logo" | "screenshot";
+  cdnReady: boolean;
+  cacheControl: string;
+  optimized: boolean;
+  thumbnailUrl?: string;
+  variants?: Array<{
+    type: "original" | "thumbnail";
+    url: string;
+    width: number | null;
+    height: number | null;
+    compressed: boolean;
+  }>;
+};

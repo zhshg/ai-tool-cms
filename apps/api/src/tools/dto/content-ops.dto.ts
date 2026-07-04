@@ -134,6 +134,19 @@ export class BulkLogoRefreshDto {
   force?: boolean;
 }
 
+export class BulkScreenshotRefreshDto {
+  @ApiProperty({ type: [String] })
+  @IsArray()
+  @IsUUID("4", { each: true })
+  toolIds!: string[];
+
+  @ApiPropertyOptional({ type: [String], enum: ["DESKTOP", "MOBILE", "DARK"] })
+  @IsOptional()
+  @IsArray()
+  @IsIn(["DESKTOP", "MOBILE", "DARK"], { each: true })
+  variants?: Array<"DESKTOP" | "MOBILE" | "DARK">;
+}
+
 export class ImportRecordsDto {
   @ApiProperty({ type: [ImportToolRecordDto] })
   @IsArray()
