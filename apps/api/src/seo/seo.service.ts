@@ -67,10 +67,19 @@ export class SeoService {
   } as const;
 
   private readonly collectionPaths = [
+    "top-ai-tools",
     "best-ai-tools",
     "free-ai-tools",
     "new-ai-tools",
     "trending-ai-tools",
+  ] as const;
+
+  private readonly seoGrowthPaths = [
+    "ai/industry",
+    "ai/job",
+    "ai/category",
+    "ai/country",
+    "ai/language",
   ] as const;
 
   async getSitemapIndexXml(): Promise<string> {
@@ -386,6 +395,12 @@ export class SeoService {
         lastModified: new Date(),
         changeFrequency: "weekly" as const,
         priority: 0.72,
+      })),
+      ...this.seoGrowthPaths.map((path) => ({
+        url: `/${locale}/${path}`,
+        lastModified: new Date(),
+        changeFrequency: "weekly" as const,
+        priority: 0.7,
       })),
       ...tools.map((t) => ({
         url: `/${locale}/tools/${t.slug}`,
