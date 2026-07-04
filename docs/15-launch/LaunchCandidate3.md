@@ -270,3 +270,247 @@ Total:
 **Launch Ready = NO**
 
 The release candidate is technically runnable and performs well, but it does not satisfy the final launch gate because the production dataset, import durability, and real production-environment readiness are not complete. The next step is not adding more product surface area. The next step is closing the remaining `P0` launch blockers and re-running the failed batches.
+
+## Reset Revalidation Report - 2026-07-05
+
+Date: 2026-07-05  
+Workspace: `F:\project\ai-tool-cms`  
+Git branch: `feature/product-home`
+
+### Scope
+
+This revalidation focused on the reset-and-recover path after production-stack repair work:
+
+- Docker CLI and production Compose availability
+- production stack restart and health
+- Prisma migrate and seed re-check
+- Meilisearch rebuild and query verification
+- media/logo asset availability through the production proxy
+- RC Sprint 3 blocker revalidation against the current local release-candidate stack
+
+### Docker CLI Check
+
+Commands:
+
+```powershell
+& 'C:\Program Files\Docker\Docker\resources\bin\docker.exe' --version
+& 'C:\Program Files\Docker\Docker\resources\bin\docker.exe' compose version
+& 'C:\Program Files\Docker\Docker\resources\bin\docker.exe' compose --env-file .env.production -f docker-compose.prod.yml ps
+```
+
+Evidence:
+
+- `Docker version 29.6.1, build 8900f1d`
+- `Docker Compose version v5.3.0`
+- production stack containers were reachable through the explicit Docker Desktop binary path even though `docker` was not on the PowerShell `PATH`
+
+Result: `PASS`
+
+### Docker Compose Production Stack Startup
+
+Verified compose file:
+
+- `docker-compose.prod.yml`
+
+Revalidated services:
+
+```powershell
+docker compose --env-file .env.production -f docker-compose.prod.yml ps
+```
+
+Observed healthy/running containers:
+
+- `api`
+- `web`
+- `admin`
+- `worker`
+- `scheduler`
+- `postgres`
+- `redis`
+- `meilisearch`
+- `minio`
+- `nginx`
+
+Additional evidence:
+
+- `http://localhost/` returned `200`
+- `http://localhost/admin` returned `200`
+- `http://localhost/api/health` returned `200`
+- `http://localhost/v1/health` returned `200`
+
+Result: `PASS`
+
+### Prisma Migrate Result
+
+Commands:
+
+```powershell
+docker compose --env-file .env.production -f docker-compose.prod.yml exec api pnpm db:migrate:deploy
+```
+
+Evidence:
+
+- Prisma schema path resolved to `../../prisma/schema.prisma`
+- output reported `10 migrations found in prisma/migrations`
+- output reported `No pending migrations to apply.`
+
+Result: `PASS`
+
+### Seed / Import Result
+
+Seed command:
+
+```powershell
+docker compose --env-file .env.production -f docker-compose.prod.yml exec api pnpm db:seed
+```
+
+Seed evidence:
+
+- `[seed] roles, permissions, admin user ready`
+- `[seed] default taxonomy: 5 categories, 8 tags`
+- `[seed] public catalog: 16 categories, 189 tags, 50 tools`
+- `[seed] done`
+
+Import evidence:
+
+- authenticated API import surface still exists through `/v1/tools/import/preview` and `/v1/tools/import/execute`
+- RC Sprint 3 durable import requirements remain unmet: no persisted import history, no remote URL import, no resume, no retry, no cancel, no rollback, and no queue-backed durable import model were verified in this revalidation
+
+Result:
+
+- `seed`: `PASS`
+- `import`: `FAIL`
+
+### Meilisearch Rebuild Result
+
+Rebuild command:
+
+```powershell
+docker compose --env-file .env.production -f docker-compose.prod.yml run --rm search-bootstrap
+```
+
+Health and query verification:
+
+```powershell
+http://localhost/v1/search?keyword=ai&page=1&pageSize=3
+```
+
+Evidence:
+
+- bootstrap reported `indexes=["tools","categories","tags"]`
+- bootstrap imported `tools=50`, `categories=20`, `tags=194`
+- Meilisearch health endpoint returned `{"status":"available"}`
+- search endpoint returned `200` with non-empty hits and facets
+- index stats revalidated at:
+  - `tools = 50`
+  - `categories = 20`
+  - `tags = 194`
+
+Result: `PASS`
+
+### Media / Logo Asset Check
+
+Commands and URLs:
+
+```powershell
+http://localhost/favicon.ico
+http://localhost/logos/8020f46841434ab3782f.ico
+docker compose --env-file .env.production -f docker-compose.prod.yml exec api node -e "..."
+```
+
+Evidence:
+
+- `favicon.ico` returned `200` with `image/x-icon`
+- collected logo asset route returned `200` through `nginx`
+- production proxy was updated so `/logos/` and `/screenshots/` are served from mounted `storage`
+- published tools with logo coverage improved from the earlier documented `12%` state to `45 / 50`
+- screenshot count remains `0`
+
+Asset summary:
+
+- logo coverage: `45 / 50` published tools
+- screenshot coverage: `0 / 50` verified through `tool_screenshots`
+- remaining missing logos observed in revalidation sample:
+  - `chatgpt`
+  - `gamma`
+  - `leonardo-ai`
+  - `midjourney`
+  - `tome`
+
+Result: `PARTIAL`
+
+### RC Sprint 3 Blocker Revalidation Table
+
+| Area | Status | Evidence |
+| --- | --- | --- |
+| Docker production stack starts | PASS | `docker compose ... ps` showed all required services up; health endpoints returned `200` |
+| API healthy | PASS | `/api/health`, `/api/ready`, `/api/live`, `/v1/health`, `/v1/health/ready`, `/v1/health/live` all returned `200` |
+| Admin login works | PASS | `POST /v1/auth/login` succeeded with seeded admin credentials; authenticated `/v1/tools`, `/v1/categories`, `/v1/users`, `/v1/settings` returned `200` |
+| Web homepage accessible | PASS | `http://localhost/` and `http://localhost/en` returned `200` |
+| Tools list has data | PASS | `http://localhost/en/tools` returned `200`; rendered real tool content; DB count showed `50` published tools |
+| Categories have data | PASS | `http://localhost/en/categories` and `http://localhost/en/category/ai-writing` returned `200`; DB count showed `20` categories |
+| Search works | PASS | `http://localhost/v1/search?keyword=ai&page=1&pageSize=3` returned `200` with hits |
+| Meilisearch indexes valid | PASS | `tools=50`, `categories=20`, `tags=194`; health endpoint available |
+| Prisma migrate completed | PASS | `pnpm db:migrate:deploy` completed with no pending migrations |
+| Seed completed | PASS | `pnpm db:seed` completed successfully |
+| Import workflow durable | FAIL | RC3 durable import requirements were still not satisfied |
+| Media / logo / favicon availability | PARTIAL | favicon and collected logos are reachable, but screenshot coverage remains `0` and logo coverage is below launch threshold |
+| Worker startup | PASS | worker container healthy; logs included `Workers started` with queue counts |
+| Crawler operational | PARTIAL | `/v1/crawler/dashboard` and `/v1/crawler/jobs` returned `200`, but `.env.production` still has `CRAWLER_ENABLE_PRODUCTION_ADAPTERS=false` and no active crawler job proof was captured |
+| Nginx / proxy routing | PASS | `/api/*`, `/v1/*`, `/admin`, `/logos/*` all routed correctly in local production stack |
+| Key interfaces return expected codes | PASS | public runtime endpoints returned `200`; protected endpoints returned `401` without auth and `200` with auth |
+| Admin Tools / Categories / Users / Settings pages not blank | PASS | `/admin/tools`, `/admin/categories`, `/admin/users`, `/admin/settings` all returned `200`; no `coming soon` marker detected in page HTML |
+| Production environment variables launch-ready | FAIL | `.env.production` still points to `http://localhost` and external production readiness remains incomplete |
+| Launch dataset threshold | FAIL | dataset remains `50` tools and screenshots remain `0` |
+| Restore drill proven | FAIL | no new restore-drill evidence was produced in this revalidation |
+
+### PASS / FAIL / PARTIAL Summary
+
+| Status | Count |
+| --- | --- |
+| PASS | 13 |
+| FAIL | 4 |
+| PARTIAL | 2 |
+| NOT APPLICABLE | 0 |
+
+### Remaining Blocking Items
+
+`P0`
+
+- launch dataset size is still `50`, below the RC Sprint 3 target
+- durable import workflow is still missing history, resume, retry, cancel, rollback, and queue-backed execution
+- production environment is still localhost-based rather than externally ready
+- restore drill remains unproven
+
+`P1 / launch-quality gap`
+
+- logo coverage improved materially but is still below the launch threshold
+- screenshot coverage remains `0`
+- crawler is up, but real production adapter enablement and real-job evidence remain incomplete
+
+### Next-Step Recommendations
+
+1. Close the content completeness gate by expanding the verified real-tool dataset and driving logo/screenshot coverage to threshold.
+2. Implement the durable import domain described in `Batch3_ImportVerification.md` and re-run import verification on production-scale data.
+3. Replace localhost production origins with a real domain, TLS, DNS, and external webmaster/monitoring integrations.
+4. Execute and archive a restore drill before any launch-ready decision is reconsidered.
+
+### Command Evidence Index
+
+Representative commands executed during this reset revalidation:
+
+```powershell
+& 'C:\Program Files\Docker\Docker\resources\bin\docker.exe' --version
+& 'C:\Program Files\Docker\Docker\resources\bin\docker.exe' compose version
+& 'C:\Program Files\Docker\Docker\resources\bin\docker.exe' compose --env-file .env.production -f docker-compose.prod.yml ps
+Invoke-WebRequest -UseBasicParsing http://localhost/v1/health
+Invoke-WebRequest -UseBasicParsing http://localhost/
+Invoke-WebRequest -UseBasicParsing http://localhost/en/tools
+Invoke-WebRequest -UseBasicParsing http://localhost/en/category/ai-writing
+Invoke-WebRequest -UseBasicParsing http://localhost/v1/search?keyword=ai&page=1&pageSize=3
+docker compose --env-file .env.production -f docker-compose.prod.yml exec api pnpm db:migrate:deploy
+docker compose --env-file .env.production -f docker-compose.prod.yml exec api pnpm db:seed
+docker compose --env-file .env.production -f docker-compose.prod.yml run --rm search-bootstrap
+Invoke-WebRequest -UseBasicParsing http://localhost/favicon.ico
+Invoke-WebRequest -UseBasicParsing http://localhost/logos/8020f46841434ab3782f.ico
+```
