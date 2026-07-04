@@ -364,7 +364,7 @@ services:
         APP_NAME: admin
         ADMIN_BASE_PATH: /admin
         NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+        NEXT_PUBLIC_API_URL: ""
     image: ai-tool-cms-admin:${IMAGE_TAG:-local}
     pull_policy: never
     restart: unless-stopped
@@ -376,7 +376,7 @@ services:
       ADMIN_URL: ${ADMIN_URL}
       API_URL: ${API_URL}
       NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+      NEXT_PUBLIC_API_URL: ""
     depends_on:
       api:
         condition: service_healthy

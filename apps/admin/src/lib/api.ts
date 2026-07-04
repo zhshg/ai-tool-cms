@@ -14,6 +14,25 @@ function normalizeApiOrigin(origin: string | undefined): string {
 
   if (typeof window !== "undefined") {
     const normalized = value.replace(/\/$/, "");
+
+    try {
+      const parsed = new URL(normalized, window.location.origin);
+      const hostname = parsed.hostname.toLowerCase();
+      const port = parsed.port;
+
+      const isSameOrigin = parsed.origin === window.location.origin;
+      const isLocalApiPort = hostname === "localhost" && (port === "4000" || port === "3001");
+      const isDockerInternalHost = hostname === "api";
+
+      if (isSameOrigin || isLocalApiPort || isDockerInternalHost) {
+        return "";
+      }
+    } catch {
+      if (normalized.startsWith("/")) {
+        return "";
+      }
+    }
+
     if (normalized === window.location.origin) {
       return "";
     }
