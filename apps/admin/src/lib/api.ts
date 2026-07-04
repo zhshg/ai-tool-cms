@@ -812,6 +812,13 @@ export type MonetizationDashboardResponse = {
     pricingPlans: number;
     coupons: number;
     referrals: number;
+    activeReferrals: number;
+    newsletterSubscribers: number;
+    confirmedNewsletterSubscribers: number;
+    newsletterCampaigns: number;
+    scheduledNewsletterCampaigns: number;
+    partnerLinks: number;
+    activePartnerLinks: number;
     clicks: number;
     conversions: number;
     invoices: number;

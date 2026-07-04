@@ -28,6 +28,13 @@ export class MonetizationService {
       activeBannerAds,
       pricingPlans,
       partnerAccounts,
+      activePartnerAccounts,
+      newsletterSubscribers,
+      confirmedNewsletterSubscribers,
+      newsletterCampaigns,
+      scheduledNewsletterCampaigns,
+      partnerLinks,
+      activePartnerLinks,
       revenue,
       topAffiliateLinks,
       sponsoredPlacements,
@@ -56,6 +63,21 @@ export class MonetizationService {
       this.prisma.client.adSlot.count({ where: { deletedAt: null, status: "ACTIVE" } }),
       this.prisma.client.pricingPlan.count({ where: { deletedAt: null } }),
       this.prisma.client.partnerAccount.count({ where: { deletedAt: null } }),
+      this.prisma.client.partnerAccount.count({ where: { deletedAt: null, status: "ACTIVE" } }),
+      this.prisma.client.newsletterSubscriber.count({ where: { deletedAt: null } }),
+      this.prisma.client.newsletterSubscriber.count({
+        where: { deletedAt: null, status: "CONFIRMED" },
+      }),
+      this.prisma.client.newsletterCampaign.count({ where: { deletedAt: null } }),
+      this.prisma.client.newsletterCampaign.count({
+        where: { deletedAt: null, status: "SCHEDULED" },
+      }),
+      this.prisma.client.affiliateLink.count({
+        where: { deletedAt: null, program: { status: "ACTIVE", deletedAt: null } },
+      }),
+      this.prisma.client.affiliateLink.count({
+        where: { deletedAt: null, status: "ACTIVE", program: { status: "ACTIVE", deletedAt: null } },
+      }),
       getRevenueOverview(this.prisma.client),
       this.prisma.client.affiliateLink.findMany({
         where: { deletedAt: null },
@@ -114,6 +136,13 @@ export class MonetizationService {
         pricingPlans,
         coupons: 0,
         referrals: partnerAccounts,
+        activeReferrals: activePartnerAccounts,
+        newsletterSubscribers,
+        confirmedNewsletterSubscribers,
+        newsletterCampaigns,
+        scheduledNewsletterCampaigns,
+        partnerLinks,
+        activePartnerLinks,
         clicks: affiliateClicks,
         conversions: affiliateConversions,
         invoices: 0,
@@ -150,6 +179,7 @@ export class MonetizationService {
       unsupported: {
         coupons: "No dedicated coupon model exists yet.",
         invoices: "No billing invoice model exists yet.",
+        partnerLinks: "Partner links currently reuse affiliate links connected to active programs.",
       },
     };
   }

@@ -6,6 +6,7 @@ import {
   BarChart3,
   CreditCard,
   ExternalLink,
+  Mail,
   Gift,
   Link2,
   Megaphone,
@@ -98,7 +99,24 @@ export default function MonetizationPage() {
         icon: CreditCard,
       },
       { label: "Coupons", value: m?.coupons ?? 0, detail: "model not configured", icon: Gift },
-      { label: "Referrals", value: m?.referrals ?? 0, detail: "partner accounts", icon: Percent },
+      {
+        label: "Partner Accounts",
+        value: m?.referrals ?? 0,
+        detail: `${m?.activeReferrals ?? 0} active`,
+        icon: Percent,
+      },
+      {
+        label: "Partner Links",
+        value: m?.partnerLinks ?? 0,
+        detail: `${m?.activePartnerLinks ?? 0} active`,
+        icon: ExternalLink,
+      },
+      {
+        label: "Newsletter",
+        value: m?.confirmedNewsletterSubscribers ?? 0,
+        detail: `${m?.newsletterCampaigns ?? 0} campaigns / ${m?.scheduledNewsletterCampaigns ?? 0} scheduled`,
+        icon: Mail,
+      },
       {
         label: "Invoices",
         value: m?.invoices ?? 0,
@@ -258,7 +276,7 @@ export default function MonetizationPage() {
                       </span>
                     </div>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      {placement.type} �� weight {placement.weight}
+                      {placement.type} - weight {placement.weight}
                     </p>
                   </div>
                 ))
@@ -279,7 +297,7 @@ export default function MonetizationPage() {
                       <span className="rounded-full bg-muted px-2 py-1 text-xs">{slot.status}</span>
                     </div>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      {slot.position} �� {slot.network}
+                      {slot.position} - {slot.network}
                     </p>
                   </div>
                 ))
