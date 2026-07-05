@@ -158,7 +158,7 @@ export async function getToolPage(
 
   const pros = normalizeStringList(metadata.aiPros);
   const cons = normalizeStringList(metadata.aiCons);
-  const useCases = normalizeStringList(metadata.aiUseCases);
+  const useCases = normalizeStringList(metadata.aiUseCases ?? metadata.useCases);
   const features = buildFeatureList(metadata);
   const apiAccess = buildApiAccess(metadata);
   const platforms = normalizeStringList(metadata.aiPlatforms ?? metadata.platforms);
@@ -246,7 +246,7 @@ export async function getToolPage(
       features,
       pros,
       cons,
-      useCases: useCases.length ? useCases : features.slice(0, 5),
+      useCases,
       apiAccess,
       platforms,
       languages,
@@ -359,7 +359,7 @@ function buildFeatureList(metadata: Record<string, unknown>): string[] {
     return storedFeatures.slice(0, 8);
   }
 
-  const useCases = normalizeStringList(metadata.aiUseCases);
+  const useCases = normalizeStringList(metadata.aiUseCases ?? metadata.useCases);
   if (useCases.length) {
     return useCases.slice(0, 6);
   }
@@ -383,6 +383,28 @@ function resolveCollectedLogoUrl(
   for (const candidate of candidates) {
     if (typeof candidate === "string" && candidate.trim() && candidate !== primaryLogoUrl) {
       return candidate.trim();
+    }
+  }
+
+  const website =
+    typeof metadata.website === "string"
+      ? metadata.website
+      : typeof metadata.canonicalUrl === "string"
+        ? metadata.canonicalUrl
+        : typeof metadata.sourceUrl === "string"
+          ? metadata.sourceUrl
+          : Array.isArray(metadata.sourceUrls) && typeof metadata.sourceUrls[0] === "string"
+            ? metadata.sourceUrls[0]
+            : null;
+
+  if (website) {
+    try {
+      const hostname = new URL(website).hostname;
+      if (hostname) {
+        return `https://www.google.com/s2/favicons?sz=128&domain=${hostname}`;
+      }
+    } catch {
+      return null;
     }
   }
 
