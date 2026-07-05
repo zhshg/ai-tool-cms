@@ -658,8 +658,8 @@ function getLabels(locale: string) {
   return {
     home: "Home",
     categoriesLabel: "Categories",
-    directoryBadge: "AI Tool Directory",
-    indexTitle: "Browse the AI tool directory by category",
+    directoryBadge: "ToolsDdar",
+    indexTitle: "Browse ToolsDdar by category",
     indexDescription:
       "Start from the workflow, jump into the most relevant AI tool category, then continue into tool details, collections, and editorial guidance like a professional directory.",
     totalCategories: "Categories",

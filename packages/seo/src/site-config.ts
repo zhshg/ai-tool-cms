@@ -44,8 +44,11 @@ export function getSiteConfig(env: NodeJS.ProcessEnv = process.env): SiteConfig 
 }
 
 function normalizePublicSiteName(siteName: string | undefined): string {
-  if (!siteName) return "AI Tool Directory";
-  return siteName === "AI Tool CMS" ? "AI Tool Directory" : siteName;
+  if (!siteName) return "ToolsDdar";
+  if (siteName === "AI Tool CMS" || siteName === "AI Tool Directory") {
+    return "ToolsDdar";
+  }
+  return siteName;
 }
 
 function safeGetEnv() {

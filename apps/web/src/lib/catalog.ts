@@ -1419,7 +1419,7 @@ export async function getHomePageSeoData(locale: string): Promise<{
       {
         "@context": "https://schema.org",
         "@type": "WebSite",
-        name: "AI Tool Directory",
+        name: "ToolsDdar",
         url,
         potentialAction: {
           "@type": "SearchAction",

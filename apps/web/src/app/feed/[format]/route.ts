@@ -59,13 +59,13 @@ async function buildBlogFeed(format: "rss" | "atom" | "json" | "api") {
   }));
 
   if (format === "json" || format === "api") {
-    return NextResponse.json({ version: "https://jsonfeed.org/version/1.1", title: "AI Tool Directory Blog", items });
+    return NextResponse.json({ version: "https://jsonfeed.org/version/1.1", title: "ToolsDdar Blog", items });
   }
 
   const body = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0">
   <channel>
-    <title>AI Tool Directory Blog</title>
+    <title>ToolsDdar Blog</title>
     <link>${escapeXml(joinUrl(config.siteUrl, "/en/blog"))}</link>
     <description>AI tool guides, launch notes, and comparisons.</description>
 ${items

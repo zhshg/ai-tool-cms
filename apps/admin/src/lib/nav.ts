@@ -5,17 +5,19 @@ import {
   BookOpen,
   Cog,
   DollarSign,
+  Earth,
   FileWarning,
   FolderTree,
-  Globe,
   Handshake,
   Languages,
   Layers3,
   LayoutDashboard,
-  Megaphone,
+  Network,
+  Radar,
   Search,
   Settings,
   Sparkles,
+  Target,
   UploadCloud,
   Users,
   Wrench,
@@ -101,13 +103,13 @@ export const navItems: NavItem[] = [
   {
     title: "Analytics",
     href: "/analytics",
-    icon: Activity,
+    icon: Radar,
     permission: Permission.AnalyticsRead,
   },
   {
     title: "Monetization",
     href: "/monetization",
-    icon: Megaphone,
+    icon: Target,
     permission: Permission.MonetizationRead,
   },
   {
@@ -125,7 +127,7 @@ export const navItems: NavItem[] = [
   {
     title: "Global",
     href: "/global",
-    icon: Globe,
+    icon: Earth,
     permission: Permission.GlobalRead,
   },
   {
@@ -137,7 +139,7 @@ export const navItems: NavItem[] = [
   {
     title: "Platform",
     href: "/platform",
-    icon: Handshake,
+    icon: Network,
     permission: Permission.PlatformRead,
   },
   {

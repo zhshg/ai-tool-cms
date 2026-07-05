@@ -1,0 +1,441 @@
+- generic [active] [ref=f34e1]:
+  - alert [ref=f34e14]
+  - generic [ref=f34e15]:
+    - complementary [ref=f34e17]:
+      - link "ToolsDdar" [ref=f34e19] [cursor=pointer]:
+        - /url: /admin
+        - img "ToolsDdar" [ref=f34e21]
+      - navigation [ref=f34e25]:
+        - link "Dashboard" [ref=f34e26] [cursor=pointer]:
+          - /url: /admin
+          - img [ref=f34e27]
+          - text: Dashboard
+        - link "Tools" [ref=f34e32] [cursor=pointer]:
+          - /url: /admin/tools
+          - img [ref=f34e33]
+          - text: Tools
+        - link "Categories" [ref=f34e35] [cursor=pointer]:
+          - /url: /admin/categories
+          - img [ref=f34e36]
+          - text: Categories
+        - link "Blog" [ref=f34e41] [cursor=pointer]:
+          - /url: /admin/blog
+          - img [ref=f34e42]
+          - text: Blog
+        - link "Content Dataset" [ref=f34e44] [cursor=pointer]:
+          - /url: /admin/content
+          - img [ref=f34e45]
+          - text: Content Dataset
+        - link "Collections" [ref=f34e47] [cursor=pointer]:
+          - /url: /admin/collections
+          - img [ref=f34e48]
+          - text: Collections
+        - link "Import Center" [ref=f34e52] [cursor=pointer]:
+          - /url: /admin/import
+          - img [ref=f34e53]
+          - text: Import Center
+        - link "Crawler" [ref=f34e56] [cursor=pointer]:
+          - /url: /admin/crawler
+          - img [ref=f34e57]
+          - text: Crawler
+        - link "AI Review" [ref=f34e59] [cursor=pointer]:
+          - /url: /admin/ai-review
+          - img [ref=f34e60]
+          - text: AI Review
+        - link "SEO" [ref=f34e63] [cursor=pointer]:
+          - /url: /admin/seo
+          - img [ref=f34e64]
+          - text: SEO
+        - link "Search" [ref=f34e66] [cursor=pointer]:
+          - /url: /admin/search
+          - img [ref=f34e67]
+          - text: Search
+        - link "Analytics" [ref=f34e70] [cursor=pointer]:
+          - /url: /admin/analytics
+          - img [ref=f34e71]
+          - text: Analytics
+        - link "Monetization" [ref=f34e78] [cursor=pointer]:
+          - /url: /admin/monetization
+          - img [ref=f34e79]
+          - text: Monetization
+        - link "Revenue" [ref=f34e83] [cursor=pointer]:
+          - /url: /admin/revenue
+          - img [ref=f34e84]
+          - text: Revenue
+        - link "Growth Center" [ref=f34e86] [cursor=pointer]:
+          - /url: /admin/growth
+          - img [ref=f34e87]
+          - text: Growth Center
+        - link "Global" [ref=f34e89] [cursor=pointer]:
+          - /url: /admin/global
+          - img [ref=f34e90]
+          - text: Global
+        - link "Localization" [ref=f34e95] [cursor=pointer]:
+          - /url: /admin/localization
+          - img [ref=f34e96]
+          - text: Localization
+        - link "Platform" [ref=f34e100] [cursor=pointer]:
+          - /url: /admin/platform
+          - img [ref=f34e101]
+          - text: Platform
+        - link "Partners" [ref=f34e106] [cursor=pointer]:
+          - /url: /admin/partners
+          - img [ref=f34e107]
+          - text: Partners
+        - link "Automation" [ref=f34e112] [cursor=pointer]:
+          - /url: /admin/automation
+          - img [ref=f34e113]
+          - text: Automation
+        - link "Users" [ref=f34e124] [cursor=pointer]:
+          - /url: /admin/users
+          - img [ref=f34e125]
+          - text: Users
+        - link "Settings" [ref=f34e130] [cursor=pointer]:
+          - /url: /admin/settings
+          - img [ref=f34e131]
+          - text: Settings
+      - generic [ref=f34e134]:
+        - paragraph [ref=f34e135]: System Admin
+        - paragraph [ref=f34e136]: admin@ai-tool-cms.local
+        - paragraph [ref=f34e137]: "Role: admin"
+        - button "Sign out" [ref=f34e138] [cursor=pointer]
+    - generic [ref=f34e139]:
+      - banner [ref=f34e140]:
+        - navigation "breadcrumb" [ref=f34e142]:
+          - list [ref=f34e143]:
+            - listitem [ref=f34e144]:
+              - link "Dashboard" [disabled] [ref=f34e145]
+        - generic [ref=f34e146]:
+          - generic [ref=f34e147]: System Admin
+          - button "Sign out" [ref=f34e148] [cursor=pointer]:
+            - img
+          - button "Toggle theme" [ref=f34e149] [cursor=pointer]:
+            - img
+            - img
+      - main [ref=f34e150]:
+        - generic [ref=f34e151]:
+          - generic [ref=f34e152]:
+            - heading "Dashboard" [level=1] [ref=f34e153]
+            - paragraph [ref=f34e154]: Admin overview with RBAC-aware navigation and widgets.
+          - generic [ref=f34e155]:
+            - generic [ref=f34e156]:
+              - generic [ref=f34e157]:
+                - generic [ref=f34e158]:
+                  - paragraph [ref=f34e159]: Total Tools
+                  - img [ref=f34e160]
+                - paragraph [ref=f34e162]: "50"
+              - generic [ref=f34e163]:
+                - generic [ref=f34e164]:
+                  - paragraph [ref=f34e165]: Published Tools
+                  - img [ref=f34e166]
+                - paragraph [ref=f34e168]: "50"
+              - generic [ref=f34e169]:
+                - generic [ref=f34e170]:
+                  - paragraph [ref=f34e171]: Draft Tools
+                  - img [ref=f34e172]
+                - paragraph [ref=f34e174]: "0"
+              - generic [ref=f34e175]:
+                - generic [ref=f34e176]:
+                  - paragraph [ref=f34e177]: Categories
+                  - img [ref=f34e178]
+                - paragraph [ref=f34e183]: "20"
+              - generic [ref=f34e184]:
+                - generic [ref=f34e185]:
+                  - paragraph [ref=f34e186]: Total Users
+                  - img [ref=f34e187]
+                - paragraph [ref=f34e192]: "1"
+              - generic [ref=f34e193]:
+                - generic [ref=f34e194]:
+                  - paragraph [ref=f34e195]: Active Users
+                  - img [ref=f34e196]
+                - paragraph [ref=f34e201]: "1"
+              - generic [ref=f34e202]:
+                - generic [ref=f34e203]:
+                  - paragraph [ref=f34e204]: Pending AI Reviews
+                  - img [ref=f34e205]
+                - paragraph [ref=f34e208]: "0"
+              - generic [ref=f34e209]:
+                - generic [ref=f34e210]:
+                  - paragraph [ref=f34e211]: Crawler Jobs
+                  - img [ref=f34e212]
+                - paragraph [ref=f34e214]: "0"
+                - paragraph [ref=f34e215]: Last crawl 0
+            - generic [ref=f34e216]:
+              - generic [ref=f34e217]:
+                - generic [ref=f34e218]:
+                  - paragraph [ref=f34e219]: Content Score
+                  - img [ref=f34e220]
+                - paragraph [ref=f34e223]: 87%
+              - generic [ref=f34e224]:
+                - generic [ref=f34e225]:
+                  - paragraph [ref=f34e226]: SEO Score
+                  - img [ref=f34e227]
+                - paragraph [ref=f34e230]: 99%
+              - generic [ref=f34e231]:
+                - generic [ref=f34e232]:
+                  - paragraph [ref=f34e233]: Broken Links
+                  - img [ref=f34e234]
+                - paragraph [ref=f34e238]: "0"
+              - generic [ref=f34e239]:
+                - generic [ref=f34e240]:
+                  - paragraph [ref=f34e241]: Missing Logos
+                  - img [ref=f34e242]
+                - paragraph [ref=f34e249]: "5"
+              - generic [ref=f34e250]:
+                - generic [ref=f34e251]:
+                  - paragraph [ref=f34e252]: Import Queue
+                  - img [ref=f34e253]
+                - paragraph [ref=f34e256]: "0"
+              - generic [ref=f34e257]:
+                - generic [ref=f34e258]:
+                  - paragraph [ref=f34e259]: AI Queue
+                  - img [ref=f34e260]
+                - paragraph [ref=f34e263]: "0"
+              - generic [ref=f34e264]:
+                - generic [ref=f34e265]:
+                  - paragraph [ref=f34e266]: Worker Queue
+                  - img [ref=f34e267]
+                - paragraph [ref=f34e270]: "0"
+              - generic [ref=f34e271]:
+                - generic [ref=f34e272]:
+                  - paragraph [ref=f34e273]: Search Index
+                  - img [ref=f34e274]
+                - paragraph [ref=f34e277]: "50"
+            - generic [ref=f34e278]:
+              - generic [ref=f34e279]:
+                - generic [ref=f34e280]:
+                  - heading "Content Operations" [level=2] [ref=f34e281]
+                  - img [ref=f34e282]
+                - generic [ref=f34e285]:
+                  - generic [ref=f34e286]:
+                    - generic [ref=f34e287]: Launch-ready tools
+                    - generic [ref=f34e288]: "45"
+                  - generic [ref=f34e289]:
+                    - generic [ref=f34e290]: Needs content work
+                    - generic [ref=f34e291]: "0"
+                  - generic [ref=f34e292]:
+                    - generic [ref=f34e293]: Missing descriptions
+                    - generic [ref=f34e294]: "0"
+                  - generic [ref=f34e295]:
+                    - generic [ref=f34e296]: Missing features
+                    - generic [ref=f34e297]: "0"
+                  - generic [ref=f34e298]:
+                    - generic [ref=f34e299]: Missing FAQ
+                    - generic [ref=f34e300]: "0"
+                  - generic [ref=f34e301]:
+                    - generic [ref=f34e302]: Missing screenshots
+                    - generic [ref=f34e303]: "50"
+              - generic [ref=f34e304]:
+                - generic [ref=f34e305]:
+                  - heading "SEO & Search" [level=2] [ref=f34e306]
+                  - img [ref=f34e307]
+                - generic [ref=f34e310]:
+                  - generic [ref=f34e311]:
+                    - generic [ref=f34e312]: Indexed tools
+                    - generic [ref=f34e313]: "50"
+                  - generic [ref=f34e314]:
+                    - generic [ref=f34e315]: Missing metadata
+                    - generic [ref=f34e316]: "0"
+                  - generic [ref=f34e317]:
+                    - generic [ref=f34e318]: Weekly searches
+                    - generic [ref=f34e319]: "6"
+                  - generic [ref=f34e320]:
+                    - generic [ref=f34e321]: Weekly clicks
+                    - generic [ref=f34e322]: "0"
+                  - generic [ref=f34e323]:
+                    - generic [ref=f34e324]: Search status
+                    - generic [ref=f34e325]: configured
+            - generic [ref=f34e326]:
+              - generic [ref=f34e327]:
+                - generic [ref=f34e328]:
+                  - heading "Queues" [level=2] [ref=f34e329]
+                  - img [ref=f34e330]
+                - generic [ref=f34e333]:
+                  - generic [ref=f34e334]:
+                    - generic [ref=f34e335]: Crawler status
+                    - generic [ref=f34e336]: idle
+                  - generic [ref=f34e337]:
+                    - generic [ref=f34e338]: Worker status
+                    - generic [ref=f34e339]: idle
+                  - generic [ref=f34e340]:
+                    - generic [ref=f34e341]: Failed jobs
+                    - generic [ref=f34e342]: "0"
+                  - generic [ref=f34e343]:
+                    - generic [ref=f34e344]: Scheduler jobs
+                    - generic [ref=f34e345]: "0"
+                  - generic [ref=f34e346]:
+                    - generic [ref=f34e347]: Recent imports
+                    - generic [ref=f34e348]: "0"
+              - generic [ref=f34e349]:
+                - generic [ref=f34e350]:
+                  - heading "Infrastructure" [level=2] [ref=f34e351]
+                  - img [ref=f34e352]
+                - generic [ref=f34e355]:
+                  - generic [ref=f34e356]:
+                    - generic [ref=f34e357]: Database
+                    - generic [ref=f34e358]: healthy
+                  - generic [ref=f34e359]:
+                    - generic [ref=f34e360]: Redis
+                    - generic [ref=f34e361]: healthy
+                  - generic [ref=f34e362]:
+                    - generic [ref=f34e363]: Storage
+                    - generic [ref=f34e364]: configured
+                  - generic [ref=f34e365]:
+                    - generic [ref=f34e366]: Search index
+                    - generic [ref=f34e367]: configured
+                  - generic [ref=f34e368]:
+                    - generic [ref=f34e369]: System health
+                    - generic [ref=f34e370]: healthy
+              - generic [ref=f34e371]:
+                - generic [ref=f34e372]:
+                  - heading "Database" [level=2] [ref=f34e373]
+                  - img [ref=f34e374]
+                - generic [ref=f34e378]:
+                  - generic [ref=f34e379]:
+                    - generic [ref=f34e380]: Tools
+                    - generic [ref=f34e381]: "50"
+                  - generic [ref=f34e382]:
+                    - generic [ref=f34e383]: Categories
+                    - generic [ref=f34e384]: "20"
+                  - generic [ref=f34e385]:
+                    - generic [ref=f34e386]: Tags
+                    - generic [ref=f34e387]: "194"
+                  - generic [ref=f34e388]:
+                    - generic [ref=f34e389]: Users
+                    - generic [ref=f34e390]: "1"
+                  - generic [ref=f34e391]:
+                    - generic [ref=f34e392]: DB probe
+                    - generic [ref=f34e393]: healthy
+            - generic [ref=f34e394]:
+              - generic [ref=f34e395]:
+                - generic [ref=f34e396]:
+                  - heading "Recent Activity" [level=2] [ref=f34e397]
+                  - img [ref=f34e398]
+                - generic [ref=f34e400]:
+                  - link "Intercom Fin updated tool PUBLISHED 2026/7/5 01:18:41" [ref=f34e401] [cursor=pointer]:
+                    - /url: /admin/tools/a9b8d91f-9ad1-48ac-a688-f2117e7fd867/edit
+                    - generic [ref=f34e402]:
+                      - generic [ref=f34e403]: Intercom Fin updated
+                      - text: tool
+                    - generic [ref=f34e404]:
+                      - generic [ref=f34e405]: PUBLISHED
+                      - text: 2026/7/5 01:18:41
+                  - link "Airtable AI updated tool PUBLISHED 2026/7/5 01:18:41" [ref=f34e406] [cursor=pointer]:
+                    - /url: /admin/tools/b2aa4136-3761-4182-8726-9ccf0b4478cf/edit
+                    - generic [ref=f34e407]:
+                      - generic [ref=f34e408]: Airtable AI updated
+                      - text: tool
+                    - generic [ref=f34e409]:
+                      - generic [ref=f34e410]: PUBLISHED
+                      - text: 2026/7/5 01:18:41
+                  - link "Glean updated tool PUBLISHED 2026/7/5 01:18:41" [ref=f34e411] [cursor=pointer]:
+                    - /url: /admin/tools/9d8cb35b-3f65-42a8-bab7-fb929cc34488/edit
+                    - generic [ref=f34e412]:
+                      - generic [ref=f34e413]: Glean updated
+                      - text: tool
+                    - generic [ref=f34e414]:
+                      - generic [ref=f34e415]: PUBLISHED
+                      - text: 2026/7/5 01:18:41
+                  - link "Harvey updated tool PUBLISHED 2026/7/5 01:18:41" [ref=f34e416] [cursor=pointer]:
+                    - /url: /admin/tools/ea005dfe-ebf4-4be7-a909-fad866ddd757/edit
+                    - generic [ref=f34e417]:
+                      - generic [ref=f34e418]: Harvey updated
+                      - text: tool
+                    - generic [ref=f34e419]:
+                      - generic [ref=f34e420]: PUBLISHED
+                      - text: 2026/7/5 01:18:41
+                  - link "NotebookLM updated tool PUBLISHED 2026/7/5 01:18:41" [ref=f34e421] [cursor=pointer]:
+                    - /url: /admin/tools/7852b609-2466-46e6-9197-8de318fa25b4/edit
+                    - generic [ref=f34e422]:
+                      - generic [ref=f34e423]: NotebookLM updated
+                      - text: tool
+                    - generic [ref=f34e424]:
+                      - generic [ref=f34e425]: PUBLISHED
+                      - text: 2026/7/5 01:18:41
+                  - link "social post run automation COMPLETED 2026/7/5 00:12:22" [ref=f34e426] [cursor=pointer]:
+                    - /url: /admin/automation
+                    - generic [ref=f34e427]:
+                      - generic [ref=f34e428]: social post run
+                      - text: automation
+                    - generic [ref=f34e429]:
+                      - generic [ref=f34e430]: COMPLETED
+                      - text: 2026/7/5 00:12:22
+                  - link "social post run automation COMPLETED 2026/7/5 00:12:22" [ref=f34e431] [cursor=pointer]:
+                    - /url: /admin/automation
+                    - generic [ref=f34e432]:
+                      - generic [ref=f34e433]: social post run
+                      - text: automation
+                    - generic [ref=f34e434]:
+                      - generic [ref=f34e435]: COMPLETED
+                      - text: 2026/7/5 00:12:22
+                  - link "social post run automation COMPLETED 2026/7/5 00:12:22" [ref=f34e436] [cursor=pointer]:
+                    - /url: /admin/automation
+                    - generic [ref=f34e437]:
+                      - generic [ref=f34e438]: social post run
+                      - text: automation
+                    - generic [ref=f34e439]:
+                      - generic [ref=f34e440]: COMPLETED
+                      - text: 2026/7/5 00:12:22
+                  - link "social post run automation COMPLETED 2026/7/5 00:12:22" [ref=f34e441] [cursor=pointer]:
+                    - /url: /admin/automation
+                    - generic [ref=f34e442]:
+                      - generic [ref=f34e443]: social post run
+                      - text: automation
+                    - generic [ref=f34e444]:
+                      - generic [ref=f34e445]: COMPLETED
+                      - text: 2026/7/5 00:12:22
+                  - link "social post run automation COMPLETED 2026/7/5 00:12:22" [ref=f34e446] [cursor=pointer]:
+                    - /url: /admin/automation
+                    - generic [ref=f34e447]:
+                      - generic [ref=f34e448]: social post run
+                      - text: automation
+                    - generic [ref=f34e449]:
+                      - generic [ref=f34e450]: COMPLETED
+                      - text: 2026/7/5 00:12:22
+              - generic [ref=f34e451]:
+                - generic [ref=f34e452]:
+                  - heading "RBAC Session" [level=2] [ref=f34e453]
+                  - img [ref=f34e454]
+                - generic [ref=f34e457]:
+                  - generic [ref=f34e458]:
+                    - generic [ref=f34e459]: User
+                    - generic [ref=f34e460]: System Admin
+                  - generic [ref=f34e461]:
+                    - generic [ref=f34e462]: Role
+                    - generic [ref=f34e463]: admin
+                  - generic [ref=f34e464]:
+                    - term [ref=f34e465]: Permissions
+                    - definition [ref=f34e466]:
+                      - generic [ref=f34e467]: dashboard:view
+                      - generic [ref=f34e468]: tools:read
+                      - generic [ref=f34e469]: tools:create
+                      - generic [ref=f34e470]: tools:update
+                      - generic [ref=f34e471]: tools:delete
+                      - generic [ref=f34e472]: categories:read
+                      - generic [ref=f34e473]: categories:create
+                      - generic [ref=f34e474]: categories:update
+                      - generic [ref=f34e475]: categories:delete
+                      - generic [ref=f34e476]: users:manage
+                      - generic [ref=f34e477]: settings:read
+                      - generic [ref=f34e478]: crawler:read
+                      - generic [ref=f34e479]: crawler:manage
+                      - generic [ref=f34e480]: crawler:run
+                      - generic [ref=f34e481]: ai:read
+                      - generic [ref=f34e482]: ai:manage
+                      - generic [ref=f34e483]: ai:review
+                      - generic [ref=f34e484]: seo:read
+                      - generic [ref=f34e485]: seo:manage
+                      - generic [ref=f34e486]: search:read
+                      - generic [ref=f34e487]: analytics:read
+                      - generic [ref=f34e488]: monetization:read
+                      - generic [ref=f34e489]: monetization:manage
+                      - generic [ref=f34e490]: platform:read
+                      - generic [ref=f34e491]: platform:manage
+                      - generic [ref=f34e492]: revenue:read
+                      - generic [ref=f34e493]: partner:read
+                      - generic [ref=f34e494]: growth:read
+                      - generic [ref=f34e495]: i18n:read
+                      - generic [ref=f34e496]: i18n:manage
+                      - generic [ref=f34e497]: global:read
+                      - generic [ref=f34e498]: automation:read
+                      - generic [ref=f34e499]: automation:manage

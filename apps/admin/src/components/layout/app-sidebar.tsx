@@ -27,11 +27,14 @@ export function AppSidebar({ onNavigate, className }: AppSidebarProps) {
       )}
     >
       <div className="flex h-14 items-center border-b border-sidebar-border px-6">
-        <Link href="/" className="flex items-center gap-2 font-semibold" onClick={onNavigate}>
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-sidebar-primary text-sm text-sidebar-primary-foreground">
-            AI
-          </span>
-          <span>Tool CMS</span>
+        <Link href="/" className="flex items-center" onClick={onNavigate}>
+          <div className="relative h-10 w-[137px]">
+            <img
+              src="/toolsdar-icon-black.png"
+              alt="ToolsDdar"
+              className="h-10 w-[137px] object-contain object-left"
+            />
+          </div>
         </Link>
       </div>
 

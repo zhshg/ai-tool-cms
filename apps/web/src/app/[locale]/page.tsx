@@ -49,7 +49,7 @@ export async function generateMetadata({ params }: HomePageProps): Promise<Metad
 
   return buildMetadata(
     {
-      title: isZh ? "AI 工具目录首页" : "AI Tool Directory Home",
+      title: isZh ? "ToolsDdar 首页" : "ToolsDdar Home",
       description: isZh
         ? "发现热门 AI 工具、分类、最新收录与实用指南。"
         : "Discover trending AI tools, popular categories, new launches, and editorial guides from the directory.",
@@ -70,7 +70,7 @@ export default async function HomePage({ params }: HomePageProps) {
   const copy =
     locale === "zh"
       ? {
-          heroLabel: "AI 工具目录",
+          heroLabel: "ToolsDdar",
           heroTitle: "发现真正值得加入工作流的 AI 工具",
           heroText:
             "按分类、价格与使用场景快速筛选工具。首页聚合热门、最新、免费可试以及实用指南。",
@@ -110,7 +110,7 @@ export default async function HomePage({ params }: HomePageProps) {
         }
       : {
           heroTitle: "Find AI tools worth adding to your workflow",
-          heroLabel: "AI Tool Directory",
+          heroLabel: "ToolsDdar",
           heroText:
             "Browse by category, pricing, and use case. The homepage now prioritizes discovery: trending, latest, free-to-try, and useful guides.",
           searchPlaceholder: "Search tools, categories, or use cases",

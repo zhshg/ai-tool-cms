@@ -1,0 +1,645 @@
+- generic [active] [ref=f28e1]:
+  - generic [ref=f28e2]:
+    - banner [ref=f28e3]:
+      - generic [ref=f28e4]:
+        - link "ToolsDdar logo" [ref=f28e5] [cursor=pointer]:
+          - /url: /en
+          - img "ToolsDdar logo" [ref=f28e8]
+        - navigation [ref=f28e9]:
+          - link "Categories" [ref=f28e10] [cursor=pointer]:
+            - /url: /en/categories
+          - link "Tools" [ref=f28e11] [cursor=pointer]:
+            - /url: /en/tools
+          - link "Blog" [ref=f28e12] [cursor=pointer]:
+            - /url: /en/blog
+    - main [ref=f28e14]:
+      - generic [ref=f28e16]:
+        - generic [ref=f28e17]:
+          - generic [ref=f28e18]:
+            - img [ref=f28e19]
+            - text: ToolsDdar
+          - generic [ref=f28e21]:
+            - heading "Find AI tools worth adding to your workflow" [level=1] [ref=f28e22]
+            - paragraph [ref=f28e23]: "Browse by category, pricing, and use case. The homepage now prioritizes discovery: trending, latest, free-to-try, and useful guides."
+          - generic [ref=f28e24]:
+            - generic [ref=f28e25]:
+              - img [ref=f28e26]
+              - searchbox "Search tools, categories, or use cases" [ref=f28e29]
+            - button "Search tools" [ref=f28e30] [cursor=pointer]
+          - generic [ref=f28e31]:
+            - link "Browse all tools" [ref=f28e32] [cursor=pointer]:
+              - /url: /en/tools
+            - link "View categories" [ref=f28e33] [cursor=pointer]:
+              - /url: /en#categories
+        - generic [ref=f28e34]:
+          - generic [ref=f28e35]:
+            - img [ref=f28e36]
+            - paragraph [ref=f28e40]: "50"
+            - paragraph [ref=f28e41]: Published tools
+          - generic [ref=f28e42]:
+            - img [ref=f28e43]
+            - paragraph [ref=f28e47]: "20"
+            - paragraph [ref=f28e48]: Popular categories
+          - generic [ref=f28e49]:
+            - img [ref=f28e50]
+            - paragraph [ref=f28e55]: "36"
+            - paragraph [ref=f28e56]: Free to try
+      - generic [ref=f28e57]:
+        - generic [ref=f28e58]:
+          - generic [ref=f28e59]:
+            - generic [ref=f28e60]:
+              - img [ref=f28e61]
+              - text: Popular categories
+            - generic [ref=f28e65]:
+              - heading "Popular categories" [level=2] [ref=f28e66]
+              - paragraph [ref=f28e67]: Start from the job to be done and narrow into the right tool type.
+          - link "View all tools" [ref=f28e68] [cursor=pointer]:
+            - /url: /en/tools
+            - text: View all tools
+            - img [ref=f28e69]
+        - generic [ref=f28e71]:
+          - link "Productivity 25 AI tools for notes, planning, meetings, and day-to-day knowledge work. Explore tools" [ref=f28e72] [cursor=pointer]:
+            - /url: /en/category/productivity
+            - generic [ref=f28e73]:
+              - heading "Productivity" [level=2] [ref=f28e74]
+              - generic [ref=f28e75]: "25"
+            - paragraph [ref=f28e76]: AI tools for notes, planning, meetings, and day-to-day knowledge work.
+            - generic [ref=f28e77]:
+              - text: Explore tools
+              - img [ref=f28e78]
+          - link "Marketing 23 AI tools for campaigns, copy, content, and growth workflows. Explore tools" [ref=f28e80] [cursor=pointer]:
+            - /url: /en/category/marketing
+            - generic [ref=f28e81]:
+              - heading "Marketing" [level=2] [ref=f28e82]
+              - generic [ref=f28e83]: "23"
+            - paragraph [ref=f28e84]: AI tools for campaigns, copy, content, and growth workflows.
+            - generic [ref=f28e85]:
+              - text: Explore tools
+              - img [ref=f28e86]
+          - link "Writing 14 AI tools for drafting, editing, and improving written communication. Explore tools" [ref=f28e88] [cursor=pointer]:
+            - /url: /en/category/writing
+            - generic [ref=f28e89]:
+              - heading "Writing" [level=2] [ref=f28e90]
+              - generic [ref=f28e91]: "14"
+            - paragraph [ref=f28e92]: AI tools for drafting, editing, and improving written communication.
+            - generic [ref=f28e93]:
+              - text: Explore tools
+              - img [ref=f28e94]
+          - link "Video 12 AI tools for generating, editing, and repurposing video content. Explore tools" [ref=f28e96] [cursor=pointer]:
+            - /url: /en/category/video
+            - generic [ref=f28e97]:
+              - heading "Video" [level=2] [ref=f28e98]
+              - generic [ref=f28e99]: "12"
+            - paragraph [ref=f28e100]: AI tools for generating, editing, and repurposing video content.
+            - generic [ref=f28e101]:
+              - text: Explore tools
+              - img [ref=f28e102]
+          - link "Audio 10 AI tools for speech, music, voice, and audio production workflows. Explore tools" [ref=f28e104] [cursor=pointer]:
+            - /url: /en/category/audio
+            - generic [ref=f28e105]:
+              - heading "Audio" [level=2] [ref=f28e106]
+              - generic [ref=f28e107]: "10"
+            - paragraph [ref=f28e108]: AI tools for speech, music, voice, and audio production workflows.
+            - generic [ref=f28e109]:
+              - text: Explore tools
+              - img [ref=f28e110]
+          - link "Code 10 AI tools for software development, coding help, and product building. Explore tools" [ref=f28e112] [cursor=pointer]:
+            - /url: /en/category/code
+            - generic [ref=f28e113]:
+              - heading "Code" [level=2] [ref=f28e114]
+              - generic [ref=f28e115]: "10"
+            - paragraph [ref=f28e116]: AI tools for software development, coding help, and product building.
+            - generic [ref=f28e117]:
+              - text: Explore tools
+              - img [ref=f28e118]
+          - link "Image 7 AI tools for image generation, editing, and visual asset creation. Explore tools" [ref=f28e120] [cursor=pointer]:
+            - /url: /en/category/image
+            - generic [ref=f28e121]:
+              - heading "Image" [level=2] [ref=f28e122]
+              - generic [ref=f28e123]: "7"
+            - paragraph [ref=f28e124]: AI tools for image generation, editing, and visual asset creation.
+            - generic [ref=f28e125]:
+              - text: Explore tools
+              - img [ref=f28e126]
+          - link "SEO 4 AI tools for keyword research, content optimization, and search growth. Explore tools" [ref=f28e128] [cursor=pointer]:
+            - /url: /en/category/seo
+            - generic [ref=f28e129]:
+              - heading "SEO" [level=2] [ref=f28e130]
+              - generic [ref=f28e131]: "4"
+            - paragraph [ref=f28e132]: AI tools for keyword research, content optimization, and search growth.
+            - generic [ref=f28e133]:
+              - text: Explore tools
+              - img [ref=f28e134]
+          - link "AI Writing 0 Text generation and writing assistants Explore tools" [ref=f28e136] [cursor=pointer]:
+            - /url: /en/category/ai-writing
+            - generic [ref=f28e137]:
+              - heading "AI Writing" [level=2] [ref=f28e138]
+              - generic [ref=f28e139]: "0"
+            - paragraph [ref=f28e140]: Text generation and writing assistants
+            - generic [ref=f28e141]:
+              - text: Explore tools
+              - img [ref=f28e142]
+          - link "Code Assistant 0 Developer and coding copilots Explore tools" [ref=f28e144] [cursor=pointer]:
+            - /url: /en/category/code-assistant
+            - generic [ref=f28e145]:
+              - heading "Code Assistant" [level=2] [ref=f28e146]
+              - generic [ref=f28e147]: "0"
+            - paragraph [ref=f28e148]: Developer and coding copilots
+            - generic [ref=f28e149]:
+              - text: Explore tools
+              - img [ref=f28e150]
+          - link "Image Generation 0 Image and art generation tools Explore tools" [ref=f28e152] [cursor=pointer]:
+            - /url: /en/category/image-generation
+            - generic [ref=f28e153]:
+              - heading "Image Generation" [level=2] [ref=f28e154]
+              - generic [ref=f28e155]: "0"
+            - paragraph [ref=f28e156]: Image and art generation tools
+            - generic [ref=f28e157]:
+              - text: Explore tools
+              - img [ref=f28e158]
+          - link "Video & Audio 0 Multimedia generation and editing Explore tools" [ref=f28e160] [cursor=pointer]:
+            - /url: /en/category/video-audio
+            - generic [ref=f28e161]:
+              - heading "Video & Audio" [level=2] [ref=f28e162]
+              - generic [ref=f28e163]: "0"
+            - paragraph [ref=f28e164]: Multimedia generation and editing
+            - generic [ref=f28e165]:
+              - text: Explore tools
+              - img [ref=f28e166]
+      - generic [ref=f28e169]:
+        - generic [ref=f28e171]:
+          - generic [ref=f28e172]:
+            - img [ref=f28e173]
+            - text: Featured
+          - generic [ref=f28e175]:
+            - heading "Featured tools" [level=2] [ref=f28e176]
+            - paragraph [ref=f28e177]: A fast shortlist of the most useful tools to inspect first.
+        - generic [ref=f28e178]:
+          - article [ref=f28e179]:
+            - generic [ref=f28e180]:
+              - generic [ref=f28e181]:
+                - generic [ref=f28e182]: Featured
+                - generic [ref=f28e183]:
+                  - heading "Intercom Fin" [level=3] [ref=f28e184]
+                  - link "Customer Support" [ref=f28e185] [cursor=pointer]:
+                    - /url: /en/category/customer-support
+              - generic [ref=f28e186]: Contact
+            - paragraph [ref=f28e187]: AI customer support assistant for handling common questions and helping support teams scale.
+            - generic [ref=f28e188]:
+              - link "View details" [ref=f28e189] [cursor=pointer]:
+                - /url: /en/tools/intercom-fin
+              - link "Visit site" [ref=f28e190] [cursor=pointer]:
+                - /url: https://www.intercom.com/fin
+          - article [ref=f28e191]:
+            - generic [ref=f28e192]:
+              - generic [ref=f28e193]:
+                - generic [ref=f28e194]: Featured
+                - generic [ref=f28e195]:
+                  - heading "Airtable AI" [level=3] [ref=f28e196]
+                  - link "Data" [ref=f28e197] [cursor=pointer]:
+                    - /url: /en/category/data
+              - generic [ref=f28e198]: Paid
+            - paragraph [ref=f28e199]: AI features inside Airtable for structured work, records, summaries, and database-like workflows.
+            - generic [ref=f28e200]:
+              - link "View details" [ref=f28e201] [cursor=pointer]:
+                - /url: /en/tools/airtable-ai
+              - link "Visit site" [ref=f28e202] [cursor=pointer]:
+                - /url: https://www.airtable.com/ai
+          - article [ref=f28e203]:
+            - generic [ref=f28e204]:
+              - generic [ref=f28e205]:
+                - generic [ref=f28e206]: Featured
+                - generic [ref=f28e207]:
+                  - heading "Glean" [level=3] [ref=f28e208]
+                  - link "Research" [ref=f28e209] [cursor=pointer]:
+                    - /url: /en/category/research
+              - generic [ref=f28e210]: Contact
+            - paragraph [ref=f28e211]: Enterprise search and knowledge platform for finding internal information across company systems.
+            - generic [ref=f28e212]:
+              - link "View details" [ref=f28e213] [cursor=pointer]:
+                - /url: /en/tools/glean
+              - link "Visit site" [ref=f28e214] [cursor=pointer]:
+                - /url: https://www.glean.com
+          - article [ref=f28e215]:
+            - generic [ref=f28e216]:
+              - generic [ref=f28e217]:
+                - generic [ref=f28e218]: Featured
+                - generic [ref=f28e219]:
+                  - heading "Harvey" [level=3] [ref=f28e220]
+                  - link "Business" [ref=f28e221] [cursor=pointer]:
+                    - /url: /en/category/business
+              - generic [ref=f28e222]: Contact
+            - paragraph [ref=f28e223]: AI platform for legal and professional services work involving research, drafting, and review.
+            - generic [ref=f28e224]:
+              - link "View details" [ref=f28e225] [cursor=pointer]:
+                - /url: /en/tools/harvey
+              - link "Visit site" [ref=f28e226] [cursor=pointer]:
+                - /url: https://www.harvey.ai
+      - generic [ref=f28e228]:
+        - generic [ref=f28e229]:
+          - generic [ref=f28e231]:
+            - generic [ref=f28e232]:
+              - img [ref=f28e233]
+              - text: Trending
+            - generic [ref=f28e235]:
+              - heading "Trending tools" [level=2] [ref=f28e236]
+              - paragraph [ref=f28e237]: For visitors who want to track what is currently drawing attention.
+          - generic [ref=f28e238]:
+            - article [ref=f28e239]:
+              - generic [ref=f28e240]:
+                - generic [ref=f28e241]: "01"
+                - generic [ref=f28e242]:
+                  - generic [ref=f28e243]:
+                    - generic [ref=f28e244]:
+                      - heading "Intercom Fin" [level=3] [ref=f28e245]:
+                        - link "Intercom Fin" [ref=f28e246] [cursor=pointer]:
+                          - /url: /en/tools/intercom-fin
+                      - link "Customer Support" [ref=f28e247] [cursor=pointer]:
+                        - /url: /en/category/customer-support
+                    - generic [ref=f28e248]: Contact
+                  - paragraph [ref=f28e249]: AI customer support assistant for handling common questions and helping support teams scale.
+            - article [ref=f28e250]:
+              - generic [ref=f28e251]:
+                - generic [ref=f28e252]: "02"
+                - generic [ref=f28e253]:
+                  - generic [ref=f28e254]:
+                    - generic [ref=f28e255]:
+                      - heading "Airtable AI" [level=3] [ref=f28e256]:
+                        - link "Airtable AI" [ref=f28e257] [cursor=pointer]:
+                          - /url: /en/tools/airtable-ai
+                      - link "Data" [ref=f28e258] [cursor=pointer]:
+                        - /url: /en/category/data
+                    - generic [ref=f28e259]: Paid
+                  - paragraph [ref=f28e260]: AI features inside Airtable for structured work, records, summaries, and database-like workflows.
+            - article [ref=f28e261]:
+              - generic [ref=f28e262]:
+                - generic [ref=f28e263]: "03"
+                - generic [ref=f28e264]:
+                  - generic [ref=f28e265]:
+                    - generic [ref=f28e266]:
+                      - heading "Glean" [level=3] [ref=f28e267]:
+                        - link "Glean" [ref=f28e268] [cursor=pointer]:
+                          - /url: /en/tools/glean
+                      - link "Research" [ref=f28e269] [cursor=pointer]:
+                        - /url: /en/category/research
+                    - generic [ref=f28e270]: Contact
+                  - paragraph [ref=f28e271]: Enterprise search and knowledge platform for finding internal information across company systems.
+            - article [ref=f28e272]:
+              - generic [ref=f28e273]:
+                - generic [ref=f28e274]: "04"
+                - generic [ref=f28e275]:
+                  - generic [ref=f28e276]:
+                    - generic [ref=f28e277]:
+                      - heading "Harvey" [level=3] [ref=f28e278]:
+                        - link "Harvey" [ref=f28e279] [cursor=pointer]:
+                          - /url: /en/tools/harvey
+                      - link "Business" [ref=f28e280] [cursor=pointer]:
+                        - /url: /en/category/business
+                    - generic [ref=f28e281]: Contact
+                  - paragraph [ref=f28e282]: AI platform for legal and professional services work involving research, drafting, and review.
+            - article [ref=f28e283]:
+              - generic [ref=f28e284]:
+                - generic [ref=f28e285]: "05"
+                - generic [ref=f28e286]:
+                  - generic [ref=f28e287]:
+                    - generic [ref=f28e288]:
+                      - heading "Opus Clip" [level=3] [ref=f28e289]:
+                        - link "Opus Clip" [ref=f28e290] [cursor=pointer]:
+                          - /url: /en/tools/opus-clip
+                      - link "Video" [ref=f28e291] [cursor=pointer]:
+                        - /url: /en/category/video
+                    - generic [ref=f28e292]: Freemium
+                  - paragraph [ref=f28e293]: Video repurposing platform focused on turning long-form recordings into shorter clips.
+            - article [ref=f28e294]:
+              - generic [ref=f28e295]:
+                - generic [ref=f28e296]: "06"
+                - generic [ref=f28e297]:
+                  - generic [ref=f28e298]:
+                    - generic [ref=f28e299]:
+                      - heading "Photoroom" [level=3] [ref=f28e300]:
+                        - link "Photoroom" [ref=f28e301] [cursor=pointer]:
+                          - /url: /en/tools/photoroom
+                      - link "Image" [ref=f28e302] [cursor=pointer]:
+                        - /url: /en/category/image
+                    - generic [ref=f28e303]: Freemium
+                  - paragraph [ref=f28e304]: Image editing and asset creation platform for product photos and commerce-friendly visuals.
+        - generic [ref=f28e305]:
+          - generic [ref=f28e307]:
+            - generic [ref=f28e308]:
+              - img [ref=f28e309]
+              - text: Latest
+            - generic [ref=f28e314]:
+              - heading "Latest tools" [level=2] [ref=f28e315]
+              - paragraph [ref=f28e316]: New arrivals and recently published entries from the directory.
+          - generic [ref=f28e317]:
+            - article [ref=f28e318]:
+              - generic [ref=f28e319]:
+                - generic [ref=f28e320]: "01"
+                - generic [ref=f28e321]:
+                  - generic [ref=f28e322]:
+                    - generic [ref=f28e323]:
+                      - heading "Intercom Fin" [level=3] [ref=f28e324]:
+                        - link "Intercom Fin" [ref=f28e325] [cursor=pointer]:
+                          - /url: /en/tools/intercom-fin
+                      - link "Customer Support" [ref=f28e326] [cursor=pointer]:
+                        - /url: /en/category/customer-support
+                    - generic [ref=f28e327]: Contact
+                  - paragraph [ref=f28e328]: AI customer support assistant for handling common questions and helping support teams scale.
+            - article [ref=f28e329]:
+              - generic [ref=f28e330]:
+                - generic [ref=f28e331]: "02"
+                - generic [ref=f28e332]:
+                  - generic [ref=f28e333]:
+                    - generic [ref=f28e334]:
+                      - heading "Airtable AI" [level=3] [ref=f28e335]:
+                        - link "Airtable AI" [ref=f28e336] [cursor=pointer]:
+                          - /url: /en/tools/airtable-ai
+                      - link "Data" [ref=f28e337] [cursor=pointer]:
+                        - /url: /en/category/data
+                    - generic [ref=f28e338]: Paid
+                  - paragraph [ref=f28e339]: AI features inside Airtable for structured work, records, summaries, and database-like workflows.
+            - article [ref=f28e340]:
+              - generic [ref=f28e341]:
+                - generic [ref=f28e342]: "03"
+                - generic [ref=f28e343]:
+                  - generic [ref=f28e344]:
+                    - generic [ref=f28e345]:
+                      - heading "Glean" [level=3] [ref=f28e346]:
+                        - link "Glean" [ref=f28e347] [cursor=pointer]:
+                          - /url: /en/tools/glean
+                      - link "Research" [ref=f28e348] [cursor=pointer]:
+                        - /url: /en/category/research
+                    - generic [ref=f28e349]: Contact
+                  - paragraph [ref=f28e350]: Enterprise search and knowledge platform for finding internal information across company systems.
+            - article [ref=f28e351]:
+              - generic [ref=f28e352]:
+                - generic [ref=f28e353]: "04"
+                - generic [ref=f28e354]:
+                  - generic [ref=f28e355]:
+                    - generic [ref=f28e356]:
+                      - heading "Harvey" [level=3] [ref=f28e357]:
+                        - link "Harvey" [ref=f28e358] [cursor=pointer]:
+                          - /url: /en/tools/harvey
+                      - link "Business" [ref=f28e359] [cursor=pointer]:
+                        - /url: /en/category/business
+                    - generic [ref=f28e360]: Contact
+                  - paragraph [ref=f28e361]: AI platform for legal and professional services work involving research, drafting, and review.
+            - article [ref=f28e362]:
+              - generic [ref=f28e363]:
+                - generic [ref=f28e364]: "05"
+                - generic [ref=f28e365]:
+                  - generic [ref=f28e366]:
+                    - generic [ref=f28e367]:
+                      - heading "NotebookLM" [level=3] [ref=f28e368]:
+                        - link "NotebookLM" [ref=f28e369] [cursor=pointer]:
+                          - /url: /en/tools/notebooklm
+                      - link "Research" [ref=f28e370] [cursor=pointer]:
+                        - /url: /en/category/research
+                    - generic [ref=f28e371]: Free
+                  - paragraph [ref=f28e372]: Research notebook for working with source materials, summaries, and question-driven understanding.
+            - article [ref=f28e373]:
+              - generic [ref=f28e374]:
+                - generic [ref=f28e375]: "06"
+                - generic [ref=f28e376]:
+                  - generic [ref=f28e377]:
+                    - generic [ref=f28e378]:
+                      - heading "Opus Clip" [level=3] [ref=f28e379]:
+                        - link "Opus Clip" [ref=f28e380] [cursor=pointer]:
+                          - /url: /en/tools/opus-clip
+                      - link "Video" [ref=f28e381] [cursor=pointer]:
+                        - /url: /en/category/video
+                    - generic [ref=f28e382]: Freemium
+                  - paragraph [ref=f28e383]: Video repurposing platform focused on turning long-form recordings into shorter clips.
+            - article [ref=f28e384]:
+              - generic [ref=f28e385]:
+                - generic [ref=f28e386]: "07"
+                - generic [ref=f28e387]:
+                  - generic [ref=f28e388]:
+                    - generic [ref=f28e389]:
+                      - heading "Photoroom" [level=3] [ref=f28e390]:
+                        - link "Photoroom" [ref=f28e391] [cursor=pointer]:
+                          - /url: /en/tools/photoroom
+                      - link "Image" [ref=f28e392] [cursor=pointer]:
+                        - /url: /en/category/image
+                    - generic [ref=f28e393]: Freemium
+                  - paragraph [ref=f28e394]: Image editing and asset creation platform for product photos and commerce-friendly visuals.
+            - article [ref=f28e395]:
+              - generic [ref=f28e396]:
+                - generic [ref=f28e397]: "08"
+                - generic [ref=f28e398]:
+                  - generic [ref=f28e399]:
+                    - generic [ref=f28e400]:
+                      - heading "Luma AI" [level=3] [ref=f28e401]:
+                        - link "Luma AI" [ref=f28e402] [cursor=pointer]:
+                          - /url: /en/tools/luma-ai
+                      - link "Video" [ref=f28e403] [cursor=pointer]:
+                        - /url: /en/category/video
+                    - generic [ref=f28e404]: Freemium
+                  - paragraph [ref=f28e405]: Generative media platform for visual capture, 3D-oriented creation, and video experimentation.
+      - generic [ref=f28e407]:
+        - generic [ref=f28e409]:
+          - generic [ref=f28e410]:
+            - img [ref=f28e411]
+            - text: Free to try
+          - generic [ref=f28e416]:
+            - heading "Free AI tools" [level=2] [ref=f28e417]
+            - paragraph [ref=f28e418]: Start with tools you can try without a big commitment.
+        - generic [ref=f28e419]:
+          - article [ref=f28e420]:
+            - generic [ref=f28e421]:
+              - generic [ref=f28e422]:
+                - heading "NotebookLM" [level=3] [ref=f28e423]:
+                  - link "NotebookLM" [ref=f28e424] [cursor=pointer]:
+                    - /url: /en/tools/notebooklm
+                - link "Research" [ref=f28e425] [cursor=pointer]:
+                  - /url: /en/category/research
+              - generic [ref=f28e426]: Free
+            - paragraph [ref=f28e427]: Research notebook for working with source materials, summaries, and question-driven understanding.
+          - article [ref=f28e428]:
+            - generic [ref=f28e429]:
+              - generic [ref=f28e430]:
+                - heading "n8n" [level=3] [ref=f28e431]:
+                  - link "n8n" [ref=f28e432] [cursor=pointer]:
+                    - /url: /en/tools/n8n
+                - link "Automation" [ref=f28e433] [cursor=pointer]:
+                  - /url: /en/category/automation
+              - generic [ref=f28e434]: Free
+            - paragraph [ref=f28e435]: Workflow automation platform for building flexible integrations and AI-enabled process flows.
+          - article [ref=f28e436]:
+            - generic [ref=f28e437]:
+              - generic [ref=f28e438]:
+                - heading "Opus Clip" [level=3] [ref=f28e439]:
+                  - link "Opus Clip" [ref=f28e440] [cursor=pointer]:
+                    - /url: /en/tools/opus-clip
+                - link "Video" [ref=f28e441] [cursor=pointer]:
+                  - /url: /en/category/video
+              - generic [ref=f28e442]: Freemium
+            - paragraph [ref=f28e443]: Video repurposing platform focused on turning long-form recordings into shorter clips.
+          - article [ref=f28e444]:
+            - generic [ref=f28e445]:
+              - generic [ref=f28e446]:
+                - heading "Photoroom" [level=3] [ref=f28e447]:
+                  - link "Photoroom" [ref=f28e448] [cursor=pointer]:
+                    - /url: /en/tools/photoroom
+                - link "Image" [ref=f28e449] [cursor=pointer]:
+                  - /url: /en/category/image
+              - generic [ref=f28e450]: Freemium
+            - paragraph [ref=f28e451]: Image editing and asset creation platform for product photos and commerce-friendly visuals.
+          - article [ref=f28e452]:
+            - generic [ref=f28e453]:
+              - generic [ref=f28e454]:
+                - heading "Luma AI" [level=3] [ref=f28e455]:
+                  - link "Luma AI" [ref=f28e456] [cursor=pointer]:
+                    - /url: /en/tools/luma-ai
+                - link "Video" [ref=f28e457] [cursor=pointer]:
+                  - /url: /en/category/video
+              - generic [ref=f28e458]: Freemium
+            - paragraph [ref=f28e459]: Generative media platform for visual capture, 3D-oriented creation, and video experimentation.
+          - article [ref=f28e460]:
+            - generic [ref=f28e461]:
+              - generic [ref=f28e462]:
+                - heading "Adobe Firefly" [level=3] [ref=f28e463]:
+                  - link "Adobe Firefly" [ref=f28e464] [cursor=pointer]:
+                    - /url: /en/tools/adobe-firefly
+                - link "Image" [ref=f28e465] [cursor=pointer]:
+                  - /url: /en/category/image
+              - generic [ref=f28e466]: Freemium
+            - paragraph [ref=f28e467]: Adobe's generative AI layer for creating and editing images and creative design assets.
+      - generic [ref=f28e468]:
+        - generic [ref=f28e469]:
+          - generic [ref=f28e470]:
+            - generic [ref=f28e471]:
+              - img [ref=f28e472]
+              - text: Blog and guides
+            - generic [ref=f28e475]:
+              - heading "Blog and guides" [level=2] [ref=f28e476]
+              - paragraph [ref=f28e477]: Release notes, ecosystem analysis, and deployment lessons that help users choose better.
+          - link "Read blog" [ref=f28e478] [cursor=pointer]:
+            - /url: /en/blog
+            - text: Read blog
+            - img [ref=f28e479]
+        - generic [ref=f28e481]:
+          - article [ref=f28e482]:
+            - paragraph [ref=f28e483]: Guide
+            - heading "How to launch an AI tools directory" [level=2] [ref=f28e484]
+            - paragraph [ref=f28e485]: Production launch notes, deployment learnings, and what belongs on a public AI tools homepage.
+            - link "Read blog" [ref=f28e486] [cursor=pointer]:
+              - /url: /en/blog
+              - text: Read blog
+              - img [ref=f28e487]
+          - article [ref=f28e489]:
+            - paragraph [ref=f28e490]: Guide
+            - heading "Build an open AI tools ecosystem" [level=2] [ref=f28e491]
+            - paragraph [ref=f28e492]: How to extend an AI tools directory with structured APIs, search, and ingestion workflows.
+            - link "Read blog" [ref=f28e493] [cursor=pointer]:
+              - /url: /en/blog
+              - text: Read blog
+              - img [ref=f28e494]
+          - article [ref=f28e496]:
+            - paragraph [ref=f28e497]: Guide
+            - heading "What production-ready really means" [level=2] [ref=f28e498]
+            - paragraph [ref=f28e499]: Search, health checks, Docker hardening, and release acceptance lessons from shipping the stack.
+            - link "Read blog" [ref=f28e500] [cursor=pointer]:
+              - /url: /en/blog
+              - text: Read blog
+              - img [ref=f28e501]
+      - generic [ref=f28e505]:
+        - generic [ref=f28e506]:
+          - paragraph [ref=f28e507]: Newsletter
+          - heading "Track new tools, comparisons, and workflow guides every week" [level=2] [ref=f28e508]
+          - paragraph [ref=f28e509]: Use RSS and the blog to follow fresh directory updates instead of landing on platform marketing copy.
+        - generic [ref=f28e510]:
+          - link "Open RSS" [ref=f28e511] [cursor=pointer]:
+            - /url: /feed/rss
+          - link "Read blog" [ref=f28e512] [cursor=pointer]:
+            - /url: /en/blog
+    - contentinfo [ref=f28e513]:
+      - generic [ref=f28e514]:
+        - generic [ref=f28e515]:
+          - generic [ref=f28e516]:
+            - generic [ref=f28e517]:
+              - img "ToolsDdar logo" [ref=f28e519]
+              - generic [ref=f28e520]:
+                - generic [ref=f28e521]: ToolsDdar
+                - generic [ref=f28e522]: High-density directory navigation
+            - paragraph [ref=f28e523]: A public directory built for discovering real AI tools, categories, search, and editorial guidance.
+          - generic [ref=f28e524]:
+            - generic [ref=f28e525]: Popular categories
+            - list [ref=f28e526]:
+              - listitem [ref=f28e527]:
+                - link "Writing" [ref=f28e528] [cursor=pointer]:
+                  - /url: /en/category/writing
+              - listitem [ref=f28e529]:
+                - link "Video" [ref=f28e530] [cursor=pointer]:
+                  - /url: /en/category/video
+              - listitem [ref=f28e531]:
+                - link "Audio" [ref=f28e532] [cursor=pointer]:
+                  - /url: /en/category/audio
+              - listitem [ref=f28e533]:
+                - link "Code" [ref=f28e534] [cursor=pointer]:
+                  - /url: /en/category/code
+              - listitem [ref=f28e535]:
+                - link "Image" [ref=f28e536] [cursor=pointer]:
+                  - /url: /en/category/image
+              - listitem [ref=f28e537]:
+                - link "AI Writing" [ref=f28e538] [cursor=pointer]:
+                  - /url: /en/category/ai-writing
+          - generic [ref=f28e539]:
+            - generic [ref=f28e540]: Popular tools
+            - list [ref=f28e541]:
+              - listitem [ref=f28e542]:
+                - link "Intercom Fin" [ref=f28e543] [cursor=pointer]:
+                  - /url: /en/tools/intercom-fin
+              - listitem [ref=f28e544]:
+                - link "Airtable AI" [ref=f28e545] [cursor=pointer]:
+                  - /url: /en/tools/airtable-ai
+              - listitem [ref=f28e546]:
+                - link "Glean" [ref=f28e547] [cursor=pointer]:
+                  - /url: /en/tools/glean
+              - listitem [ref=f28e548]:
+                - link "Harvey" [ref=f28e549] [cursor=pointer]:
+                  - /url: /en/tools/harvey
+              - listitem [ref=f28e550]:
+                - link "NotebookLM" [ref=f28e551] [cursor=pointer]:
+                  - /url: /en/tools/notebooklm
+              - listitem [ref=f28e552]:
+                - link "Opus Clip" [ref=f28e553] [cursor=pointer]:
+                  - /url: /en/tools/opus-clip
+          - generic [ref=f28e554]:
+            - generic [ref=f28e555]: Company
+            - list [ref=f28e556]:
+              - listitem [ref=f28e557]:
+                - link "Home" [ref=f28e558] [cursor=pointer]:
+                  - /url: /en
+              - listitem [ref=f28e559]:
+                - link "Categories" [ref=f28e560] [cursor=pointer]:
+                  - /url: /en/categories
+              - listitem [ref=f28e561]:
+                - link "All tools" [ref=f28e562] [cursor=pointer]:
+                  - /url: /en/tools
+              - listitem [ref=f28e563]:
+                - link "Blog" [ref=f28e564] [cursor=pointer]:
+                  - /url: /en/blog
+              - listitem [ref=f28e565]:
+                - link "Search" [ref=f28e566] [cursor=pointer]:
+                  - /url: /en/search
+          - generic [ref=f28e567]:
+            - generic [ref=f28e568]: Sitemap
+            - list [ref=f28e569]:
+              - listitem [ref=f28e570]:
+                - link "Sitemap" [ref=f28e571] [cursor=pointer]:
+                  - /url: /sitemap.xml
+              - listitem [ref=f28e572]:
+                - link "Robots" [ref=f28e573] [cursor=pointer]:
+                  - /url: /robots.txt
+              - listitem [ref=f28e574]:
+                - link "RSS" [ref=f28e575] [cursor=pointer]:
+                  - /url: /feed/rss
+              - listitem [ref=f28e576]:
+                - link "Best AI Tools" [ref=f28e577] [cursor=pointer]:
+                  - /url: /en/best-ai-tools
+              - listitem [ref=f28e578]:
+                - link "Trending AI Tools" [ref=f28e579] [cursor=pointer]:
+                  - /url: /en/trending-ai-tools
+        - generic [ref=f28e580]: Copyright 2026 ToolsDdar
+  - alert [ref=f28e581]

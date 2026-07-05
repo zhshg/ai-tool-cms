@@ -1,4 +1,5 @@
-﻿import Link from "next/link";
+import Image from "next/image";
+import Link from "next/link";
 
 import type { CatalogTool, HomePageCategory } from "@/lib/catalog";
 
@@ -9,8 +10,9 @@ type SiteFooterProps = {
 };
 
 export function SiteFooter({ locale, categories, popularTools }: SiteFooterProps) {
+  const isZh = locale.startsWith("zh");
   const labels =
-    locale === "zh"
+    isZh
       ? {
           tagline: "围绕真实 AI 工具、分类、搜索和内容导航构建的公开目录站。",
           categories: "热门分类",
@@ -50,15 +52,14 @@ export function SiteFooter({ locale, categories, popularTools }: SiteFooterProps
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <div className="grid gap-10 lg:grid-cols-[minmax(0,1.2fr)_repeat(4,minmax(0,1fr))]">
           <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="flex size-10 items-center justify-center rounded-lg border bg-slate-950 text-sm font-semibold text-white">
-                AI
-              </div>
-              <div>
-                <div className="text-sm font-semibold text-slate-950">AI Tool Directory</div>
-                <div className="text-xs text-slate-500">
-                  {locale === "zh" ? "高信息密度目录导航" : "High-density directory navigation"}
-                </div>
+            <div className="flex items-center">
+              <div className="relative h-10 w-[137px] shrink-0">
+                <Image
+                  src="/toolsdar-icon-black.png"
+                  alt="ToolsDdar logo"
+                  fill
+                  className="object-contain object-left"
+                />
               </div>
             </div>
             <p className="max-w-sm text-sm leading-6 text-slate-600">{labels.tagline}</p>
@@ -104,7 +105,7 @@ export function SiteFooter({ locale, categories, popularTools }: SiteFooterProps
         </div>
 
         <div className="mt-10 border-t pt-6 text-xs text-slate-500">
-          {`Copyright ${year} AI Tool Directory`}
+          {`Copyright ${year} ToolsDdar`}
         </div>
       </div>
     </footer>
