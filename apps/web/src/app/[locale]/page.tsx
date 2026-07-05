@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { setRequestLocale } from "next-intl/server";
 
+import { ToolLogo } from "@/components/tool/tool-logo";
 import { Button } from "@/components/ui/button";
 import { getHomePageData, getHomePageSeoData, type HomePageTool } from "@/lib/catalog";
 import { serializeJsonLd } from "@/lib/seo";
@@ -460,20 +461,29 @@ function ToolFeatureCard({
   return (
     <article className="rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_20px_60px_-34px_rgba(15,23,42,0.28)]">
       <div className="flex items-start justify-between gap-4">
-        <div className="space-y-3">
-          <span className="inline-flex rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
-            {badge}
-          </span>
-          <div>
-            <h3 className="text-2xl font-semibold tracking-tight text-slate-950">{tool.name}</h3>
-            {tool.category ? (
-              <Link
-                href={`/${locale}/category/${tool.category.slug}`}
-                className="mt-2 inline-flex text-sm text-slate-500 hover:text-slate-900"
-              >
-                {tool.category.name}
-              </Link>
-            ) : null}
+        <div className="flex items-start gap-4">
+          <ToolLogo
+            name={tool.name}
+            logoUrl={tool.logoUrl}
+            fallbackLogoUrl={tool.collectedLogoUrl}
+            categoryIconUrl={tool.category?.iconUrl ?? null}
+            size="lg"
+          />
+          <div className="space-y-3">
+            <span className="inline-flex rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
+              {badge}
+            </span>
+            <div>
+              <h3 className="text-2xl font-semibold tracking-tight text-slate-950">{tool.name}</h3>
+              {tool.category ? (
+                <Link
+                  href={`/${locale}/category/${tool.category.slug}`}
+                  className="mt-2 inline-flex text-sm text-slate-500 hover:text-slate-900"
+                >
+                  {tool.category.name}
+                </Link>
+              ) : null}
+            </div>
           </div>
         </div>
 
@@ -512,8 +522,17 @@ function ToolListCard({
   return (
     <article className="rounded-2xl border border-slate-200 bg-white p-5 transition hover:shadow-lg">
       <div className="flex items-start gap-4">
-        <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-slate-100 text-sm font-semibold text-slate-700">
-          {String(index).padStart(2, "0")}
+        <div className="relative shrink-0">
+          <ToolLogo
+            name={tool.name}
+            logoUrl={tool.logoUrl}
+            fallbackLogoUrl={tool.collectedLogoUrl}
+            categoryIconUrl={tool.category?.iconUrl ?? null}
+            size="md"
+          />
+          <div className="absolute -left-1.5 -top-1.5 flex size-5 items-center justify-center rounded-full bg-slate-950 text-[10px] font-semibold text-white">
+            {String(index).padStart(2, "0")}
+          </div>
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -555,7 +574,15 @@ function ToolCompactCard({
   return (
     <article className="rounded-2xl border border-emerald-100 bg-white p-5">
       <div className="flex items-start justify-between gap-3">
-        <div>
+        <div className="flex items-start gap-3">
+          <ToolLogo
+            name={tool.name}
+            logoUrl={tool.logoUrl}
+            fallbackLogoUrl={tool.collectedLogoUrl}
+            categoryIconUrl={tool.category?.iconUrl ?? null}
+            size="md"
+          />
+          <div>
           <h3 className="text-lg font-semibold text-slate-950">
             <Link href={`/${locale}/tools/${tool.slug}`} className="hover:underline">
               {tool.name}
@@ -569,6 +596,7 @@ function ToolCompactCard({
               {tool.category.name}
             </Link>
           ) : null}
+          </div>
         </div>
         <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
           {formatPricing(tool.pricingModel, pricingLabels)}

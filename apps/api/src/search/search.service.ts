@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { createSearchService, expandQuerySynonyms, isMeiliConfigured } from "@ai-tool-cms/search";
+import { ToolStatus } from "@ai-tool-cms/database";
 import { computeTrending } from "@ai-tool-cms/ranking";
 import { buildHomeSections, computeRelatedTools } from "@ai-tool-cms/recommendation";
 import { PrismaService } from "../prisma/prisma.service";
@@ -8,6 +9,8 @@ import type {
   PublicSearchQueryDto,
   TrendingQueryDto,
 } from "./dto/search-query.dto";
+
+const activeOnly = { deletedAt: null } as const;
 
 @Injectable()
 export class SearchApiService {
@@ -182,7 +185,7 @@ export class SearchApiService {
     });
     if (!tool) return { items: [] };
     const items = await computeRelatedTools(this.prisma.client, tool.id, limit);
-    return { items };
+    return { items: await this.attachLogoUrls(items) };
   }
 
   async trending(query: TrendingQueryDto) {
@@ -191,7 +194,7 @@ export class SearchApiService {
       query.period ?? "weekly",
       query.limit ?? 20,
     );
-    return { period: query.period ?? "weekly", items };
+    return { period: query.period ?? "weekly", items: await this.attachLogoUrls(items) };
   }
 
   async homeRecommendations(query: HomeRecommendationsQueryDto) {
@@ -203,7 +206,14 @@ export class SearchApiService {
       region: query.region,
       limit: query.limit ?? 6,
     });
-    return { sections };
+    return {
+      sections: await Promise.all(
+        sections.map(async (section) => ({
+          ...section,
+          tools: await this.attachLogoUrls(section.tools),
+        })),
+      ),
+    };
   }
 
   async getDashboard() {
@@ -291,6 +301,37 @@ export class SearchApiService {
       totals: { queries7d: totalQueries },
     };
   }
+
+  private async attachLogoUrls<T extends { slug: string }>(
+    items: T[],
+  ): Promise<Array<T & { logoUrl: string | null }>> {
+    if (!items.length) return [];
+
+    const tools = await this.prisma.client.tool.findMany({
+      where: {
+        slug: { in: items.map((item) => item.slug) },
+        status: ToolStatus.PUBLISHED,
+        ...activeOnly,
+      },
+      select: { slug: true, website: true, logoUrl: true, metadata: true },
+    });
+
+    const logoBySlug = new Map(
+      tools.map((tool) => [
+        tool.slug,
+        resolveApiLogoUrl(
+          tool.logoUrl,
+          (tool.metadata ?? {}) as Record<string, unknown>,
+          tool.website,
+        ),
+      ]),
+    );
+
+    return items.map((item) => ({
+      ...item,
+      logoUrl: logoBySlug.get(item.slug) ?? null,
+    }));
+  }
 }
 
 function dedupeSuggestions<T extends { type: string; value: string; label: string }>(
@@ -303,4 +344,44 @@ function dedupeSuggestions<T extends { type: string; value: string; label: strin
     seen.add(key);
     return true;
   });
+}
+
+function resolveApiLogoUrl(
+  primaryLogoUrl: string | null | undefined,
+  metadata: Record<string, unknown>,
+  website: string | null | undefined,
+): string | null {
+  const primary = cleanString(primaryLogoUrl);
+  if (primary) return primary;
+
+  const candidates = [
+    metadata.logoUrl,
+    metadata.logo,
+    metadata.collectedLogoUrl,
+    metadata.faviconUrl,
+    metadata.appleTouchIconUrl,
+    metadata.openGraphImageUrl,
+    metadata.imageUrl,
+    metadata.iconUrl,
+  ];
+
+  for (const candidate of candidates) {
+    const value = cleanString(candidate);
+    if (value) return value;
+  }
+
+  const source = cleanString(website) ?? cleanString(metadata.website) ?? cleanString(metadata.canonicalUrl);
+  if (!source) return null;
+
+  try {
+    const hostname = new URL(source).hostname;
+    if (!hostname) return null;
+    return `https://www.google.com/s2/favicons?sz=128&domain=${hostname}`;
+  } catch {
+    return null;
+  }
+}
+
+function cleanString(value: unknown): string | null {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
 }

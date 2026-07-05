@@ -13,6 +13,7 @@ import {
   getSiteConfig,
   joinUrl,
 } from "@ai-tool-cms/seo";
+import { resolveToolFallbackLogoUrl, resolveToolLogoUrl } from "./tool-logo";
 
 const activeOnly = { deletedAt: null } as const;
 
@@ -40,6 +41,7 @@ export type HomePageTool = CatalogTool & {
   id: string;
   website: string;
   logoUrl: string | null;
+  collectedLogoUrl: string | null;
   pricingModel: PricingModel;
   publishedAt: string | null;
   category: { slug: string; name: string; iconUrl: string | null } | null;
@@ -48,7 +50,9 @@ export type HomePageTool = CatalogTool & {
 
 export type CatalogSearchTool = CatalogTool & {
   id: string;
-  website?: string;
+  website: string;
+  logoUrl: string | null;
+  collectedLogoUrl: string | null;
   pricingModel?: string;
   platforms: string[];
   languages: string[];
@@ -298,6 +302,7 @@ async function fetchPopularHomePageTools(limit = 8): Promise<HomePageTool[]> {
       summary: true,
       website: true,
       logoUrl: true,
+      metadata: true,
       pricingModel: true,
       publishedAt: true,
       categories: {
@@ -334,7 +339,16 @@ async function fetchPopularHomePageTools(limit = 8): Promise<HomePageTool[]> {
     name: tool.name,
     summary: tool.summary,
     website: tool.website,
-    logoUrl: tool.logoUrl,
+    logoUrl: resolveToolLogoUrl(
+      tool.logoUrl,
+      (tool.metadata ?? {}) as Record<string, unknown>,
+      tool.website,
+    ),
+    collectedLogoUrl: resolveToolFallbackLogoUrl(
+      tool.logoUrl,
+      (tool.metadata ?? {}) as Record<string, unknown>,
+      tool.website,
+    ),
     pricingModel: tool.pricingModel,
     publishedAt: tool.publishedAt?.toISOString() ?? null,
     category: tool.categories[0]?.category ?? null,
@@ -498,10 +512,15 @@ async function fetchCategoryDetailTools(
       name: link.tool.name,
       summary: link.tool.summary,
       website: link.tool.website,
-      logoUrl: link.tool.logoUrl,
-      collectedLogoUrl: resolveCatalogCollectedLogoUrl(
+      logoUrl: resolveToolLogoUrl(
         link.tool.logoUrl,
         (link.tool.metadata ?? {}) as Record<string, unknown>,
+        link.tool.website,
+      ),
+      collectedLogoUrl: resolveToolFallbackLogoUrl(
+        link.tool.logoUrl,
+        (link.tool.metadata ?? {}) as Record<string, unknown>,
+        link.tool.website,
       ),
       categoryIconUrl: link.tool.categories[0]?.category.iconUrl ?? null,
       pricingModel: link.tool.pricingModel,
@@ -566,6 +585,7 @@ async function fetchHomePageTools(input: {
       summary: true,
       website: true,
       logoUrl: true,
+      metadata: true,
       pricingModel: true,
       publishedAt: true,
       categories: {
@@ -602,7 +622,16 @@ async function fetchHomePageTools(input: {
     name: tool.name,
     summary: tool.summary,
     website: tool.website,
-    logoUrl: tool.logoUrl,
+    logoUrl: resolveToolLogoUrl(
+      tool.logoUrl,
+      (tool.metadata ?? {}) as Record<string, unknown>,
+      tool.website,
+    ),
+    collectedLogoUrl: resolveToolFallbackLogoUrl(
+      tool.logoUrl,
+      (tool.metadata ?? {}) as Record<string, unknown>,
+      tool.website,
+    ),
     pricingModel: tool.pricingModel,
     publishedAt: tool.publishedAt?.toISOString() ?? null,
     category: tool.categories[0]?.category ?? null,
@@ -790,10 +819,15 @@ export async function getToolsDirectory(input: {
         name: tool.name,
         summary: tool.summary,
         website: tool.website,
-        logoUrl: tool.logoUrl,
-        collectedLogoUrl: resolveCatalogCollectedLogoUrl(
+        logoUrl: resolveToolLogoUrl(
           tool.logoUrl,
           (tool.metadata ?? {}) as Record<string, unknown>,
+          tool.website,
+        ),
+        collectedLogoUrl: resolveToolFallbackLogoUrl(
+          tool.logoUrl,
+          (tool.metadata ?? {}) as Record<string, unknown>,
+          tool.website,
         ),
         pricingModel: tool.pricingModel,
         publishedAt: tool.publishedAt?.toISOString() ?? null,
@@ -803,28 +837,6 @@ export async function getToolsDirectory(input: {
       };
     }),
   };
-}
-
-function resolveCatalogCollectedLogoUrl(
-  primaryLogoUrl: string | null | undefined,
-  metadata: Record<string, unknown>,
-): string | null {
-  const candidates = [
-    metadata.logoUrl,
-    metadata.logo,
-    metadata.collectedLogoUrl,
-    metadata.faviconUrl,
-    metadata.appleTouchIconUrl,
-    metadata.openGraphImageUrl,
-  ];
-
-  for (const candidate of candidates) {
-    if (typeof candidate === "string" && candidate.trim() && candidate !== primaryLogoUrl) {
-      return candidate.trim();
-    }
-  }
-
-  return null;
 }
 
 export async function searchCatalogTools(input: {
@@ -909,6 +921,20 @@ export async function searchCatalogTools(input: {
     const result = (await response.json()) as CatalogSearchResult;
     return {
       ...result,
+      hits: result.hits.map((hit) => ({
+        ...hit,
+        document: {
+          ...hit.document,
+          website: hit.document.website,
+          logoUrl:
+            hit.document.logoUrl ??
+            resolveToolLogoUrl(null, {}, hit.document.website) ??
+            null,
+          collectedLogoUrl:
+            hit.document.collectedLogoUrl ??
+            resolveToolFallbackLogoUrl(hit.document.logoUrl, {}, hit.document.website),
+        },
+      })),
       category: input.category?.trim() ?? "",
       pricing: input.pricing?.trim() ?? "",
       tag: input.tag?.trim() ?? "",
@@ -1534,10 +1560,15 @@ export async function getCategoryLanding(
         name: tool.name,
         summary: tool.summary,
         website: tool.website,
-        logoUrl: tool.logoUrl,
-        collectedLogoUrl: resolveCatalogCollectedLogoUrl(
+        logoUrl: resolveToolLogoUrl(
           tool.logoUrl,
           tool.category ? { iconUrl: tool.category.iconUrl } : {},
+          tool.website,
+        ),
+        collectedLogoUrl: resolveToolFallbackLogoUrl(
+          tool.logoUrl,
+          tool.category ? { iconUrl: tool.category.iconUrl } : {},
+          tool.website,
         ),
         categoryIconUrl: tool.category?.iconUrl ?? null,
         pricingModel: tool.pricingModel,

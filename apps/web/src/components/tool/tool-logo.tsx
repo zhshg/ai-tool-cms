@@ -2,6 +2,7 @@
 
 import { Bot } from "lucide-react";
 import { useMemo, useState } from "react";
+import { resolveClientAssetUrl } from "@/lib/tool-logo";
 
 type ToolLogoSize = "sm" | "md" | "lg";
 
@@ -33,14 +34,24 @@ export function ToolLogo({
   const [categoryIconFailed, setCategoryIconFailed] = useState(false);
 
   const initials = useMemo(() => buildInitials(name), [name]);
-  const showPrimaryLogo = Boolean(logoUrl) && !logoFailed;
-  const showCollectedLogo = !showPrimaryLogo && Boolean(fallbackLogoUrl) && !fallbackLogoFailed;
+  const primaryLogoSrc = useMemo(() => resolveClientAssetUrl(logoUrl), [logoUrl]);
+  const fallbackLogoSrc = useMemo(
+    () => resolveClientAssetUrl(fallbackLogoUrl),
+    [fallbackLogoUrl],
+  );
+  const categoryIconSrc = useMemo(
+    () => resolveClientAssetUrl(categoryIconUrl),
+    [categoryIconUrl],
+  );
+
+  const showPrimaryLogo = Boolean(primaryLogoSrc) && !logoFailed;
+  const showCollectedLogo = !showPrimaryLogo && Boolean(fallbackLogoSrc) && !fallbackLogoFailed;
   const showGeneratedAvatar = !showPrimaryLogo && !showCollectedLogo && initials.length > 0;
   const showCategoryIcon =
     !showPrimaryLogo &&
     !showCollectedLogo &&
     !showGeneratedAvatar &&
-    Boolean(categoryIconUrl) &&
+    Boolean(categoryIconSrc) &&
     !categoryIconFailed;
 
   return (
@@ -54,7 +65,7 @@ export function ToolLogo({
       {showPrimaryLogo ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          src={logoUrl ?? ""}
+          src={primaryLogoSrc ?? ""}
           alt={`${name} logo`}
           className="size-full object-cover"
           loading="lazy"
@@ -66,7 +77,7 @@ export function ToolLogo({
       {showCollectedLogo ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          src={fallbackLogoUrl ?? ""}
+          src={fallbackLogoSrc ?? ""}
           alt={`${name} collected logo`}
           className="size-full object-cover"
           loading="lazy"
@@ -82,7 +93,7 @@ export function ToolLogo({
       {showCategoryIcon ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          src={categoryIconUrl ?? ""}
+          src={categoryIconSrc ?? ""}
           alt={`${name} category icon`}
           className="size-full object-cover"
           loading="lazy"

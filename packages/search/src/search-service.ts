@@ -7,6 +7,7 @@ import { embedText } from "./embeddings";
 import { rerankWithEmbeddings, sortHits } from "./ranking";
 import { expandQuerySynonyms } from "./synonyms";
 import type { SearchHit, SearchQuery, SearchResult, SearchToolDocument } from "./types";
+import { resolveSearchLogoUrl } from "./logo";
 
 const activeOnly = { deletedAt: null } as const;
 
@@ -204,7 +205,7 @@ export class SearchService {
         description: tool.description ?? undefined,
         summary: tool.summary ?? undefined,
         website: tool.website,
-        logoUrl: tool.logoUrl ?? undefined,
+        logoUrl: resolveSearchLogoUrl(tool.logoUrl, metadata, tool.website),
         pricingModel: tool.pricingModel,
         categorySlugs: tool.categories.map((c) => c.category.slug),
         categoryNames: tool.categories.map((c) => c.category.name),

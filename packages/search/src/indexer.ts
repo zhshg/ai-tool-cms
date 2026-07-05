@@ -4,6 +4,7 @@ import { embedText } from "./embeddings";
 import { buildSearchableText } from "./ranking";
 import { deleteToolDocument, upsertToolDocument } from "./client";
 import type { IndexToolPayload, SearchToolDocument } from "./types";
+import { resolveSearchLogoUrl } from "./logo";
 
 const activeOnly = { deletedAt: null } as const;
 
@@ -56,7 +57,7 @@ export class Indexer {
       description: tool.description ?? undefined,
       summary: tool.summary ?? undefined,
       website: tool.website,
-      logoUrl: tool.logoUrl ?? undefined,
+      logoUrl: resolveSearchLogoUrl(tool.logoUrl, metadata, tool.website),
       pricingModel: tool.pricingModel,
       categorySlugs,
       categoryNames,

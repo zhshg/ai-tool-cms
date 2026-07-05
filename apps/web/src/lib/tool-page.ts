@@ -8,6 +8,7 @@ import {
   joinUrl,
   type BuiltMetadata,
 } from "@ai-tool-cms/seo";
+import { resolveToolFallbackLogoUrl, resolveToolLogoUrl } from "./tool-logo";
 
 const activeOnly = { deletedAt: null } as const;
 
@@ -164,7 +165,8 @@ export async function getToolPage(
   const platforms = normalizeStringList(metadata.aiPlatforms ?? metadata.platforms);
   const languages = normalizeStringList(metadata.aiLanguages ?? metadata.languages);
   const videos = buildVideos(metadata);
-  const collectedLogoUrl = resolveCollectedLogoUrl(tool.logoUrl, metadata);
+  const resolvedLogoUrl = resolveToolLogoUrl(tool.logoUrl, metadata, tool.website);
+  const collectedLogoUrl = resolveToolFallbackLogoUrl(tool.logoUrl, metadata, tool.website);
 
   const aiSummary =
     geoDocument?.llmSummary ??
@@ -212,7 +214,7 @@ export async function getToolPage(
       url: joinUrl(config.siteUrl, `/${locale}/tools/${tool.slug}`),
       applicationCategory: primaryCategory?.name ?? "BusinessApplication",
       operatingSystem: "Web",
-      image: tool.logoUrl ?? undefined,
+      image: resolvedLogoUrl ?? undefined,
       offers: firstPricingPlan
         ? {
             price: firstPricingPlan.amount?.toString() ?? undefined,
@@ -237,7 +239,7 @@ export async function getToolPage(
       slug: tool.slug,
       name: tool.name,
       website: tool.website,
-      logoUrl: tool.logoUrl,
+      logoUrl: resolvedLogoUrl,
       collectedLogoUrl,
       pricingModel: tool.pricingModel,
       summary: tool.summary,
@@ -335,10 +337,15 @@ async function hydrateRecommendedToolCards(
       slug: detail.slug,
       name: detail.name,
       summary: detail.summary,
-      logoUrl: detail.logoUrl,
-      collectedLogoUrl: resolveCollectedLogoUrl(
+      logoUrl: resolveToolLogoUrl(
         detail.logoUrl,
         (detail.metadata ?? {}) as Record<string, unknown>,
+        null,
+      ),
+      collectedLogoUrl: resolveToolFallbackLogoUrl(
+        detail.logoUrl,
+        (detail.metadata ?? {}) as Record<string, unknown>,
+        null,
       ),
       categoryIconUrl: detail.categories[0]?.category.iconUrl ?? null,
       pricingModel: detail.pricingModel,
@@ -365,50 +372,6 @@ function buildFeatureList(metadata: Record<string, unknown>): string[] {
   }
 
   return [];
-}
-
-function resolveCollectedLogoUrl(
-  primaryLogoUrl: string | null | undefined,
-  metadata: Record<string, unknown>,
-): string | null {
-  const candidates = [
-    metadata.logoUrl,
-    metadata.logo,
-    metadata.collectedLogoUrl,
-    metadata.faviconUrl,
-    metadata.appleTouchIconUrl,
-    metadata.openGraphImageUrl,
-  ];
-
-  for (const candidate of candidates) {
-    if (typeof candidate === "string" && candidate.trim() && candidate !== primaryLogoUrl) {
-      return candidate.trim();
-    }
-  }
-
-  const website =
-    typeof metadata.website === "string"
-      ? metadata.website
-      : typeof metadata.canonicalUrl === "string"
-        ? metadata.canonicalUrl
-        : typeof metadata.sourceUrl === "string"
-          ? metadata.sourceUrl
-          : Array.isArray(metadata.sourceUrls) && typeof metadata.sourceUrls[0] === "string"
-            ? metadata.sourceUrls[0]
-            : null;
-
-  if (website) {
-    try {
-      const hostname = new URL(website).hostname;
-      if (hostname) {
-        return `https://www.google.com/s2/favicons?sz=128&domain=${hostname}`;
-      }
-    } catch {
-      return null;
-    }
-  }
-
-  return null;
 }
 
 function resolveScreenshotUrl(storageKey: string, metadata: unknown): string {

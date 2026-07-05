@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { setRequestLocale } from "next-intl/server";
+import { ToolLogo } from "@/components/tool/tool-logo";
 import { Button } from "@/components/ui/button";
 import { getSearchPageFilters, searchCatalogTools } from "@/lib/catalog";
 import { serializeJsonLd } from "@/lib/seo";
@@ -298,17 +299,25 @@ export default async function SearchPage({ params, searchParams }: SearchPagePro
             result.hits.map(({ document }) => (
               <article key={document.id} className="rounded-lg border bg-card p-5">
                 <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <h2 className="text-lg font-semibold">
-                      <Link href={`/${locale}/tools/${document.slug}`} className="hover:underline">
-                        {document.name}
-                      </Link>
-                    </h2>
-                    {document.summary ? (
-                      <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                        {document.summary}
-                      </p>
-                    ) : null}
+                  <div className="flex min-w-0 flex-1 items-start gap-3">
+                    <ToolLogo
+                      name={document.name}
+                      logoUrl={document.logoUrl}
+                      fallbackLogoUrl={document.collectedLogoUrl}
+                      size="md"
+                    />
+                    <div className="min-w-0">
+                      <h2 className="text-lg font-semibold">
+                        <Link href={`/${locale}/tools/${document.slug}`} className="hover:underline">
+                          {document.name}
+                        </Link>
+                      </h2>
+                      {document.summary ? (
+                        <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                          {document.summary}
+                        </p>
+                      ) : null}
+                    </div>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {document.pricingModel ? (
