@@ -1,0 +1,21 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    "baseUrl": "../../",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM"],
+    "types": ["node"],
+    "typeRoots": [
+      "../../node_modules/.pnpm/@types+node@22.20.0/node_modules/@types"
+    ],
+    "paths": {
+      "@ai-tool-cms/*": ["packages/*/dist/index.d.ts", "packages/*/dist/index.js"]
+    }
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["src/**/*.test.ts"]
+}
