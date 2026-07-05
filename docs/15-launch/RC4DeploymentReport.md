@@ -1,157 +1,109 @@
 # RC4 Deployment Report
 
-Date: 2026-07-05
-Project: AI Tool CMS
-Branch: `feature/product-home`
-Scope: Production deployment configuration only
+## 概览
 
-## Summary
+- 项目：`ai-tool-cms`
+- 分支：`feature/product-home`
+- 服务器：`154.48.226.152`
+- 验收日期：`2026-07-06`
 
-This pass fixed the production deployment configuration on the real server without touching application business code.
+## Docker
 
-Changed scope:
+- 已补充 `docker/Dockerfile.node` 的 `pnpm install` 重试与超时参数。
+- 生产执行了 `docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build web api`。
+- `web`、`api`、`nginx` 当前均为 `healthy`。
 
-- `docker-compose.prod.yml`
-- `docker/nginx/conf.d/production.conf`
-- `.env.production` guidance
-- `.env.production.example`
+## Nginx
 
-No changes were made to:
+- 发现 `web/api` 重建后，`nginx` 仍持有旧 upstream IP，导致外部请求返回 `502 Bad Gateway`。
+- 已执行 `docker compose --env-file .env.production -f docker-compose.prod.yml restart nginx`，问题恢复。
 
-- React or NestJS source code
-- Prisma schema
-- business logic
+## HTTPS
 
-## Current Findings
+- `https://toolsdar.io`
+- `https://api.toolsdar.io`
+- 重启 `nginx` 后 HTTPS 访问恢复正常。
 
-Initial production findings on `154.48.226.152`:
+## API
 
-- `web`, `admin`, and `api` containers were running
-- `meilisearch` was restarting because the running container had no `MEILI_MASTER_KEY`
-- `nginx` container existed in `Created` state and was not serving traffic
-- the production env file still had incomplete public deployment values
-- `admins.toolsdar.io` needed root-to-`/admin` handling because the admin image still served from `/admin`
+- `https://api.toolsdar.io/v1/health` 返回 `status=ok`
+- `https://api.toolsdar.io/v1/search?q=chatgpt&pageSize=3` 已返回 `logoUrl`
+- `https://api.toolsdar.io/v1/recommendations/home?limit=3` 已返回 `logoUrl`
+- `https://api.toolsdar.io/v1/tools/chatgpt/related?limit=3` 已返回 `logoUrl`
 
-This explained the public `502` symptom:
+## Web
 
-- the reverse proxy chain was incomplete because nginx was not actually running
+- 首页、搜索页、详情页均已重新部署。
+- 工具列表相关链路已统一通过 `logoUrl` 输出，并在缺失时回退到网站 favicon。
+- `ToolLogo` 已支持：
+  - 相对地址解析
+  - 图片失败 fallback
+  - 首字母占位
+  - 分类图标兜底
 
-## Fixes Applied
+## Search
 
-### Docker Compose
+- 搜索接口返回结果已包含统一的 `logoUrl`。
+- 搜索推荐、首页推荐、相关工具链路已统一补齐 logo 映射。
 
-Updated `docker-compose.prod.yml` to ensure:
+## 数据库
 
-- nginx maps `80:80`
-- nginx maps `443:443`
-- nginx mounts production nginx config
-- nginx mounts `storage` as read-only
-- nginx mounts `/etc/letsencrypt` as read-only so Certbot symlinks under `live/` keep working
-- database volumes were left unchanged
-- meilisearch healthcheck uses `127.0.0.1` instead of `localhost` so IPv6 loopback does not break health status
-- nginx healthcheck validates config + process without failing on HTTPS certificate self-check behavior
+- 只读验收结果：
+  - `tools total = 50`
+  - `status PUBLISHED = 50`
+  - `tools without category = 0`
+- 之前只读排查已确认：
+  - `logo_count = 0`
+  - `summary_count = 50`
+  - `description_count = 50`
 
-### Nginx
+## Meilisearch
 
-Rebuilt `docker/nginx/conf.d/production.conf` into multi-domain production routing:
+- 当前生产 Compose 中 `meilisearch` 为 `healthy`。
+- 搜索接口已正常返回结果。
 
-- `http://*` redirects to `https://$host$request_uri`
-- `www.toolsdar.io` redirects to `toolsdar.io`
-- `toolsdar.io` proxies to `web:3000`
-- `admins.toolsdar.io` redirects `/` to `/admin`, proxies `/admin/*` to `admin:3000`, and preserves `/v1` + `/api` proxying
-- `api.toolsdar.io` proxies to `api:4000`
-- `img.toolsdar.io` serves files directly from `/var/www/storage`
+## 修复内容
 
-HTTPS settings now use:
+- 新增前台统一 logo 解析工具：
+  - `apps/web/src/lib/tool-logo.ts`
+- 修复前台 logo 展示：
+  - 首页卡片
+  - 搜索结果页
+  - 工具列表/分类列表/详情推荐链路
+- 统一 API/搜索返回 `logoUrl`：
+  - `packages/public-api/src/handlers.ts`
+  - `apps/api/src/search/search.service.ts`
+  - `packages/search/src/*`
+- 新增安全生产 seed 脚本：
+  - `scripts/seed-production-tools.ts`
+  - 默认 `dry-run`
+  - 仅 `--apply` 才写库
+- 修复根脚本入口：
+  - `package.json` -> `seed:tools`
+- 修复部署构建稳定性：
+  - `docker/Dockerfile.node`
 
-- `listen 443 ssl http2;`
-- `ssl_certificate /etc/letsencrypt/live/toolsdar.io/fullchain.pem;`
-- `ssl_certificate_key /etc/letsencrypt/live/toolsdar.io/privkey.pem;`
+## 存在的问题
 
-Existing cache behavior for image assets was preserved.
+- 生产宿主机不是完整开发环境，缺少直接运行 `pnpm/tsx/Prisma client` 的条件。
+- 在生产 `api` 容器内执行自定义 `seed` 脚本 dry-run，会被安全策略判定为“潜在写库操作”。
+- 因此，`seed-production-tools.ts` 已完成开发与本地编译验证，但生产 dry-run / apply 需要显式授权后再执行。
 
-### Healthcheck
+## 建议执行命令
 
-Adjusted Meilisearch healthcheck in `docker-compose.prod.yml`:
+```bash
+pnpm db:generate
+pnpm typecheck
+pnpm lint
+pnpm build
+pnpm seed:tools
+pnpm seed:tools -- --apply
+```
 
-- use `http://127.0.0.1:7700/health`
-- keep retries high enough for cold startup
-- add `start_period`
+## 最终访问地址
 
-Adjusted nginx healthcheck so it no longer fails by following the HTTP redirect into local TLS verification.
-
-### Environment
-
-The production `.env.production` on the server was updated in place with these values:
-
-- `APP_URL=https://toolsdar.io`
-- `ADMIN_URL=https://admins.toolsdar.io`
-- `API_URL=https://api.toolsdar.io`
-- `NEXT_PUBLIC_APP_URL=https://toolsdar.io`
-- `NEXT_PUBLIC_API_URL=https://api.toolsdar.io`
-- `PUBLIC_URL=https://toolsdar.io`
-- `IMAGE_URL=https://img.toolsdar.io`
-- `HTTPS_PORT=443`
-- `CORS_ORIGINS=https://toolsdar.io,https://www.toolsdar.io,https://admins.toolsdar.io,https://api.toolsdar.io,https://img.toolsdar.io`
-
-Also updated `.env.production.example` to reflect the same deployment topology.
-
-## Validation Status
-
-### Production Server Validation
-
-Completed:
-
-- connected to `root@154.48.226.152`
-- synced updated `docker-compose.prod.yml`
-- synced updated `docker/nginx/conf.d/production.conf`
-- repaired `.env.production` formatting and deployment values
-- recreated `meilisearch`, `api`, `web`, and `nginx`
-- verified database tool count
-- verified live API health
-- verified live search responses
-- verified live web and admin domain responses
-
-## Final Access Addresses
-
-- Web: [https://toolsdar.io](https://toolsdar.io)
-- Web alias: [https://www.toolsdar.io](https://www.toolsdar.io)
-- Admin: [https://admins.toolsdar.io/admin](https://admins.toolsdar.io/admin)
-- API: [https://api.toolsdar.io/v1/health](https://api.toolsdar.io/v1/health)
-- Image host: [https://img.toolsdar.io](https://img.toolsdar.io)
-
-## Remaining Risks
-
-1. `img.toolsdar.io` is serving the mounted storage root, but the current server only has `storage/public/` and no top-level `storage/logos/` directory yet, so specific logo URLs depend on actual stored media paths.
-2. The admin image currently still serves from `/admin`, so `admins.toolsdar.io/` redirects to `/admin` by nginx design.
-3. `.env.production` is gitignored, so server-side env changes remain an operational state and are not preserved by Git alone.
-
-## Validation Evidence
-
-Docker:
-
-- `postgres`, `redis`, `minio`, `meilisearch`, `api`, `web`, `admin`, `worker`, `scheduler` were all running
-- `meilisearch` became `healthy` after the healthcheck fix
-- `nginx` was running with `80` and `443` host bindings after recreate
-
-HTTPS:
-
-- `https://toolsdar.io` returned `307` to `/en`
-- `https://www.toolsdar.io` resolved successfully
-- `https://admins.toolsdar.io` returned `302` to `/admin`
-- `https://admins.toolsdar.io/admin` returned `200`
-- `https://api.toolsdar.io/v1/health` returned `200`
-
-Database:
-
-- `select count(*) as tool_count from tools where deleted_at is null;` returned `50`
-
-Search:
-
-- `https://api.toolsdar.io/v1/search?keyword=ai&page=1&pageSize=3` returned normal JSON results
-
-Meilisearch:
-
-- root cause was missing runtime master key on the existing container
-- after recreate with corrected compose/env, Meilisearch reported `A master key has been set`
-- health endpoint returned `{"status":"available"}`
+- Web: `https://toolsdar.io/en`
+- Search: `https://toolsdar.io/en/search?q=chatgpt`
+- Tool detail: `https://toolsdar.io/en/tools/chatgpt`
+- API health: `https://api.toolsdar.io/v1/health`
+- API search: `https://api.toolsdar.io/v1/search?q=chatgpt&pageSize=3`
