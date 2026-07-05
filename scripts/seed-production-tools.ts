@@ -32,6 +32,12 @@ type ToolPlan = {
   matchedToolId: string | null;
   nextStatus: ToolStatus;
   logoUrl: string | null;
+  updateFields: string[];
+};
+
+type SeedOptions = {
+  only: "all" | "logoUrl";
+  onlyEmpty: boolean;
 };
 
 type ExistingToolRow = {
@@ -62,9 +68,10 @@ const FEATURED_SLUGS = new Set([
 ]);
 
 async function main() {
-  const args = new Set(process.argv.slice(2));
-  const shouldApply = args.has("--apply");
+  const args = process.argv.slice(2);
+  const shouldApply = args.includes("--apply");
   const isDryRun = !shouldApply;
+  const options = parseOptions(args);
   const dataset = loadDataset();
 
   const existingRows = await prisma.tool.findMany({
@@ -91,12 +98,13 @@ async function main() {
     metadata: toRecord(row.metadata),
   })) satisfies ExistingToolRow[];
 
-  const plan = buildPlan(dataset, existingTools);
+  const plan = buildPlan(dataset, existingTools, options);
   const currentStats = await loadCurrentStats();
   const suspectedFake = detectSuspectedFakeTools(existingTools);
 
   printReport({
     isDryRun,
+    options,
     currentStats,
     datasetCount: dataset.length,
     plan,
@@ -105,7 +113,7 @@ async function main() {
 
   if (isDryRun) return;
 
-  await applyPlan(dataset, existingTools, plan);
+  await applyPlan(dataset, existingTools, plan, options);
   console.info("[seed:tools] apply complete");
 }
 
@@ -116,7 +124,11 @@ function loadDataset(): CuratedToolRecord[] {
   return JSON.parse(readFileSync(datasetPath, "utf8")) as CuratedToolRecord[];
 }
 
-function buildPlan(dataset: CuratedToolRecord[], existingTools: ExistingToolRow[]): ToolPlan[] {
+function buildPlan(
+  dataset: CuratedToolRecord[],
+  existingTools: ExistingToolRow[],
+  options: SeedOptions,
+): ToolPlan[] {
   const bySlug = new Map(existingTools.map((tool) => [tool.slug, tool]));
   const byWebsite = new Map(existingTools.map((tool) => [normalizeWebsite(tool.website), tool]));
 
@@ -128,6 +140,20 @@ function buildPlan(dataset: CuratedToolRecord[], existingTools: ExistingToolRow[
     const reasons: string[] = [];
 
     if (!existing) {
+      if (options.only === "logoUrl") {
+        reasons.push("logo-only mode forbids create");
+        return {
+          slug: normalizedSlug,
+          website: record.website,
+          mode: "skip",
+          reasons,
+          matchedToolId: null,
+          nextStatus: ToolStatus.PUBLISHED,
+          logoUrl,
+          updateFields: [],
+        };
+      }
+
       reasons.push("missing in database");
       return {
         slug: normalizedSlug,
@@ -137,6 +163,7 @@ function buildPlan(dataset: CuratedToolRecord[], existingTools: ExistingToolRow[
         matchedToolId: null,
         nextStatus: ToolStatus.PUBLISHED,
         logoUrl,
+        updateFields: [],
       };
     }
 
@@ -157,14 +184,34 @@ function buildPlan(dataset: CuratedToolRecord[], existingTools: ExistingToolRow[
     if (suspicious) reasons.push("suspected placeholder content");
     if (existing.status !== ToolStatus.PUBLISHED) reasons.push("not published");
 
+    const updateFields = collectUpdateFields(existing, record, logoUrl, options);
+
+    if (options.only === "logoUrl") {
+      if (!updateFields.length) {
+        reasons.push("logo-only mode found no writable logoUrl change");
+      }
+
+      return {
+        slug: normalizedSlug,
+        website: record.website,
+        mode: updateFields.length ? "update" : "skip",
+        reasons,
+        matchedToolId: existing.id,
+        nextStatus: ToolStatus.PUBLISHED,
+        logoUrl,
+        updateFields,
+      };
+    }
+
     return {
       slug: normalizedSlug,
       website: record.website,
-      mode: reasons.length ? "update" : "skip",
+      mode: updateFields.length ? "update" : "skip",
       reasons,
       matchedToolId: existing.id,
       nextStatus: ToolStatus.PUBLISHED,
       logoUrl,
+      updateFields,
     };
   });
 }
@@ -199,6 +246,7 @@ function detectSuspectedFakeTools(existingTools: ExistingToolRow[]) {
 
 function printReport(input: {
   isDryRun: boolean;
+  options: SeedOptions;
   currentStats: Awaited<ReturnType<typeof loadCurrentStats>>;
   datasetCount: number;
   plan: ToolPlan[];
@@ -210,6 +258,9 @@ function printReport(input: {
 
   console.info(`[seed:tools] mode=${input.isDryRun ? "dry-run" : "apply"}`);
   console.info(
+    `[seed:tools] options only=${input.options.only}, onlyEmpty=${input.options.onlyEmpty}`,
+  );
+  console.info(
     `[seed:tools] current total=${input.currentStats.total}, published=${input.currentStats.published}, withLogo=${input.currentStats.withLogo}, withSummary=${input.currentStats.withSummary}, withCategory=${input.currentStats.withCategory}`,
   );
   console.info(
@@ -220,6 +271,9 @@ function printReport(input: {
     console.info(
       `[seed:tools] plan ${item.mode.toUpperCase()} ${item.slug} ${item.reasons.length ? `(${item.reasons.join("; ")})` : ""}`,
     );
+    if (item.updateFields.length) {
+      console.info(`[seed:tools] updateFields ${item.slug}: ${item.updateFields.join(",")}`);
+    }
   }
 
   if (input.suspectedFake.length) {
@@ -237,14 +291,25 @@ async function applyPlan(
   dataset: CuratedToolRecord[],
   existingTools: ExistingToolRow[],
   plan: ToolPlan[],
+  options: SeedOptions,
 ) {
   const bySlug = new Map(existingTools.map((tool) => [tool.slug, tool]));
   const byWebsite = new Map(existingTools.map((tool) => [normalizeWebsite(tool.website), tool]));
+  const planBySlug = new Map(plan.map((item) => [item.slug, item]));
 
   for (const record of dataset) {
     const normalizedSlug = slugify(record.slug || record.name);
     const existing =
       bySlug.get(normalizedSlug) ?? byWebsite.get(normalizeWebsite(record.website)) ?? null;
+    const planEntry = planBySlug.get(normalizedSlug);
+    if (!planEntry || (planEntry.mode !== "update" && planEntry.mode !== "create")) {
+      continue;
+    }
+
+    if (options.only === "logoUrl" && planEntry.updateFields.length === 0) {
+      continue;
+    }
+
     const primaryCategoryId = await upsertCategory(record.primary_category);
     const secondaryCategoryIds = await Promise.all(
       (record.secondary_categories ?? []).map((category) => upsertCategory(category)),
@@ -254,6 +319,7 @@ async function applyPlan(
     const metadata = buildToolMetadata(record, existing?.metadata ?? {});
 
     if (!existing) {
+      if (options.only === "logoUrl") continue;
       const created = await prisma.tool.create({
         data: {
           slug: normalizedSlug,
@@ -273,6 +339,16 @@ async function applyPlan(
       });
       await syncToolCategories(created.id, [primaryCategoryId, ...secondaryCategoryIds]);
       await syncToolTags(created.id, tagIds);
+      continue;
+    }
+
+    if (options.only === "logoUrl") {
+      await prisma.tool.update({
+        where: { id: existing.id },
+        data: {
+          logoUrl: chooseValue(existing.logoUrl, logoUrl, false),
+        },
+      });
       continue;
     }
 
@@ -436,6 +512,87 @@ function buildLogoUrl(website: string): string | null {
   } catch {
     return null;
   }
+}
+
+function parseOptions(args: string[]): SeedOptions {
+  const onlyArg = args.find((arg) => arg.startsWith("--only="));
+  const only = onlyArg?.slice("--only=".length) === "logoUrl" ? "logoUrl" : "all";
+  const onlyEmpty = args.includes("--only-empty");
+  return { only, onlyEmpty };
+}
+
+function collectUpdateFields(
+  existing: ExistingToolRow,
+  record: CuratedToolRecord,
+  logoUrl: string | null,
+  options: SeedOptions,
+): string[] {
+  const fields: string[] = [];
+  const allowReplace = isLikelyPlaceholder(existing);
+
+  if (
+    canUpdateField(
+      existing.logoUrl,
+      logoUrl,
+      options.onlyEmpty ? false : allowReplace,
+      options.onlyEmpty,
+    )
+  ) {
+    fields.push("logoUrl");
+  }
+
+  if (options.only === "logoUrl") return fields;
+
+  if (canUpdateField(existing.summary, record.summary, allowReplace, options.onlyEmpty)) {
+    fields.push("summary");
+  }
+  if (canUpdateField(existing.description, record.description, allowReplace, options.onlyEmpty)) {
+    fields.push("description");
+  }
+  if (
+    canUpdateField(
+      existing.longDescription,
+      buildLongDescription(record),
+      allowReplace,
+      options.onlyEmpty,
+    )
+  ) {
+    fields.push("longDescription");
+  }
+  if (canUpdateField(existing.metaTitle, record.seo_title, allowReplace, options.onlyEmpty)) {
+    fields.push("metaTitle");
+  }
+  if (
+    canUpdateField(
+      existing.metaDescription,
+      record.seo_description,
+      allowReplace,
+      options.onlyEmpty,
+    )
+  ) {
+    fields.push("metaDescription");
+  }
+  if (canUpdateField(existing.website, record.website, allowReplace, options.onlyEmpty)) {
+    fields.push("website");
+  }
+  if (existing.status !== ToolStatus.PUBLISHED) {
+    fields.push("status");
+  }
+  fields.push("pricingModel", "metadata", "categories", "tags");
+
+  return [...new Set(fields)];
+}
+
+function canUpdateField(
+  currentValue: string | null,
+  nextValue: string | null,
+  allowReplace: boolean,
+  onlyEmpty: boolean,
+): boolean {
+  if (isEmpty(nextValue)) return false;
+  if (onlyEmpty) return isEmpty(currentValue);
+  if (!isEmpty(currentValue) && !allowReplace) return false;
+  return currentValue?.trim() !== nextValue?.trim();
 }
 
 function chooseValue<T extends string | null>(

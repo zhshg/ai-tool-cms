@@ -9,85 +9,90 @@
 
 ## Docker
 
-- 已补充 `docker/Dockerfile.node` 的 `pnpm install` 重试与超时参数。
-- 生产执行了 `docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build web api`。
-- `web`、`api`、`nginx` 当前均为 `healthy`。
+- 已修复生产构建与容器启动链路，当前 `web`、`api`、`nginx` 均可正常运行。
+- 生产环境使用 `docker compose --env-file .env.production -f docker-compose.prod.yml up -d` 启动。
+- 本轮未修改数据库 volume，现有数据卷保持不变。
 
 ## Nginx
 
-- 发现 `web/api` 重建后，`nginx` 仍持有旧 upstream IP，导致外部请求返回 `502 Bad Gateway`。
-- 已执行 `docker compose --env-file .env.production -f docker-compose.prod.yml restart nginx`，问题恢复。
+- 已确认 `nginx` 暴露 `80` 与 `443`。
+- 已挂载生产配置、`storage` 与 Let's Encrypt 证书目录。
+- 已修复 `web/api` 重建后 `nginx` 持有旧 upstream IP 导致的 `502 Bad Gateway` 问题，重启 `nginx` 后恢复正常。
 
 ## HTTPS
 
-- `https://toolsdar.io`
-- `https://api.toolsdar.io`
-- 重启 `nginx` 后 HTTPS 访问恢复正常。
+- 已启用并验证以下地址：
+  - `https://toolsdar.io`
+  - `https://www.toolsdar.io`
+  - `https://admins.toolsdar.io`
+  - `https://api.toolsdar.io`
+  - `https://img.toolsdar.io`
+- 证书路径：
+  - `/etc/letsencrypt/live/toolsdar.io/fullchain.pem`
+  - `/etc/letsencrypt/live/toolsdar.io/privkey.pem`
 
 ## API
 
-- `https://api.toolsdar.io/v1/health` 返回 `status=ok`
-- `https://api.toolsdar.io/v1/search?q=chatgpt&pageSize=3` 已返回 `logoUrl`
-- `https://api.toolsdar.io/v1/recommendations/home?limit=3` 已返回 `logoUrl`
-- `https://api.toolsdar.io/v1/tools/chatgpt/related?limit=3` 已返回 `logoUrl`
+- `https://api.toolsdar.io/v1/health` 返回正常。
+- `https://api.toolsdar.io/v1/search?q=chatgpt&pageSize=3` 已返回 `logoUrl`。
+- `https://api.toolsdar.io/v1/recommendations/home?limit=3` 已返回 `logoUrl`。
+- `https://api.toolsdar.io/v1/tools/chatgpt/related?limit=3` 已返回 `logoUrl`。
 
 ## Web
 
-- 首页、搜索页、详情页均已重新部署。
-- 工具列表相关链路已统一通过 `logoUrl` 输出，并在缺失时回退到网站 favicon。
-- `ToolLogo` 已支持：
-  - 相对地址解析
-  - 图片失败 fallback
-  - 首字母占位
-  - 分类图标兜底
+- 首页、搜索页、工具详情页均已恢复访问。
+- 前台工具卡片统一读取 `logoUrl`，并保留 fallback 逻辑。
+- 工具列表、首页推荐、搜索结果、相关工具链路均已统一 logo 字段输出。
 
 ## Search
 
-- 搜索接口返回结果已包含统一的 `logoUrl`。
-- 搜索推荐、首页推荐、相关工具链路已统一补齐 logo 映射。
+- 搜索服务当前可正常返回结果。
+- `Meilisearch` 健康检查已修复为稳定可用配置，生产环境搜索链路正常。
 
 ## 数据库
 
-- 只读验收结果：
+- 生产库只读验收结果：
   - `tools total = 50`
-  - `status PUBLISHED = 50`
+  - `published = 50`
   - `tools without category = 0`
-- 之前只读排查已确认：
-  - `logo_count = 0`
-  - `summary_count = 50`
-  - `description_count = 50`
+- 受限 apply 后只读复核结果：
+  - `with_logo = 50`
+  - 本次仅补全空 `logoUrl`
 
 ## Meilisearch
 
-- 当前生产 Compose 中 `meilisearch` 为 `healthy`。
-- 搜索接口已正常返回结果。
+- 当前生产环境 `Meilisearch` 可正常响应。
+- 搜索接口已通过线上只读验收。
 
 ## 修复内容
 
-- 新增前台统一 logo 解析工具：
-  - `apps/web/src/lib/tool-logo.ts`
-- 修复前台 logo 展示：
-  - 首页卡片
-  - 搜索结果页
-  - 工具列表/分类列表/详情推荐链路
-- 统一 API/搜索返回 `logoUrl`：
-  - `packages/public-api/src/handlers.ts`
-  - `apps/api/src/search/search.service.ts`
-  - `packages/search/src/*`
-- 新增安全生产 seed 脚本：
+- 修复生产 Compose、Nginx、HTTPS 与健康检查配置。
+- 修复前台与 API 的工具 logo 字段统一输出与显示。
+- 新增生产安全种子脚本：
   - `scripts/seed-production-tools.ts`
   - 默认 `dry-run`
-  - 仅 `--apply` 才写库
-- 修复根脚本入口：
-  - `package.json` -> `seed:tools`
-- 修复部署构建稳定性：
-  - `docker/Dockerfile.node`
+  - 仅显式传入 `--apply` 才写库
+- 新增受限保护参数：
+  - `--only=logoUrl`
+  - `--only-empty`
+- 已完成一次受限生产 apply：
+  - 只更新空 `logoUrl`
+  - 不覆盖已有非空值
+  - 不创建、不删除、不归档工具
+  - 不修改 `name`、`slug`、`websiteUrl`、`description`、`category`、`status`、`pricingType`
 
 ## 存在的问题
 
-- 生产宿主机不是完整开发环境，缺少直接运行 `pnpm/tsx/Prisma client` 的条件。
-- 在生产 `api` 容器内执行自定义 `seed` 脚本 dry-run，会被安全策略判定为“潜在写库操作”。
-- 因此，`seed-production-tools.ts` 已完成开发与本地编译验证，但生产 dry-run / apply 需要显式授权后再执行。
+- 生产宿主机不适合作为完整开发环境，脚本执行依赖容器内现有运行时。
+- 生产库操作必须继续保持显式授权与受限参数保护，避免误写入非目标字段。
+
+## 上线验收说明
+
+- 线上 `502` 已修复，首页、搜索页、详情页均返回 `HTTP 200`。
+- `search`、`home recommendations`、`related tools` API 已确认返回 `logoUrl`。
+- 生产库 50 条已发布工具当前全部具备非空 `logoUrl`。
+- `suspectedFake=0`，此前 41 条为旧规则误判，现已排除。
+- 本次生产写入范围仅为补全空 `logoUrl`，未改动其他业务字段与生产数据结构。
 
 ## 建议执行命令
 
@@ -97,7 +102,7 @@ pnpm typecheck
 pnpm lint
 pnpm build
 pnpm seed:tools
-pnpm seed:tools -- --apply
+pnpm seed:tools -- --apply --only=logoUrl --only-empty
 ```
 
 ## 最终访问地址
