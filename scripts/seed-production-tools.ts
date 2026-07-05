@@ -243,7 +243,8 @@ async function applyPlan(
 
   for (const record of dataset) {
     const normalizedSlug = slugify(record.slug || record.name);
-    const existing = bySlug.get(normalizedSlug) ?? byWebsite.get(normalizeWebsite(record.website)) ?? null;
+    const existing =
+      bySlug.get(normalizedSlug) ?? byWebsite.get(normalizeWebsite(record.website)) ?? null;
     const primaryCategoryId = await upsertCategory(record.primary_category);
     const secondaryCategoryIds = await Promise.all(
       (record.secondary_categories ?? []).map((category) => upsertCategory(category)),
@@ -282,7 +283,11 @@ async function applyPlan(
         website: chooseValue(existing.website, record.website, isLikelyPlaceholder(existing)),
         logoUrl: chooseValue(existing.logoUrl, logoUrl, isLikelyPlaceholder(existing)),
         summary: chooseValue(existing.summary, record.summary, isLikelyPlaceholder(existing)),
-        description: chooseValue(existing.description, record.description, isLikelyPlaceholder(existing)),
+        description: chooseValue(
+          existing.description,
+          record.description,
+          isLikelyPlaceholder(existing),
+        ),
         longDescription: chooseValue(
           existing.longDescription,
           buildLongDescription(record),
@@ -386,9 +391,15 @@ function buildToolMetadata(
 }
 
 function buildLongDescription(record: CuratedToolRecord): string {
-  const useCases = uniqueStrings(record.use_cases ?? []).slice(0, 4).join(", ");
-  const features = uniqueStrings(record.features ?? []).slice(0, 4).join(", ");
-  const targetUsers = uniqueStrings(record.target_users ?? []).slice(0, 4).join(", ");
+  const useCases = uniqueStrings(record.use_cases ?? [])
+    .slice(0, 4)
+    .join(", ");
+  const features = uniqueStrings(record.features ?? [])
+    .slice(0, 4)
+    .join(", ");
+  const targetUsers = uniqueStrings(record.target_users ?? [])
+    .slice(0, 4)
+    .join(", ");
 
   return [
     record.description,
@@ -450,11 +461,12 @@ function isLikelyPlaceholder(tool: ExistingToolRow): boolean {
     .join(" ")
     .toLowerCase();
 
+  // 只匹配明确的占位/演示文案，避免把 workflow / platform 等正常描述误判为假数据。
+  const placeholderPattern =
+    /\bbulk seeded\b|\bproduction-style\b|\bplaceholder\b|\bdemo data\b|\bseeded tool\b|\bmock data\b|\btest data\b/;
+
   return (
-    normalizeWebsite(tool.website).includes("example.com") ||
-    /bulk seeded|production-style|placeholder|demo data|seeded tool|pilot|forge|flow/.test(
-      combinedText,
-    )
+    normalizeWebsite(tool.website).includes("example.com") || placeholderPattern.test(combinedText)
   );
 }
 
