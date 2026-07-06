@@ -23,6 +23,7 @@ import {
   fetchTags,
   fetchToolById,
   getApiErrorMessage,
+  getToolPreviewUrl,
   previewToolLogo,
   refreshToolLogo,
   uploadToolAsset,
@@ -154,6 +155,15 @@ export function ToolEditorForm({ mode, toolId }: ToolEditorFormProps) {
     ];
     return Math.round((checks.filter(Boolean).length / checks.length) * 100);
   }, [form]);
+  const previewUrl = useMemo(
+    () =>
+      getToolPreviewUrl({
+        slug: form.slug,
+        name: form.name,
+        website: form.website,
+      }),
+    [form.name, form.slug, form.website],
+  );
 
   const loadForm = useCallback(async () => {
     setIsLoading(true);
@@ -678,7 +688,7 @@ export function ToolEditorForm({ mode, toolId }: ToolEditorFormProps) {
               </button>
               <a
                 className="inline-flex items-center gap-2 rounded-md border px-4 py-2 text-sm hover:bg-muted"
-                href={form.slug ? `/en/tools/${form.slug}` : form.website || "#"}
+                href={previewUrl}
                 target="_blank"
                 rel="noreferrer"
               >

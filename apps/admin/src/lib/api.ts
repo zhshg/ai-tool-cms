@@ -61,17 +61,50 @@ export function getApiBase(): string {
 }
 
 export function getAdminBasePath(): string {
-  const configuredBasePath = (process.env.NEXT_PUBLIC_ADMIN_BASE_PATH || "").trim();
+  const configuredBasePath = (
+    process.env.NEXT_PUBLIC_ADMIN_BASE_PATH ||
+    process.env.ADMIN_BASE_PATH ||
+    ""
+  ).trim();
   if (configuredBasePath) {
     return configuredBasePath.startsWith("/") ? configuredBasePath : `/${configuredBasePath}`;
   }
 
-  if (typeof window === "undefined") {
-    return "/admin";
+  return "";
+}
+
+export function getPublicAppUrl(): string {
+  return clientEnv.NEXT_PUBLIC_APP_URL.replace(/\/$/, "");
+}
+
+export function getSiteAssetUrl(assetPath: string): string {
+  const normalizedPath = assetPath.startsWith("/") ? assetPath : `/${assetPath}`;
+  const publicAppUrl = getPublicAppUrl();
+  return publicAppUrl ? `${publicAppUrl}${normalizedPath}` : normalizedPath;
+}
+
+function slugifyPreviewValue(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+export function getToolPreviewUrl(input: {
+  slug?: string | null;
+  name?: string | null;
+  website?: string | null;
+}): string {
+  const slug = (input.slug || "").trim();
+  const previewSlug = slug || slugifyPreviewValue(input.name || "");
+
+  if (previewSlug) {
+    return `${getPublicAppUrl()}/en/tools/${previewSlug}`;
   }
 
-  const segments = window.location.pathname.split("/").filter(Boolean);
-  return segments[0] === "admin" ? "/admin" : "";
+  const website = (input.website || "").trim();
+  return website || "#";
 }
 
 export function getAdminDashboardPath(): string {

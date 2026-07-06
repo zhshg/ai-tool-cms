@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/components/rbac/auth-provider";
-import { getAdminRouterLoginPath } from "@/lib/api";
+import { getAdminRouterLoginPath, getSiteAssetUrl } from "@/lib/api";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 
@@ -30,7 +30,7 @@ export function AppSidebar({ onNavigate, className }: AppSidebarProps) {
         <Link href="/" className="flex items-center" onClick={onNavigate}>
           <div className="relative h-10 w-[137px]">
             <img
-              src="/toolsdar-icon-black.png"
+              src={getSiteAssetUrl("/toolsddar-logo.png")}
               alt="ToolsDdar"
               className="h-10 w-[137px] object-contain object-left"
             />
