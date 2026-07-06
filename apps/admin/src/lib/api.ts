@@ -70,7 +70,12 @@ export function getAdminBasePath(): string {
     return configuredBasePath.startsWith("/") ? configuredBasePath : `/${configuredBasePath}`;
   }
 
-  return "";
+  if (typeof window === "undefined") {
+    return "/admin";
+  }
+
+  const segments = window.location.pathname.split("/").filter(Boolean);
+  return segments[0] === "admin" ? "/admin" : "";
 }
 
 export function getPublicAppUrl(): string {
