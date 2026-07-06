@@ -3,11 +3,13 @@ RUN corepack enable && corepack prepare pnpm@9.15.4 --activate
 WORKDIR /app
 
 FROM base AS deps
+ARG PNPM_REGISTRY=https://registry.npmmirror.com
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
 COPY apps ./apps
 COPY packages ./packages
 COPY prisma ./prisma
-RUN pnpm install \
+RUN pnpm config set registry ${PNPM_REGISTRY} \
+  && pnpm install \
   --frozen-lockfile \
   --config.fetch-retries=5 \
   --config.fetch-retry-factor=2 \
