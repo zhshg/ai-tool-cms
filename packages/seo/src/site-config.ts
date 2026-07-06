@@ -25,6 +25,7 @@ export function getSiteConfig(env: NodeJS.ProcessEnv = process.env): SiteConfig 
     parsed.NEXT_PUBLIC_APP_URL ??
     parsed.APP_URL;
   const siteUrl = resolveSiteUrl(configuredSiteUrl, env.NODE_ENV);
+  const normalizedSiteUrl = normalizeUrl(siteUrl);
   const locales = parseEnabledLocales(parsed.ENABLED_LOCALES);
   const siteName = normalizePublicSiteName(env.SITE_NAME ?? parsed.SITE_NAME);
 
@@ -33,11 +34,11 @@ export function getSiteConfig(env: NodeJS.ProcessEnv = process.env): SiteConfig 
     siteDescription:
       parsed.SITE_DESCRIPTION ??
       "Discover, compare, and review AI tools by category, pricing, and workflow.",
-    siteUrl: normalizeUrl(siteUrl),
+    siteUrl: normalizedSiteUrl,
     defaultLocale: parsed.DEFAULT_LOCALE ?? "en",
     locales: locales.length ? [...locales] : ["en"],
     twitterHandle: env.TWITTER_HANDLE,
-    ogImage: env.OG_IMAGE,
+    ogImage: env.OG_IMAGE ?? `${normalizedSiteUrl}/toolsddar-logo.png`,
     robotsNoIndex: env.ROBOTS_NO_INDEX === "true",
     adminUrl: parsed.ADMIN_URL,
   };

@@ -69,9 +69,15 @@ export class SeoService {
   private readonly collectionPaths = [
     "top-ai-tools",
     "best-ai-tools",
+    "best-ai-writing-tools",
+    "best-ai-image-generators",
+    "best-ai-video-generators",
+    "best-ai-coding-tools",
+    "best-ai-seo-tools",
     "free-ai-tools",
     "new-ai-tools",
     "trending-ai-tools",
+    "ai-tools-for-productivity",
   ] as const;
 
   private readonly seoGrowthPaths = [

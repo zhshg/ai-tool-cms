@@ -10,6 +10,7 @@ type SeoLandingPageProps = {
   relatedTools: CatalogTool[];
   trendingTools: CatalogTool[];
   jsonLd: Record<string, unknown>[];
+  lastUpdatedLabel?: string;
 };
 
 export function SeoLandingPage({
@@ -20,6 +21,7 @@ export function SeoLandingPage({
   relatedTools,
   trendingTools,
   jsonLd,
+  lastUpdatedLabel,
 }: SeoLandingPageProps) {
   return (
     <>
@@ -30,6 +32,9 @@ export function SeoLandingPage({
       <main className="mx-auto max-w-4xl space-y-10 px-6 py-10">
         <header className="space-y-3">
           <h1 className="text-3xl font-semibold tracking-tight">{title}</h1>
+          {lastUpdatedLabel ? (
+            <p className="text-sm text-muted-foreground">Last updated: {lastUpdatedLabel}</p>
+          ) : null}
           <section aria-labelledby="ai-summary-heading">
             <h2
               id="ai-summary-heading"

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/components/rbac/auth-provider";
-import { getAdminRouterLoginPath, getSiteAssetUrl } from "@/lib/api";
+import { getAdminRouterLoginPath } from "@/lib/api";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 
@@ -13,6 +13,9 @@ type AppSidebarProps = {
   onNavigate?: () => void;
   className?: string;
 };
+
+const ADMIN_LOGO_LIGHT_URL = "https://img.toolsdar.io/logo/toolsdar-icon-black.png";
+const ADMIN_LOGO_DARK_URL = "https://img.toolsdar.io/logo/toolsdar-icon-white.png";
 
 export function AppSidebar({ onNavigate, className }: AppSidebarProps) {
   const pathname = usePathname();
@@ -30,9 +33,14 @@ export function AppSidebar({ onNavigate, className }: AppSidebarProps) {
         <Link href="/" className="flex items-center" onClick={onNavigate}>
           <div className="relative h-10 w-[137px]">
             <img
-              src={getSiteAssetUrl("/toolsddar-logo.png")}
+              src={ADMIN_LOGO_LIGHT_URL}
               alt="ToolsDdar"
-              className="h-10 w-[137px] object-contain object-left"
+              className="h-10 w-[137px] object-contain object-left dark:hidden"
+            />
+            <img
+              src={ADMIN_LOGO_DARK_URL}
+              alt="ToolsDdar"
+              className="hidden h-10 w-[137px] object-contain object-left dark:block"
             />
           </div>
         </Link>

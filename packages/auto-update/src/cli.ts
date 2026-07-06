@@ -1,7 +1,5 @@
 import path from "node:path";
 import { loadRootDotenv, findWorkspaceRoot } from "@ai-tool-cms/config";
-import { getRedisClient } from "@ai-tool-cms/cache";
-import { enqueueSearchIndex } from "@ai-tool-cms/search";
 import { slugify } from "@ai-tool-cms/common";
 import { PrismaClient } from "../../database/generated/client/index.js";
 import type {
@@ -12,7 +10,12 @@ import type {
   SourceId,
 } from "./types";
 import { CATEGORY_WHITELIST_SET, DEFAULT_SOURCE_LIMITS } from "./constants";
-import { writeCandidateSnapshot, writeLog, writeReport } from "./persistence";
+import {
+  buildRunArtifactId,
+  writeCandidateSnapshot,
+  writeLog,
+  writeReport,
+} from "./persistence";
 import { mapDecisionStatusToToolStatus, planCandidates } from "./planner";
 import { renderReport } from "./report";
 import { runSources } from "./sources";
@@ -137,6 +140,7 @@ async function ensureTagIds(tags: string[]): Promise<string[]> {
 
 async function invalidatePublicCaches(logs: string[]) {
   try {
+    const { getRedisClient } = await import("@ai-tool-cms/cache");
     const redis = await getRedisClient();
     if (!redis) {
       logs.push("[cache] redis unavailable, skipped cache invalidation");
@@ -216,6 +220,7 @@ async function applySafeCreates(
         create: { toolId: created.id, tagId },
       });
     }
+    const { enqueueSearchIndex } = await import("@ai-tool-cms/search");
     await enqueueSearchIndex(created.id, "publish");
     logs.push(`[apply] created ${created.slug}`);
   }
@@ -288,12 +293,13 @@ async function main() {
     await applySafeCreates(options, decisions, logs);
   }
 
-  const snapshotPath = writeCandidateSnapshot(options.date, snapshot);
+  const runId = buildRunArtifactId(options.date, options.sourceIds, snapshot.generatedAt);
+  const snapshotPath = writeCandidateSnapshot(runId, snapshot);
   const logPathPlaceholder = path.join(
     findWorkspaceRoot(),
     "logs",
     "auto-update",
-    `${options.date}.log`,
+    `${runId}.log`,
   );
 
   const report = renderReport({
@@ -306,10 +312,10 @@ async function main() {
     snapshotPath: path.relative(findWorkspaceRoot(), snapshotPath),
     logPath: path.relative(findWorkspaceRoot(), logPathPlaceholder),
   });
-  const reportPath = writeReport(options.date, report);
+  const reportPath = writeReport(runId, report);
   logs.push(`[report] ${path.relative(findWorkspaceRoot(), reportPath)}`);
   const logPath = writeLog(
-    options.date,
+    runId,
     logs.concat(
       errors.map((line) => `[error] ${line}`),
       warnings.map((line) => `[warning] ${line}`),

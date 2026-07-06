@@ -36,6 +36,15 @@ function toOpenGraphLocale(locale: string): string {
   return locale.replace("-", "_");
 }
 
+function inferMetadataLocale(input: SeoPageInput, config: SiteConfig): string {
+  const path = input.path ?? "/";
+  const [, maybeLocale] = path.match(/^\/([^/?#]+)/) ?? [];
+  if (maybeLocale && config.locales.includes(maybeLocale)) {
+    return maybeLocale;
+  }
+  return config.defaultLocale;
+}
+
 function sanitizePublicBranding(value: string | undefined, siteName: string): string | undefined {
   if (!value) return value;
   return value
@@ -63,6 +72,7 @@ export function buildMetadata(
   config: SiteConfig = getSiteConfig(),
 ): BuiltMetadata {
   const path = input.path ?? "/";
+  const pageLocale = inferMetadataLocale(input, config);
   const canonicalUrl = input.canonical ?? joinUrl(config.siteUrl, path);
   const title = buildTitle(input.title, config.siteName);
   const description = sanitizePublicBranding(
@@ -94,7 +104,7 @@ export function buildMetadata(
       (shouldNoIndex ? { index: false, follow: false } : { index: true, follow: true }),
     openGraph: {
       type: input.ogType ?? "website",
-      locale: toOpenGraphLocale(config.defaultLocale),
+      locale: toOpenGraphLocale(pageLocale),
       url: canonicalUrl,
       siteName: config.siteName,
       title,

@@ -1,3 +1,5 @@
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 import {
   SOURCE_NAMES,
   DEFAULT_SOURCE_LIMITS,
@@ -43,22 +45,294 @@ type SourceAdapter = {
   fetch: (limit: number) => Promise<RawSourceRecord[]>;
 };
 
+const execFileAsync = promisify(execFile);
+
+const AI_DISCOVERY_KEYWORDS = [
+  /\bai\b/i,
+  /\bllm\b/i,
+  /\bagent\b/i,
+  /\bmodel\b/i,
+  /\bml\b/i,
+  /machine learning/i,
+  /artificial intelligence/i,
+  /generative/i,
+  /diffusion/i,
+  /whisper/i,
+  /embedding/i,
+  /inference/i,
+  /rag\b/i,
+  /speech recognition/i,
+  /text to image/i,
+  /text-to-image/i,
+  /openai/i,
+  /anthropic/i,
+  /chatgpt/i,
+  /claude/i,
+  /gemini/i,
+] as const;
+
+async function fetchTextViaPowerShell(url: string, acceptHeader: string): Promise<string> {
+  const command = [
+    "$ErrorActionPreference = 'Stop'",
+    `$resp = Invoke-WebRequest -UseBasicParsing -Headers @{'User-Agent'='Mozilla/5.0';'Accept'='${acceptHeader}';'Accept-Language'='en-US,en;q=0.9';'Referer'='https://toolsdar.io/'} -Uri '${url}'`,
+    "Write-Output $resp.Content",
+  ].join("; ");
+  const { stdout } = await execFileAsync("powershell", ["-NoProfile", "-Command", command], {
+    maxBuffer: 10 * 1024 * 1024,
+  });
+  return stdout;
+}
+
+async function fetchTextViaCurl(url: string, acceptHeader: string): Promise<string> {
+  const { stdout } = await execFileAsync(
+    "curl.exe",
+    [
+      "-L",
+      "-A",
+      "Mozilla/5.0",
+      "-H",
+      `Accept: ${acceptHeader}`,
+      "-H",
+      "Accept-Language: en-US,en;q=0.9",
+      "-e",
+      "https://toolsdar.io/",
+      url,
+    ],
+    {
+    maxBuffer: 10 * 1024 * 1024,
+    },
+  );
+  return stdout;
+}
+
+async function fetchTextViaPython(url: string, acceptHeader: string): Promise<string> {
+  const script = [
+    "import sys, urllib.request",
+    `url = ${JSON.stringify(url)}`,
+    "headers = {",
+    "  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',",
+    `  'Accept': ${JSON.stringify(acceptHeader)},`,
+    "  'Accept-Language': 'en-US,en;q=0.9',",
+    "  'Referer': 'https://toolsdar.io/',",
+    "}",
+    "req = urllib.request.Request(url, headers=headers)",
+    "with urllib.request.urlopen(req, timeout=20) as resp:",
+    "    sys.stdout.buffer.write(resp.read())",
+  ].join("\n");
+  const psScript = [
+    "$ErrorActionPreference = 'Stop'",
+    "$tmp = [System.IO.Path]::Combine([System.IO.Path]::GetTempPath(), [System.Guid]::NewGuid().ToString() + '.py')",
+    "$code = @'",
+    script,
+    "'@",
+    "[System.IO.File]::WriteAllText($tmp, $code, [System.Text.Encoding]::UTF8)",
+    "try {",
+    "  python $tmp",
+    "  exit $LASTEXITCODE",
+    "} finally {",
+    "  Remove-Item -LiteralPath $tmp -ErrorAction SilentlyContinue",
+    "}",
+  ].join("\n");
+  const encoded = Buffer.from(psScript, "utf16le").toString("base64");
+  const { stdout } = await execFileAsync("powershell", ["-NoProfile", "-EncodedCommand", encoded], {
+    encoding: "buffer",
+    maxBuffer: 10 * 1024 * 1024,
+  });
+  return Buffer.isBuffer(stdout) ? stdout.toString("utf8") : stdout;
+}
+
 async function fetchText(url: string, timeoutMs = 15000): Promise<string> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      return await fetchTextOnce(url, timeoutMs);
+    } catch (error) {
+      lastError = error;
+      if (attempt === 1) break;
+      await new Promise((resolve) => setTimeout(resolve, 800));
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error("Unknown fetch error");
+}
+
+async function fetchTextOnce(url: string, timeoutMs = 15000): Promise<string> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
+  const acceptHeader =
+    "application/json, text/html, application/xhtml+xml, application/xml, application/rss+xml;q=0.9,*/*;q=0.8";
   try {
-    const response = await fetch(url, {
-      signal: controller.signal,
-      headers: {
-        "User-Agent": "toolsdar-auto-update/1.0",
-        Accept: "application/json, text/html, application/xml, application/rss+xml",
-      },
-    });
-    if (!response.ok) throw new Error(`HTTP ${response.status} for ${url}`);
-    return await response.text();
+    try {
+      const response = await fetch(url, {
+        signal: controller.signal,
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36",
+          Accept: acceptHeader,
+          "Accept-Language": "en-US,en;q=0.9",
+          Referer: "https://toolsdar.io/",
+        },
+      });
+      if (!response.ok) {
+        const body = await response.text().catch(() => "");
+        const snippet = cleanText(body)?.slice(0, 180);
+        throw new Error(
+          `HTTP ${response.status} for ${url}${snippet ? ` :: ${snippet}` : ""}`,
+        );
+      }
+      return await response.text();
+    } catch (error) {
+      if (process.platform !== "win32") throw error;
+      try {
+        return await fetchTextViaPython(url, acceptHeader);
+      } catch {
+        try {
+          return await fetchTextViaCurl(url, acceptHeader);
+        } catch {
+          return await fetchTextViaPowerShell(url, acceptHeader);
+        }
+      }
+    }
   } finally {
     clearTimeout(timer);
   }
+}
+
+function decodeHtmlEntities(value: string): string {
+  return value
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&#x27;/gi, "'")
+    .replace(/&#x2f;/gi, "/")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">");
+}
+
+function stripHtml(value: string): string {
+  return decodeHtmlEntities(value)
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function parseFuturepediaHomepage(limit: number, html: string): RawSourceRecord[] {
+  const rows: RawSourceRecord[] = [];
+  const seen = new Set<string>();
+  const cardRegex =
+    /href="https:\/\/www\.futurepedia\.io\/tool\/([^"]+)"[\s\S]*?<img[^>]+alt="([^"]+)"[\s\S]*?src="([^"]+)"[\s\S]*?<a class="text-lg[^"]*" href="https:\/\/www\.futurepedia\.io\/tool\/\1">([\s\S]*?)<\/a>[\s\S]*?<div class="mt-2[^"]*">([\s\S]*?)<\/div>/gi;
+
+  let match: RegExpExecArray | null;
+  while ((match = cardRegex.exec(html)) !== null && rows.length < limit) {
+    const slug = match[1]?.trim();
+    const altName = stripHtml(match[2] ?? "");
+    const logoUrl = cleanText(match[3]);
+    const anchorName = stripHtml(match[4] ?? "");
+    const shortDescription = stripHtml(match[5] ?? "");
+    if (!slug || seen.has(slug)) continue;
+    seen.add(slug);
+
+    rows.push({
+      sourceId: "futurepedia",
+      sourceName: SOURCE_NAMES.futurepedia,
+      sourceUrl: `https://www.futurepedia.io/tool/${slug}`,
+      externalId: slug,
+      name: anchorName || altName || slug,
+      websiteUrl: `https://www.futurepedia.io/tool/${slug}`,
+      logoUrl,
+      shortDescription,
+      description: shortDescription,
+      tags: ["futurepedia", "directory", "ai"],
+      confidenceBase: 0.68,
+      metadata: { slug, source: "homepage-card" },
+    });
+  }
+
+  return rows;
+}
+
+function parseTaaftHomepage(limit: number, html: string): RawSourceRecord[] {
+  const rows: RawSourceRecord[] = [];
+  const seen = new Set<string>();
+  const rowRegex =
+    /<div class="home-listing-row tools-table-row"[^>]*data-tools-href="([^"]+)"[\s\S]*?<img src="([^"]+)" alt="([^"]+)"[\s\S]*?<div class="tools-name-tagline">([\s\S]*?)<\/div>[\s\S]*?<a class="external_ai_link" href="([^"]+)"[\s\S]*?<a class="task_label"[^>]*>([\s\S]*?)<\/a>[\s\S]*?<span class="tools-price-popover-value">([\s\S]*?)<\/span>/gi;
+
+  let match: RegExpExecArray | null;
+  while ((match = rowRegex.exec(html)) !== null && rows.length < limit) {
+    const sourceUrl = cleanText(match[1]);
+    const slug = sourceUrl?.match(/\/ai\/([^/]+)\/?$/i)?.[1] ?? sourceUrl ?? "";
+    if (!sourceUrl || !slug || seen.has(slug)) continue;
+    seen.add(slug);
+
+    rows.push({
+      sourceId: "taaft",
+      sourceName: SOURCE_NAMES.taaft,
+      sourceUrl,
+      externalId: slug,
+      name: stripHtml(match[3] ?? "") || slug,
+      websiteUrl: decodeHtmlEntities(match[5] ?? ""),
+      logoUrl: cleanText(match[2]),
+      shortDescription: stripHtml(match[4] ?? ""),
+      description: stripHtml(match[4] ?? ""),
+      category: stripHtml(match[6] ?? ""),
+      tags: ["taaft", "directory", "ai"],
+      pricingType: stripHtml(match[7] ?? ""),
+      confidenceBase: 0.74,
+      metadata: { slug, source: "homepage-row" },
+    });
+  }
+
+  return rows;
+}
+
+function looksAiGithubProject(name: string, description: string | null): boolean {
+  const haystack = `${name} ${description ?? ""}`;
+  return AI_DISCOVERY_KEYWORDS.some((pattern) => pattern.test(haystack));
+}
+
+function looksAiStory(name: string, description: string | null): boolean {
+  const haystack = `${name} ${description ?? ""}`;
+  return AI_DISCOVERY_KEYWORDS.some((pattern) => pattern.test(haystack));
+}
+
+function looksToolLikeStory(
+  name: string,
+  description: string | null,
+  websiteUrl: string | null,
+): boolean {
+  const haystack = `${name} ${description ?? ""}`;
+  const hostname = websiteUrl ? getHostname(websiteUrl) : null;
+  const positiveSignals = [
+    /\bshow hn\b/i,
+    /\blaunch hn\b/i,
+    /\btool\b/i,
+    /\bapp\b/i,
+    /\bagent\b/i,
+    /\bassistant\b/i,
+    /\bcopilot\b/i,
+    /\bgenerator\b/i,
+    /\bstudio\b/i,
+    /\bplatform\b/i,
+    /\bworkspace\b/i,
+    /\beditor\b/i,
+    /\bapi\b/i,
+    /\bsdk\b/i,
+    /\bopen source\b/i,
+    /\bgithub\b/i,
+  ];
+  const negativeSignals = [
+    /\.pdf$/i,
+    /\breuters\b/i,
+    /\bresearch paper\b/i,
+    /\bstudy\b/i,
+    /\bcourse\b/i,
+    /\bcosts more than\b/i,
+  ];
+
+  if (negativeSignals.some((pattern) => pattern.test(haystack) || pattern.test(websiteUrl ?? ""))) {
+    return false;
+  }
+  if (hostname && /github\.com|huggingface\.co/i.test(hostname)) return true;
+  return positiveSignals.some((pattern) => pattern.test(haystack));
 }
 
 const adapters: SourceAdapter[] = [
@@ -96,43 +370,8 @@ const adapters: SourceAdapter[] = [
     name: SOURCE_NAMES.futurepedia,
     enabledByDefault: true,
     async fetch(limit) {
-      const json = JSON.parse(
-        await fetchText(`https://www.futurepedia.io/api/v1/tools?page=1&limit=${Math.min(limit, 20)}`),
-      ) as { tools?: Array<Record<string, unknown>> };
-      return (json.tools ?? []).slice(0, limit).map((item) => ({
-        sourceId: "futurepedia",
-        sourceName: SOURCE_NAMES.futurepedia,
-        sourceUrl: String(
-          item.slug
-            ? `https://www.futurepedia.io/tool/${item.slug}`
-            : item.tool_url ?? item.url ?? "https://www.futurepedia.io",
-        ),
-        externalId: String(item.id ?? item._id ?? ""),
-        name: String(item.tool_name ?? item.name ?? item.title ?? "").trim(),
-        websiteUrl:
-          typeof item.tool_url === "string"
-            ? item.tool_url
-            : typeof item.website === "string"
-              ? item.website
-              : null,
-        logoUrl:
-          typeof item.image === "string"
-            ? item.image
-            : typeof item.logo === "string"
-              ? item.logo
-              : null,
-        shortDescription:
-          typeof item.short_description === "string"
-            ? item.short_description
-            : typeof item.summary === "string"
-              ? item.summary
-              : null,
-        description: typeof item.description === "string" ? item.description : null,
-        category: typeof item.category === "string" ? item.category : null,
-        tags: Array.isArray(item.tags) ? item.tags.map((tag) => String(tag)) : [],
-        pricingType: typeof item.pricing === "string" ? item.pricing : null,
-        confidenceBase: 0.72,
-      }));
+      const html = await fetchText("https://www.futurepedia.io/");
+      return parseFuturepediaHomepage(limit, html);
     },
   },
   {
@@ -140,48 +379,8 @@ const adapters: SourceAdapter[] = [
     name: SOURCE_NAMES.taaft,
     enabledByDefault: true,
     async fetch(limit) {
-      const json = JSON.parse(
-        await fetchText(`https://theresanaiforthat.com/api/tools/?offset=0&limit=${Math.min(limit, 20)}`),
-      ) as { results?: Array<Record<string, unknown>> };
-      return (json.results ?? []).slice(0, limit).map((item) => ({
-        sourceId: "taaft",
-        sourceName: SOURCE_NAMES.taaft,
-        sourceUrl: String(
-          item.slug
-            ? `https://theresanaiforthat.com/ai/${item.slug}/`
-            : item.website ?? "https://theresanaiforthat.com",
-        ),
-        externalId: String(item.id ?? item.uuid ?? ""),
-        name: String(item.name ?? item.title ?? "").trim(),
-        websiteUrl:
-          typeof item.website === "string"
-            ? item.website
-            : typeof item.external_url === "string"
-              ? item.external_url
-              : null,
-        logoUrl:
-          typeof item.logo === "string"
-            ? item.logo
-            : typeof item.image_url === "string"
-              ? item.image_url
-              : null,
-        shortDescription:
-          typeof item.short_description === "string"
-            ? item.short_description
-            : typeof item.summary === "string"
-              ? item.summary
-              : null,
-        description:
-          typeof item.description === "string"
-            ? item.description
-            : typeof item.long_description === "string"
-              ? item.long_description
-              : null,
-        category:
-          Array.isArray(item.categories) && item.categories.length ? String(item.categories[0]) : null,
-        tags: Array.isArray(item.tags) ? item.tags.map((tag) => String(tag)) : [],
-        confidenceBase: 0.78,
-      }));
+      const html = await fetchText("https://theresanaiforthat.com/");
+      return parseTaaftHomepage(limit, html);
     },
   },
   {
@@ -190,29 +389,40 @@ const adapters: SourceAdapter[] = [
     enabledByDefault: true,
     async fetch(limit) {
       const html = await fetchText("https://github.com/trending?spoken_language_code=en");
-      const repoRegex = /href="\/([^/]+\/[^"]+)"[^>]*>\s*<span[^>]*>([^<]+)<\/span>/gi;
       const rows: RawSourceRecord[] = [];
       const seen = new Set<string>();
-      let match: RegExpExecArray | null;
-      while ((match = repoRegex.exec(html)) !== null && rows.length < limit) {
-        const slug = match[1];
-        const title = match[2];
-        if (!slug || !title || seen.has(slug) || slug.includes("sponsors")) continue;
+      const articleRegex = /<article\b[^>]*class="[^"]*\bBox-row\b[^"]*"[^>]*>([\s\S]*?)<\/article>/gi;
+      let articleMatch: RegExpExecArray | null;
+      while ((articleMatch = articleRegex.exec(html)) !== null && rows.length < limit) {
+        const article = articleMatch[1];
+        if (!article) continue;
+        const repoMatch = article.match(
+          /click_target&quot;:&quot;REPOSITORY&quot;[\s\S]*?href="\/([^"/\s]+\/[^"/\s]+)"/i,
+        );
+        const slug = repoMatch?.[1]?.trim();
+        if (!slug || seen.has(slug) || slug.includes("sponsors")) continue;
         seen.add(slug);
+        const descriptionMatch = article.match(/<p\b[^>]*>([\s\S]*?)<\/p>/i);
+        const description = stripHtml(descriptionMatch?.[1] ?? "");
+        const repoName = slug.split("/")[1] ?? slug;
+        if (!looksAiGithubProject(repoName, description || null)) continue;
         rows.push({
-        sourceId: "github-trending",
-        sourceName: SOURCE_NAMES["github-trending"],
-        sourceUrl: `https://github.com/${slug}`,
-        externalId: slug,
-        name: title.trim(),
-        websiteUrl: `https://github.com/${slug}`,
-        shortDescription: "Trending AI repository discovered from GitHub.",
-        description: "Trending AI repository discovered from GitHub.",
-        category: "Developer Tools",
-        tags: ["github", "open-source", "ai"],
-        pricingType: "free",
-        confidenceBase: 0.55,
-      });
+          sourceId: "github-trending",
+          sourceName: SOURCE_NAMES["github-trending"],
+          sourceUrl: `https://github.com/${slug}`,
+          externalId: slug,
+          name: repoName.trim(),
+          websiteUrl: `https://github.com/${slug}`,
+          shortDescription:
+            description || "Trending AI repository discovered from GitHub.",
+          description:
+            description || "Trending AI repository discovered from GitHub.",
+          category: "Developer Tools",
+          tags: ["github", "open-source", "ai"],
+          pricingType: "free",
+          confidenceBase: 0.62,
+          metadata: { slug },
+        });
       }
       return rows;
     },
@@ -269,6 +479,10 @@ const adapters: SourceAdapter[] = [
         const hostname = item.url ? getHostname(item.url) : null;
         const externalUrl =
           hostname && item.url && !/news\.ycombinator\.com/i.test(hostname) ? item.url : null;
+        const shortDescription = stripHtml(item.text ?? "");
+        if (!externalUrl) continue;
+        if (!looksAiStory(item.title, shortDescription)) continue;
+        if (!looksToolLikeStory(item.title, shortDescription, externalUrl)) continue;
         rows.push({
           sourceId: "hackernews",
           sourceName: SOURCE_NAMES.hackernews,
@@ -276,10 +490,10 @@ const adapters: SourceAdapter[] = [
           externalId: String(id),
           name: item.title,
           websiteUrl: externalUrl,
-          shortDescription: cleanText(item.text),
-          description: cleanText(item.text),
+          shortDescription,
+          description: shortDescription,
           tags: ["hackernews", "ai"],
-          confidenceBase: 0.38,
+          confidenceBase: 0.52,
         });
         if (rows.length >= limit) break;
       }

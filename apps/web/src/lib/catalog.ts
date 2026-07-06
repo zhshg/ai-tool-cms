@@ -228,9 +228,20 @@ export type LandingPageData = {
   relatedTools: CatalogTool[];
   trendingTools: CatalogTool[];
   jsonLd: Record<string, unknown>[];
+  lastUpdatedLabel?: string;
 };
 
-type CollectionPageSlug = "best-ai-tools" | "free-ai-tools" | "new-ai-tools" | "trending-ai-tools";
+type CollectionPageSlug =
+  | "best-ai-tools"
+  | "best-ai-writing-tools"
+  | "best-ai-image-generators"
+  | "best-ai-video-generators"
+  | "best-ai-coding-tools"
+  | "best-ai-seo-tools"
+  | "free-ai-tools"
+  | "new-ai-tools"
+  | "trending-ai-tools"
+  | "ai-tools-for-productivity";
 
 const COLLECTION_PAGE_DEFS: Array<{
   slug: CollectionPageSlug;
@@ -241,6 +252,31 @@ const COLLECTION_PAGE_DEFS: Array<{
     slug: "best-ai-tools",
     label: "Best AI Tools",
     description: "Browse the strongest tools across the directory.",
+  },
+  {
+    slug: "best-ai-writing-tools",
+    label: "Best AI Writing Tools",
+    description: "Compare top AI writing tools for drafting, editing, and content workflows.",
+  },
+  {
+    slug: "best-ai-image-generators",
+    label: "Best AI Image Generators",
+    description: "Explore leading AI image tools for art, design assets, and creative production.",
+  },
+  {
+    slug: "best-ai-video-generators",
+    label: "Best AI Video Generators",
+    description: "Discover AI video tools for generation, editing, clips, and multimedia production.",
+  },
+  {
+    slug: "best-ai-coding-tools",
+    label: "Best AI Coding Tools",
+    description: "Find AI coding assistants, developer copilots, and product building tools.",
+  },
+  {
+    slug: "best-ai-seo-tools",
+    label: "Best AI SEO Tools",
+    description: "Review AI SEO tools for keyword research, content optimization, and growth workflows.",
   },
   {
     slug: "free-ai-tools",
@@ -256,6 +292,11 @@ const COLLECTION_PAGE_DEFS: Array<{
     slug: "trending-ai-tools",
     label: "Trending AI Tools",
     description: "Follow tools drawing attention right now.",
+  },
+  {
+    slug: "ai-tools-for-productivity",
+    label: "AI Tools for Productivity",
+    description: "Browse AI productivity tools for notes, planning, meetings, and day-to-day execution.",
   },
 ];
 
@@ -637,6 +678,43 @@ async function fetchHomePageTools(input: {
     category: tool.categories[0]?.category ?? null,
     tagSlugs: tool.tags.map((tag) => tag.tag.slug),
   }));
+}
+
+async function fetchCollectionToolsByCategorySlugs(
+  categorySlugs: string[],
+  limit = 10,
+): Promise<CatalogTool[]> {
+  if (!categorySlugs.length) return [];
+
+  const tools = await prisma.tool.findMany({
+    where: {
+      status: ToolStatus.PUBLISHED,
+      ...activeOnly,
+      categories: {
+        some: {
+          ...activeOnly,
+          category: {
+            ...activeOnly,
+            slug: { in: categorySlugs },
+          },
+        },
+      },
+    },
+    orderBy: [
+      { popularitySnapshots: { _count: "desc" } },
+      { publishedAt: "desc" },
+      { updatedAt: "desc" },
+      { name: "asc" },
+    ],
+    take: limit,
+    select: {
+      slug: true,
+      name: true,
+      summary: true,
+    },
+  });
+
+  return tools;
 }
 
 function getInternalApiUrl() {
@@ -1221,6 +1299,41 @@ function getCollectionCopy(slug: CollectionPageSlug, locale: string) {
           ? "���Ŀ¼��ֵ������������?AI ���ߣ��鿴����ժҪ���ڲ�������"
           : "Browse the most useful AI tools in the directory with ranked picks, summaries, and internal links.",
       };
+    case "best-ai-writing-tools":
+      return {
+        title: isZh ? "最佳 AI 写作工具" : "Best AI Writing Tools",
+        description: isZh
+          ? "筛选适合写作、编辑、营销文案与内容工作流的 AI 工具。"
+          : "Compare AI writing tools for drafting, editing, blogs, marketing copy, and repeatable content workflows.",
+      };
+    case "best-ai-image-generators":
+      return {
+        title: isZh ? "最佳 AI 图片生成工具" : "Best AI Image Generators",
+        description: isZh
+          ? "发现适合图片生成、视觉资产制作与创意设计的 AI 工具。"
+          : "Explore AI image generators and creative tools for artwork, design assets, product visuals, and branded content.",
+      };
+    case "best-ai-video-generators":
+      return {
+        title: isZh ? "最佳 AI 视频生成工具" : "Best AI Video Generators",
+        description: isZh
+          ? "对比视频生成、剪辑、数字人和内容再利用场景中的 AI 工具。"
+          : "Review AI video tools for generation, editing, avatars, repurposing, and multimedia production.",
+      };
+    case "best-ai-coding-tools":
+      return {
+        title: isZh ? "最佳 AI 编程工具" : "Best AI Coding Tools",
+        description: isZh
+          ? "查找适合代码补全、调试、重构与产品开发的 AI 编程工具。"
+          : "Find AI coding tools for code completion, refactoring, debugging, prototyping, and shipping software faster.",
+      };
+    case "best-ai-seo-tools":
+      return {
+        title: isZh ? "最佳 AI SEO 工具" : "Best AI SEO Tools",
+        description: isZh
+          ? "浏览用于关键词研究、内容优化、搜索增长与站点运营的 AI SEO 工具。"
+          : "Browse AI SEO tools for keyword research, content optimization, internal workflows, and organic growth execution.",
+      };
     case "free-ai-tools":
       return {
         title: isZh ? "���?AI ����" : "Free AI Tools",
@@ -1242,6 +1355,13 @@ function getCollectionCopy(slug: CollectionPageSlug, locale: string) {
           ? "�鿴��ǰ���ܹ�ע�� AI ���ߣ����վ���ȶ���Ŀ¼���ݿ�����ɷ��֡�"
           : "Explore AI tools drawing attention right now, ranked with on-site popularity signals and directory data.",
       };
+    case "ai-tools-for-productivity":
+      return {
+        title: isZh ? "效率场景 AI 工具" : "AI Tools for Productivity",
+        description: isZh
+          ? "查看适合笔记、会议、总结、计划与日常执行流程的 AI 效率工具。"
+          : "Browse AI productivity tools for notes, meetings, planning, summaries, and day-to-day execution across teams.",
+      };
     default:
       return {
         title: "AI Tools",
@@ -1262,11 +1382,28 @@ export async function getCollectionLanding(
   const path = `/${locale}/${slug}`;
   const url = joinUrl(config.siteUrl, path);
 
-  const [latestTools, popularTools, freeOnlyTools, freemiumTools] = await Promise.all([
+  const [
+    latestTools,
+    popularTools,
+    freeOnlyTools,
+    freemiumTools,
+    writingTools,
+    imageTools,
+    videoTools,
+    codingTools,
+    seoTools,
+    productivityTools,
+  ] = await Promise.all([
     fetchPublishedTools(12),
     fetchPopularTools(12),
     fetchHomePageTools({ take: 10, pricingModels: [PricingModel.FREE] }),
     fetchHomePageTools({ take: 10, pricingModels: [PricingModel.FREEMIUM] }),
+    fetchCollectionToolsByCategorySlugs(["writing", "ai-writing"], 12),
+    fetchCollectionToolsByCategorySlugs(["image", "image-generation"], 12),
+    fetchCollectionToolsByCategorySlugs(["video", "video-audio"], 12),
+    fetchCollectionToolsByCategorySlugs(["code", "code-assistant"], 12),
+    fetchCollectionToolsByCategorySlugs(["seo"], 12),
+    fetchCollectionToolsByCategorySlugs(["productivity"], 12),
   ]);
 
   const trendingTools = popularTools.slice(0, 6);
@@ -1275,6 +1412,21 @@ export async function getCollectionLanding(
   switch (slug) {
     case "best-ai-tools":
       rankedTools = popularTools.slice(0, 10);
+      break;
+    case "best-ai-writing-tools":
+      rankedTools = writingTools.slice(0, 10);
+      break;
+    case "best-ai-image-generators":
+      rankedTools = imageTools.slice(0, 10);
+      break;
+    case "best-ai-video-generators":
+      rankedTools = videoTools.slice(0, 10);
+      break;
+    case "best-ai-coding-tools":
+      rankedTools = codingTools.slice(0, 10);
+      break;
+    case "best-ai-seo-tools":
+      rankedTools = seoTools.slice(0, 10);
       break;
     case "free-ai-tools":
       rankedTools = [
@@ -1297,11 +1449,15 @@ export async function getCollectionLanding(
         rankedTools = popularTools.slice(0, 10);
       }
       break;
+    case "ai-tools-for-productivity":
+      rankedTools = productivityTools.slice(0, 10);
+      break;
     default:
       return null;
   }
 
   const faqs = buildCollectionFaqs(copy.title, rankedTools, locale);
+  const lastUpdatedLabel = formatDateLabel(new Date(), locale);
   const jsonLd = [
     buildCollectionPageJsonLd({
       name: copy.title,
@@ -1346,6 +1502,7 @@ export async function getCollectionLanding(
       relatedTools: rankedTools,
       trendingTools,
       jsonLd,
+      lastUpdatedLabel,
     },
   };
 }
