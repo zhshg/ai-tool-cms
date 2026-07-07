@@ -2,96 +2,115 @@
 
 ## 适用场景
 
-- 生产服务器工作区存在未提交改动，不能直接在原目录 `git pull` 或 `docker compose up --build`
-- 需要只基于 GitHub 某个已推送提交进行干净发布
-- 需要保留生产 `.env.production`、`storage` 与数据库卷
+当生产目录存在脏改动、服务器代码树与本地不一致，或者不能安全地直接在原目录执行 `git pull` / `docker compose up --build` 时，使用干净发布目录流程。
 
 ## 核心原则
 
-- 不覆盖原生产目录，例如 `/opt/ai-tool-cms`
-- 每次发布都使用新的发布目录，例如 `/opt/ai-tool-cms-release-YYYYMMDD-HHMMSS`
-- 发布源码只来自 GitHub 指定提交归档
-- `docker compose` 固定使用项目名 `ai-tool-cms`，避免因为目录名变化创建并行容器
+1. 不直接覆盖原生产目录
+2. 每次发布使用新的 release 目录
+3. 环境文件和 `storage` 复用生产现有资源
+4. `docker compose` 固定使用项目名 `ai-tool-cms`
+5. 数据卷不删除、不迁移、不重置
 
 ## 发布前检查
 
-1. 确认目标提交已经推送到 GitHub。
-2. 确认生产 `.env.production` 已包含本次所需环境变量。
-3. 确认原生产目录存在可复用的 `storage` 目录。
-4. 如原目录有脏工作区，先备份 `git status` 和 patch。
+1. 目标提交已推送到远端
+2. `.env.production` 已包含本次所需环境变量
+3. `storage` 目录存在且内容完整
+4. 已确认本次需要重建的服务范围
 
-## 标准发布步骤
+## 标准流程
 
-以下命令以提交 `749dbce6`、发布目录 `/opt/ai-tool-cms-release-20260706-133700` 为例。
+以下以：
 
-### 1. 下载 GitHub 归档
+- 提交：`<commit>`
+- 发布目录：`/opt/ai-tool-cms-release-YYYYMMDD-HHMMSS`
+
+为例。
+
+### 1. 下载归档
 
 ```bash
 rm -f /tmp/ai-tool-cms-release.zip
-curl -fL https://codeload.github.com/zhshg/ai-tool-cms/zip/749dbce6 -o /tmp/ai-tool-cms-release.zip
+curl -fL https://codeload.github.com/zhshg/ai-tool-cms/zip/<commit> -o /tmp/ai-tool-cms-release.zip
 ls -lh /tmp/ai-tool-cms-release.zip
 ```
 
-### 2. 解压并准备发布目录
+### 2. 解压并准备目录
 
 ```bash
-rm -rf /tmp/ai-tool-cms-release-src /opt/ai-tool-cms-release-20260706-133700
-mkdir -p /tmp/ai-tool-cms-release-src /opt/ai-tool-cms-release-20260706-133700
+rm -rf /tmp/ai-tool-cms-release-src /opt/ai-tool-cms-release-YYYYMMDD-HHMMSS
+mkdir -p /tmp/ai-tool-cms-release-src /opt/ai-tool-cms-release-YYYYMMDD-HHMMSS
 python3 -m zipfile -e /tmp/ai-tool-cms-release.zip /tmp/ai-tool-cms-release-src
-cp -a /tmp/ai-tool-cms-release-src/ai-tool-cms-749dbce6*/. /opt/ai-tool-cms-release-20260706-133700/
-cp /opt/ai-tool-cms/.env.production /opt/ai-tool-cms-release-20260706-133700/.env.production
-ln -sfn /opt/ai-tool-cms/storage /opt/ai-tool-cms-release-20260706-133700/storage
+cp -a /tmp/ai-tool-cms-release-src/ai-tool-cms-<commit>*/. /opt/ai-tool-cms-release-YYYYMMDD-HHMMSS/
+cp /opt/ai-tool-cms/.env.production /opt/ai-tool-cms-release-YYYYMMDD-HHMMSS/.env.production
+ln -sfn /opt/ai-tool-cms/storage /opt/ai-tool-cms-release-YYYYMMDD-HHMMSS/storage
 ```
 
-### 3. 从干净目录发布
+### 3. 在干净目录构建并发布
 
 ```bash
-cd /opt/ai-tool-cms-release-20260706-133700
-docker compose -p ai-tool-cms --env-file .env.production -f docker-compose.prod.yml up -d --build web admin api nginx
+cd /opt/ai-tool-cms-release-YYYYMMDD-HHMMSS
+docker compose -p ai-tool-cms --env-file .env.production -f docker-compose.prod.yml build web
+docker compose -p ai-tool-cms --env-file .env.production -f docker-compose.prod.yml up -d --force-recreate web nginx
 ```
 
-如果只需要前台配置生效，仍要注意 `docker compose` 可能联动重建依赖服务镜像，不能假设只会处理 `web/nginx`。
+如果本次改动影响 `admin` 或 `api`，按需替换服务名。
 
-## 本次已验证的关键配置
+## 构建建议
 
-- `docker/Dockerfile.next`
-  - 支持 `PNPM_REGISTRY`
-  - 默认使用 `https://registry.npmmirror.com`
-- `docker/Dockerfile.node`
-  - 支持 `PNPM_REGISTRY`
-  - 默认使用 `https://registry.npmmirror.com`
-- `docker-compose.prod.yml`
-  - `web` 构建参数已接入 `NEXT_PUBLIC_GA_ID`
-  - `web` 运行环境已接入 `NEXT_PUBLIC_GA_ID`
+### 优先单服务构建
+
+不要默认：
+
+```bash
+docker compose up -d --build
+```
+
+推荐：
+
+```bash
+docker compose --env-file .env.production -f docker-compose.prod.yml build web
+docker compose --env-file .env.production -f docker-compose.prod.yml build admin
+docker compose --env-file .env.production -f docker-compose.prod.yml build api
+```
+
+### 优先后台日志构建
+
+```bash
+cd /opt/ai-tool-cms-release-YYYYMMDD-HHMMSS
+rm -f /tmp/toolsdar-web-build.log
+nohup docker compose -p ai-tool-cms --env-file .env.production -f docker-compose.prod.yml build web > /tmp/toolsdar-web-build.log 2>&1 < /dev/null &
+tail -n 80 /tmp/toolsdar-web-build.log
+```
 
 ## 发布后验收
 
 ```bash
-cd /opt/ai-tool-cms-release-20260706-133700
+cd /opt/ai-tool-cms-release-YYYYMMDD-HHMMSS
 docker compose -p ai-tool-cms --env-file .env.production -f docker-compose.prod.yml ps
 curl -I https://toolsdar.io/en
 curl -I https://toolsdar.io/en/tools
-curl -I https://toolsdar.io/sitemap.xml
+curl -I https://toolsdar.io/en/categories
+curl -I https://toolsdar.io/sitemaps/en.xml
 curl -I https://api.toolsdar.io/v1/health
-curl -I https://admins.toolsdar.io/admin
+curl -I https://admins.toolsdar.io/
 ```
 
-额外检查 GA 是否生效：
+## 回滚建议
 
-```bash
-docker compose -p ai-tool-cms --env-file .env.production -f docker-compose.prod.yml exec -T web sh -lc 'printenv | grep NEXT_PUBLIC_GA_ID'
-curl -s https://toolsdar.io/en | grep -o 'G-V59J3MRC1P\|googletagmanager.com/gtag/js'
-```
+1. 保留最近一个可用 release 目录
+2. 保留最近一个可用镜像版本
+3. 回滚时先恢复服务，再做页面验收
 
-## 回收建议
+详细流程见：
 
-- 保留最近一次成功发布目录，作为快速比对和应急回退参考
-- 过旧的 `/opt/ai-tool-cms-release-*` 目录可人工清理
-- `/tmp/ai-tool-cms-release*.zip` 与部署日志可定期清理
+- [Rollback.md](./Rollback.md)
+- [ServerCleanupAndRollback.md](./ServerCleanupAndRollback.md)
 
 ## 注意事项
 
-- 不要在原生产目录的脏工作区直接构建镜像
-- 不要把未知本地修改打进生产镜像
-- 不要修改数据库卷挂载
-- 不要把 `.env.production` 提交到 Git
+1. 不要在脏工作区直接长期构建生产镜像
+2. 不要把本地未核对修改直接打进生产
+3. 不要修改数据库卷挂载
+4. 不要提交 `.env.production`

@@ -2,54 +2,72 @@
 
 ## 当前线上状态
 
-- 前台首页正常
-- 工具列表正常
-- `sitemap.xml` 正常
-- API 健康检查正常
-- Admin 正常
-- 所有生产容器为 `healthy`
-- Google Analytics 已生效
+当前生产环境的目标状态应至少满足以下条件：
 
-## 当前生效目录
+- 前台首页可访问
+- 工具列表页可访问
+- 分类页可访问
+- `sitemap` 可访问
+- API 健康检查可访问
+- Admin 可访问
+- 关键容器均为 `healthy`
 
-- 发布目录：`/opt/ai-tool-cms-release-20260706-133700`
-- Compose 项目名：`ai-tool-cms`
-- 原始生产目录：`/opt/ai-tool-cms`
+## 当前生产目录约定
 
-## 关键提交
+- 主目录：`/opt/ai-tool-cms`
+- 环境文件：`/opt/ai-tool-cms/.env.production`
+- Compose 文件：`/opt/ai-tool-cms/docker-compose.prod.yml`
+- 存储目录：`/opt/ai-tool-cms/storage`
 
-- `025d2d7`
-  - 稳定 Docker 构建依赖下载
-- `749dbce`
-  - 接入生产 `NEXT_PUBLIC_GA_ID`
-- `c1cfff9`
-  - 新增干净发布部署文档
-- `3fbf6ab`
-  - 新增服务器清理与回滚文档
+如果使用干净发布目录流程，则额外存在：
 
-## 本次上线要点
+- release 目录：`/opt/ai-tool-cms-release-YYYYMMDD-HHMMSS`
 
-- 未直接覆盖服务器原目录脏工作区
-- 使用 GitHub 提交归档创建干净发布目录
-- 构建阶段切换为更稳定的 `pnpm` registry 策略
-- 已确认页面输出 `googletagmanager.com/gtag/js`
-- 已确认页面输出 `G-V59J3MRC1P`
+## 当前生产镜像检查
 
-## 快速验证
+推荐上线后记录以下镜像：
 
 ```bash
-cd /opt/ai-tool-cms-release-20260706-133700
-docker compose -p ai-tool-cms --env-file .env.production -f docker-compose.prod.yml ps
+docker images | grep ai-tool-cms-web
+docker images | grep ai-tool-cms-admin
+docker images | grep ai-tool-cms-api
+```
+
+## 当前关键访问地址
+
+- Web: `https://toolsdar.io/en`
+- Tools: `https://toolsdar.io/en/tools`
+- Categories: `https://toolsdar.io/en/categories`
+- Sitemap: `https://toolsdar.io/sitemaps/en.xml`
+- API Health: `https://api.toolsdar.io/v1/health`
+- Admin: `https://admins.toolsdar.io/`
+
+## 快速验收命令
+
+```bash
+cd /opt/ai-tool-cms
+docker compose --env-file .env.production -f docker-compose.prod.yml ps
 curl -I https://toolsdar.io/en
 curl -I https://toolsdar.io/en/tools
-curl -I https://toolsdar.io/sitemap.xml
+curl -I https://toolsdar.io/en/categories
+curl -I https://toolsdar.io/sitemaps/en.xml
 curl -I https://api.toolsdar.io/v1/health
-curl -I https://admins.toolsdar.io/admin
-docker compose -p ai-tool-cms --env-file .env.production -f docker-compose.prod.yml exec -T web sh -lc 'printenv | grep NEXT_PUBLIC_GA_ID'
-curl -s https://toolsdar.io/en | grep -o 'G-V59J3MRC1P\|googletagmanager.com/gtag/js'
+curl -I https://admins.toolsdar.io/
 ```
+
+## 当前运维基线
+
+当前生产发布与重建应遵循以下基线：
+
+1. 单服务构建优先
+2. 后台日志构建优先
+3. 不直接动数据库卷
+4. 不把 `.env.production` 提交到 Git
+5. 先确认目录一致性，再重建服务
 
 ## 相关文档
 
+- [Runbook.md](./Runbook.md)
 - [CleanReleaseDeployment.md](./CleanReleaseDeployment.md)
-- [ServerCleanupAndRollback.md](./ServerCleanupAndRollback.md)
+- [Rollback.md](./Rollback.md)
+- [BuildFailureRootCauseAndFixPlan.md](./BuildFailureRootCauseAndFixPlan.md)

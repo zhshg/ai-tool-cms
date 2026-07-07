@@ -80,6 +80,7 @@ services:
       dockerfile: docker/Dockerfile.node
       args:
         APP_NAME: api
+        PNPM_REGISTRY: ${PNPM_REGISTRY:-https://registry.npmmirror.com}
     image: ai-tool-cms-api:${IMAGE_TAG:-local}
     pull_policy: never
     restart: "no"
@@ -99,6 +100,7 @@ services:
       dockerfile: docker/Dockerfile.node
       args:
         APP_NAME: api
+        PNPM_REGISTRY: ${PNPM_REGISTRY:-https://registry.npmmirror.com}
     image: ai-tool-cms-api:${IMAGE_TAG:-local}
     pull_policy: never
     restart: "no"
@@ -114,6 +116,10 @@ services:
       ADMIN_URL: ${ADMIN_URL}
       API_URL: ${API_URL}
       NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      GOOGLE_SEARCH_CONSOLE_REDIRECT_URI: ${GOOGLE_SEARCH_CONSOLE_REDIRECT_URI}
+      GOOGLE_SEARCH_CONSOLE_SCOPES: ${GOOGLE_SEARCH_CONSOLE_SCOPES}
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
       QUEUE_URL: redis://:${REDIS_PASSWORD}@redis:6379/1
@@ -142,6 +148,7 @@ services:
       dockerfile: docker/Dockerfile.node
       args:
         APP_NAME: api
+        PNPM_REGISTRY: ${PNPM_REGISTRY:-https://registry.npmmirror.com}
     image: ai-tool-cms-api:${IMAGE_TAG:-local}
     pull_policy: never
     restart: unless-stopped
@@ -151,6 +158,10 @@ services:
       APP_URL: ${APP_URL}
       ADMIN_URL: ${ADMIN_URL}
       API_URL: ${API_URL}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      GOOGLE_SEARCH_CONSOLE_REDIRECT_URI: ${GOOGLE_SEARCH_CONSOLE_REDIRECT_URI}
+      GOOGLE_SEARCH_CONSOLE_SCOPES: ${GOOGLE_SEARCH_CONSOLE_SCOPES}
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
       QUEUE_URL: redis://:${REDIS_PASSWORD}@redis:6379/1
@@ -208,6 +219,7 @@ services:
       interval: 15s
       timeout: 5s
       retries: 10
+      start_period: 20s
 
   worker:
     build:
@@ -215,6 +227,7 @@ services:
       dockerfile: docker/Dockerfile.node
       args:
         APP_NAME: worker
+        PNPM_REGISTRY: ${PNPM_REGISTRY:-https://registry.npmmirror.com}
     image: ai-tool-cms-worker:${IMAGE_TAG:-local}
     pull_policy: never
     restart: unless-stopped
@@ -268,6 +281,7 @@ services:
       dockerfile: docker/Dockerfile.node
       args:
         APP_NAME: scheduler
+        PNPM_REGISTRY: ${PNPM_REGISTRY:-https://registry.npmmirror.com}
     image: ai-tool-cms-scheduler:${IMAGE_TAG:-local}
     pull_policy: never
     restart: unless-stopped
@@ -312,6 +326,7 @@ services:
       dockerfile: docker/Dockerfile.next
       args:
         APP_NAME: web
+        PNPM_REGISTRY: ${PNPM_REGISTRY:-https://registry.npmmirror.com}
         NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
         NEXT_PUBLIC_GA_ID: ${NEXT_PUBLIC_GA_ID}
@@ -358,6 +373,7 @@ services:
       interval: 15s
       timeout: 5s
       retries: 10
+      start_period: 30s
 
   admin:
     build:
@@ -365,7 +381,8 @@ services:
       dockerfile: docker/Dockerfile.next
       args:
         APP_NAME: admin
-        ADMIN_BASE_PATH: /admin
+        PNPM_REGISTRY: ${PNPM_REGISTRY:-https://registry.npmmirror.com}
+        ADMIN_BASE_PATH: ${ADMIN_BASE_PATH:-}
         NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
         NEXT_PUBLIC_API_URL: ""
     image: ai-tool-cms-admin:${IMAGE_TAG:-local}
@@ -374,7 +391,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3000
-      ADMIN_BASE_PATH: /admin
+      ADMIN_BASE_PATH: ${ADMIN_BASE_PATH:-}
       APP_URL: ${APP_URL}
       ADMIN_URL: ${ADMIN_URL}
       API_URL: ${API_URL}
@@ -384,10 +401,11 @@ services:
       api:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--spider", "http://127.0.0.1:3000/admin"]
+      test: ["CMD", "wget", "--no-verbose", "--spider", "http://127.0.0.1:3000/"]
       interval: 15s
       timeout: 5s
       retries: 10
+      start_period: 30s
 
   nginx:
     image: nginx:1.27-alpine
