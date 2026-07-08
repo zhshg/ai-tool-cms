@@ -152,6 +152,7 @@ services:
     image: ai-tool-cms-api:${IMAGE_TAG:-local}
     pull_policy: never
     restart: unless-stopped
+    user: "0:0"
     environment:
       NODE_ENV: production
       PORT: 4000
@@ -231,6 +232,7 @@ services:
     image: ai-tool-cms-worker:${IMAGE_TAG:-local}
     pull_policy: never
     restart: unless-stopped
+    user: "0:0"
     environment:
       NODE_ENV: production
       APP_URL: ${APP_URL}

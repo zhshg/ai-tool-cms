@@ -636,12 +636,6 @@ export function ToolEditorForm({ mode, toolId }: ToolEditorFormProps) {
                   size="lg"
                 />
                 <div className="flex flex-wrap gap-2">
-                  <UploadButton
-                    label={isUploadingLogo ? "Uploading..." : "Upload"}
-                    isLoading={isUploadingLogo}
-                    icon="image"
-                    onChange={handleLogoUpload}
-                  />
                   {mode === "edit" ? (
                     <button
                       type="button"

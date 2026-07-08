@@ -1,7 +1,9 @@
 import { createHash } from "node:crypto";
+import { constants as fsConstants } from "node:fs";
+import { access } from "node:fs/promises";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { BadRequestException, Injectable } from "@nestjs/common";
+import { BadRequestException, Injectable, InternalServerErrorException } from "@nestjs/common";
 
 const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
 const ALLOWED_MIME_TYPES = new Set([
@@ -37,11 +39,14 @@ export class ToolAssetsService {
       .update(file.buffer)
       .digest("hex")
       .slice(0, 24)}.${extension}`;
-    const storageDirectory = kind === "logo" ? ["storage", "logos"] : ["storage", "screenshots"];
-    const root = join(process.cwd(), ...storageDirectory);
+    const root = await resolveWritableAssetDirectory(kind);
 
-    await mkdir(root, { recursive: true });
-    await writeFile(join(root, filename), file.buffer);
+    try {
+      await mkdir(root, { recursive: true });
+      await writeFile(join(root, filename), file.buffer);
+    } catch (error) {
+      throw new InternalServerErrorException(buildStorageWriteErrorMessage(kind, root, error));
+    }
 
     const url = buildPublicUrl(kind, filename);
     const thumbnailUrl = buildPublicUrl(kind, filename);
@@ -109,6 +114,41 @@ function buildPublicUrl(kind: "logo" | "screenshot", filename: string) {
   }
 
   return `${appUrl}/screenshots/${filename}`;
+}
+
+async function resolveWritableAssetDirectory(kind: "logo" | "screenshot"): Promise<string> {
+  const configuredRoot = process.env.STORAGE_UPLOAD_DIR?.trim();
+  const baseDirectory = configuredRoot || join(process.cwd(), "storage");
+  const targetDirectory = join(baseDirectory, kind === "logo" ? "logos" : "screenshots");
+  const writableCheckTarget = configuredRoot || baseDirectory;
+
+  try {
+    await mkdir(baseDirectory, { recursive: true });
+    await access(writableCheckTarget, fsConstants.W_OK);
+  } catch (error) {
+    throw new InternalServerErrorException(
+      buildStorageWriteErrorMessage(kind, targetDirectory, error),
+    );
+  }
+
+  return targetDirectory;
+}
+
+function buildStorageWriteErrorMessage(
+  kind: "logo" | "screenshot",
+  directory: string,
+  error: unknown,
+) {
+  const errorCode =
+    typeof error === "object" && error !== null && "code" in error
+      ? String((error as { code?: unknown }).code ?? "")
+      : "";
+
+  if (errorCode === "EACCES" || errorCode === "EPERM" || errorCode === "EROFS") {
+    return `Upload storage is not writable for ${kind} assets. Please verify write permission on ${directory}.`;
+  }
+
+  return `Unable to store ${kind} asset in ${directory}.`;
 }
 
 type UploadedAssetResponse = {
