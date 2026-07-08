@@ -1,32 +1,18 @@
+import { STANDARD_AI_CATEGORIES } from "@ai-tool-cms/common";
 import type { SourceId } from "./types";
 
-export const CATEGORY_WHITELIST = [
-  "Writing",
-  "Image",
-  "Video",
-  "Audio",
-  "Coding",
-  "Productivity",
-  "Marketing",
-  "SEO",
-  "Business",
-  "Research",
-  "Chatbot",
-  "Design",
-  "Automation",
-  "Developer Tools",
-] as const;
+export const CATEGORY_WHITELIST = STANDARD_AI_CATEGORIES.map((category) => category.name);
 
 export const CATEGORY_WHITELIST_SET = new Set<string>(CATEGORY_WHITELIST);
 
 export const DEFAULT_SOURCE_LIMITS: Record<SourceId, number> = {
-  producthunt: 10,
-  taaft: 10,
-  futurepedia: 10,
-  "github-trending": 10,
-  "huggingface-spaces": 10,
-  hackernews: 10,
-  "reddit-ai": 10,
+  producthunt: 50,
+  taaft: 50,
+  futurepedia: 50,
+  "github-trending": 50,
+  "huggingface-spaces": 100,
+  hackernews: 50,
+  "reddit-ai": 50,
 };
 
 export const SOURCE_NAMES: Record<SourceId, string> = {

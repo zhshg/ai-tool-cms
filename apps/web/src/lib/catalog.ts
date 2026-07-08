@@ -16,6 +16,32 @@ import {
 import { resolveToolFallbackLogoUrl, resolveToolLogoUrl } from "./tool-logo";
 
 const activeOnly = { deletedAt: null } as const;
+const STANDARD_CATEGORY_SLUGS = [
+  "ai-writing",
+  "ai-chatbots",
+  "ai-image",
+  "ai-video",
+  "ai-audio",
+  "ai-coding",
+  "ai-seo",
+  "ai-marketing",
+  "ai-productivity",
+  "ai-design",
+  "ai-business",
+  "ai-research",
+  "ai-education",
+  "ai-agents",
+  "ai-data",
+  "ai-presentation",
+  "ai-social-media",
+  "ai-customer-support",
+  "ai-developer-tools",
+  "ai-automation",
+] satisfies string[];
+const publishedToolCountWhere = {
+  deletedAt: null,
+  tool: { status: ToolStatus.PUBLISHED, deletedAt: null },
+} as const;
 
 export type CatalogTool = {
   slug: string;
@@ -399,15 +425,17 @@ async function fetchPopularHomePageTools(limit = 8): Promise<HomePageTool[]> {
 
 async function fetchCategoryDirectoryData(limit = 16): Promise<HomePageCategory[]> {
   const categories = await prisma.category.findMany({
-    where: activeOnly,
+    where: {
+      ...activeOnly,
+      slug: { in: STANDARD_CATEGORY_SLUGS },
+      tools: { some: publishedToolCountWhere },
+    },
     orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
     take: limit,
     include: {
       _count: {
         select: {
-          tools: {
-            where: { deletedAt: null, tool: { status: ToolStatus.PUBLISHED, deletedAt: null } },
-          },
+          tools: { where: publishedToolCountWhere },
         },
       },
     },
@@ -425,15 +453,17 @@ async function fetchCategoryDirectoryData(limit = 16): Promise<HomePageCategory[
 
 async function fetchRichCategoryDirectoryData(limit = 24): Promise<CategoriesPageCategory[]> {
   const categories = await prisma.category.findMany({
-    where: activeOnly,
+    where: {
+      ...activeOnly,
+      slug: { in: STANDARD_CATEGORY_SLUGS },
+      tools: { some: publishedToolCountWhere },
+    },
     orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
     take: limit,
     include: {
       _count: {
         select: {
-          tools: {
-            where: { deletedAt: null, tool: { status: ToolStatus.PUBLISHED, deletedAt: null } },
-          },
+          tools: { where: publishedToolCountWhere },
         },
       },
     },
@@ -857,15 +887,17 @@ export async function getToolsDirectory(input: {
       },
     }),
     prisma.category.findMany({
-      where: activeOnly,
+      where: {
+        ...activeOnly,
+        slug: { in: STANDARD_CATEGORY_SLUGS },
+        tools: { some: { deletedAt: null, tool: publishedToolWhere } },
+      },
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
       take: 24,
       include: {
         _count: {
           select: {
-            tools: {
-              where: { deletedAt: null, tool: publishedToolWhere },
-            },
+            tools: { where: { deletedAt: null, tool: publishedToolWhere } },
           },
         },
       },
@@ -1052,7 +1084,11 @@ export async function searchCatalogTools(input: {
 export async function getSearchPageFilters(): Promise<SearchPageFilters> {
   const [categories, tags, tools, recentQueries, apiSuggestions] = await Promise.all([
     prisma.category.findMany({
-      where: activeOnly,
+      where: {
+        ...activeOnly,
+        slug: { in: STANDARD_CATEGORY_SLUGS },
+        tools: { some: publishedToolCountWhere },
+      },
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
       take: 24,
       select: { slug: true, name: true },
@@ -1398,12 +1434,12 @@ export async function getCollectionLanding(
     fetchPopularTools(12),
     fetchHomePageTools({ take: 10, pricingModels: [PricingModel.FREE] }),
     fetchHomePageTools({ take: 10, pricingModels: [PricingModel.FREEMIUM] }),
-    fetchCollectionToolsByCategorySlugs(["writing", "ai-writing"], 12),
-    fetchCollectionToolsByCategorySlugs(["image", "image-generation"], 12),
-    fetchCollectionToolsByCategorySlugs(["video", "video-audio"], 12),
-    fetchCollectionToolsByCategorySlugs(["code", "code-assistant"], 12),
-    fetchCollectionToolsByCategorySlugs(["seo"], 12),
-    fetchCollectionToolsByCategorySlugs(["productivity"], 12),
+    fetchCollectionToolsByCategorySlugs(["ai-writing", "writing"], 12),
+    fetchCollectionToolsByCategorySlugs(["ai-image", "image", "image-generation"], 12),
+    fetchCollectionToolsByCategorySlugs(["ai-video", "video", "video-audio"], 12),
+    fetchCollectionToolsByCategorySlugs(["ai-coding", "code", "code-assistant"], 12),
+    fetchCollectionToolsByCategorySlugs(["ai-seo", "seo"], 12),
+    fetchCollectionToolsByCategorySlugs(["ai-productivity", "productivity"], 12),
   ]);
 
   const trendingTools = popularTools.slice(0, 6);
@@ -1520,15 +1556,17 @@ export async function getHomePageData(locale: string): Promise<{
   };
 }> {
   const categories = await prisma.category.findMany({
-    where: activeOnly,
+    where: {
+      ...activeOnly,
+      slug: { in: STANDARD_CATEGORY_SLUGS },
+      tools: { some: publishedToolCountWhere },
+    },
     orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
     take: 12,
     include: {
       _count: {
         select: {
-          tools: {
-            where: { deletedAt: null, tool: { status: ToolStatus.PUBLISHED, deletedAt: null } },
-          },
+          tools: { where: publishedToolCountWhere },
         },
       },
     },
@@ -1543,7 +1581,11 @@ export async function getHomePageData(locale: string): Promise<{
         where: { status: ToolStatus.PUBLISHED, ...activeOnly },
       }),
       prisma.category.count({
-        where: activeOnly,
+        where: {
+          ...activeOnly,
+          slug: { in: STANDARD_CATEGORY_SLUGS },
+          tools: { some: publishedToolCountWhere },
+        },
       }),
       prisma.tool.count({
         where: {
@@ -1631,7 +1673,11 @@ export async function getCategoryLanding(
   data: CategoryLandingData;
 } | null> {
   const category = await prisma.category.findFirst({
-    where: { slug, ...activeOnly },
+    where: {
+      ...activeOnly,
+      slug: { equals: slug, in: STANDARD_CATEGORY_SLUGS },
+      tools: { some: publishedToolCountWhere },
+    },
   });
   if (!category) return null;
 
@@ -1649,6 +1695,8 @@ export async function getCategoryLanding(
         },
       }),
     ]);
+
+  if (categoryCount === 0) return null;
 
   const config = getSiteConfig();
   const path = `/${locale}/category/${slug}`;

@@ -47,14 +47,19 @@ export function buildComparePageJsonLd(spec: ComparePageSpec, locale = "en") {
 }
 
 export function buildCategoryLandingMetadata(
-  category: { slug: string; name: string; metaDescription?: string | null },
+  category: {
+    slug: string;
+    name: string;
+    metaTitle?: string | null;
+    metaDescription?: string | null;
+  },
   locale = "en",
 ): BuiltMetadata {
   const normalizedName = normalizeCategoryLabel(category.name);
   const titleLabel = buildCategoryToolsLabel(normalizedName);
 
   return buildMetadata({
-    title: `Best ${titleLabel}`,
+    title: category.metaTitle ?? `Best ${titleLabel}`,
     description:
       category.metaDescription ??
       `Discover top ${titleLabel.toLowerCase()}, reviews, pricing, and comparisons.`,

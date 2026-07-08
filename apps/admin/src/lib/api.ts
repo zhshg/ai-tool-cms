@@ -71,7 +71,7 @@ export function getAdminBasePath(): string {
   }
 
   if (typeof window === "undefined") {
-    return "/admin";
+    return "";
   }
 
   const segments = window.location.pathname.split("/").filter(Boolean);
@@ -156,8 +156,15 @@ export function normalizeAdminNextPath(nextPath: string | null | undefined): str
     return `${fallback}${search}${hash}`;
   }
 
+  if (pathname === "/dashboard" || pathname.startsWith("/dashboard/")) {
+    return `${fallback}${search}${hash}`;
+  }
+
   if (normalizedBasePath && pathname.startsWith(`${normalizedBasePath}/`)) {
     const relativePath = pathname.slice(normalizedBasePath.length) || fallback;
+    if (relativePath === "/dashboard" || relativePath.startsWith("/dashboard/")) {
+      return `${fallback}${search}${hash}`;
+    }
     return `${relativePath}${search}${hash}`;
   }
 
@@ -166,7 +173,11 @@ export function normalizeAdminNextPath(nextPath: string | null | undefined): str
   }
 
   if (pathname.startsWith("/admin/")) {
-    return `${pathname.slice("/admin".length)}${search}${hash}`;
+    const relativePath = pathname.slice("/admin".length) || fallback;
+    if (relativePath === "/dashboard" || relativePath.startsWith("/dashboard/")) {
+      return `${fallback}${search}${hash}`;
+    }
+    return `${relativePath}${search}${hash}`;
   }
 
   if (pathname === "/admin") {
@@ -363,18 +374,45 @@ export type SeoIntegrationSnapshot = {
   note?: string;
 };
 
+export type SeoProviderStatus = {
+  siteUrl?: string | null;
+  propertyId?: string | null;
+  propertyName?: string | null;
+  verificationStatus: string;
+  hasAccessToken: boolean;
+  hasRefreshToken: boolean;
+  connected: boolean;
+  connectedAt?: string | null;
+  disconnectedAt?: string | null;
+  disconnectReason?: string | null;
+  oauthConfigured?: boolean;
+  authUrl?: string | null;
+};
+
 export type SeoIntegrationsResponse = {
   providers: {
     googleSearchConsole: {
       config: SeoProviderConfig;
       live: SeoIntegrationSnapshot;
+      status: SeoProviderStatus;
     };
     bingWebmaster: {
       config: SeoProviderConfig;
       live: SeoIntegrationSnapshot;
+      status: SeoProviderStatus;
     };
   };
   general: SeoGeneralConfig;
+};
+
+export type SeoIntegrationConnectUrlResponse = {
+  provider: string;
+  authUrl: string | null;
+  oauthConfigured: boolean;
+  redirectUri?: string;
+  hasClientId?: boolean;
+  hasClientSecret?: boolean;
+  reason?: string;
 };
 
 export type PaginatedResponse<T> = {
@@ -994,6 +1032,10 @@ export function refreshSeoIntegration(provider: "google" | "bing") {
   return apiFetch<SeoIntegrationsResponse>(`/seo/integrations/${provider}/refresh`, {
     method: "POST",
   });
+}
+
+export function fetchSeoIntegrationConnectUrl(provider: "google" | "bing") {
+  return apiFetch<SeoIntegrationConnectUrlResponse>(`/seo/integrations/${provider}/connect-url`);
 }
 
 export function fetchTools() {

@@ -197,6 +197,36 @@ async function fetchTextOnce(url: string, timeoutMs = 15000): Promise<string> {
   }
 }
 
+function decodeUrlCandidate(value: string): string {
+  return value
+    .replace(/&amp;/g, "&")
+    .replace(/\\u0026/g, "&")
+    .replace(/\\u003d/g, "=")
+    .replace(/\\\//g, "/");
+}
+
+function stripTrackingParams(value: string): string {
+  try {
+    const url = new URL(decodeUrlCandidate(value));
+    const removableKeys = [...url.searchParams.keys()].filter((key) => {
+      const normalized = key.toLowerCase();
+      return (
+        normalized.startsWith("utm_") ||
+        normalized === "ref" ||
+        normalized === "source" ||
+        normalized === "campaign" ||
+        normalized === "medium"
+      );
+    });
+    for (const key of removableKeys) {
+      url.searchParams.delete(key);
+    }
+    return url.toString().replace(/\?$/, "");
+  } catch {
+    return decodeUrlCandidate(value);
+  }
+}
+
 function decodeHtmlEntities(value: string): string {
   return value
     .replace(/&quot;/g, '"')
@@ -248,6 +278,45 @@ function parseFuturepediaHomepage(limit: number, html: string): RawSourceRecord[
   }
 
   return rows;
+}
+
+async function resolveFuturepediaOfficialWebsite(sourceUrl: string): Promise<string | null> {
+  const html = await fetchText(sourceUrl);
+  const hrefMatch =
+    html.match(/href="(https:\/\/[^"]+)"[^>]*>\s*<button[^>]*>Visit Site/i) ??
+    html.match(/"href":"(https:\\\/\\\/[^"]+)"/i);
+  if (!hrefMatch?.[1]) return null;
+
+  const candidate = stripTrackingParams(hrefMatch[1]);
+  if (!candidate || /futurepedia\.io/i.test(candidate)) return null;
+  return candidate;
+}
+
+async function enrichFuturepediaRecords(records: RawSourceRecord[]): Promise<RawSourceRecord[]> {
+  const enriched: RawSourceRecord[] = [];
+  for (const record of records) {
+    try {
+      const officialWebsiteUrl = await resolveFuturepediaOfficialWebsite(record.sourceUrl);
+      enriched.push({
+        ...record,
+        websiteUrl: officialWebsiteUrl,
+        metadata: {
+          ...(record.metadata ?? {}),
+          officialWebsiteResolved: Boolean(officialWebsiteUrl),
+        },
+      });
+    } catch {
+      enriched.push({
+        ...record,
+        websiteUrl: null,
+        metadata: {
+          ...(record.metadata ?? {}),
+          officialWebsiteResolved: false,
+        },
+      });
+    }
+  }
+  return enriched;
 }
 
 function parseTaaftHomepage(limit: number, html: string): RawSourceRecord[] {
@@ -371,7 +440,8 @@ const adapters: SourceAdapter[] = [
     enabledByDefault: true,
     async fetch(limit) {
       const html = await fetchText("https://www.futurepedia.io/");
-      return parseFuturepediaHomepage(limit, html);
+      const records = parseFuturepediaHomepage(limit, html);
+      return enrichFuturepediaRecords(records);
     },
   },
   {

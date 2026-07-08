@@ -1,5 +1,5 @@
 import { BillingPeriod, PricingModel, ToolStatus } from "@prisma/client";
-import { slugify } from "@ai-tool-cms/common";
+import { STANDARD_AI_CATEGORIES, slugify } from "@ai-tool-cms/common";
 import { prisma } from "./context";
 import { upsertBySlug } from "./helpers";
 
@@ -19,28 +19,10 @@ type ToolSeed = {
 };
 
 const CATEGORIES: CategorySeed[] = [
-  { name: "AI Writing", description: "Draft articles, product copy, and campaign content faster." },
-  { name: "Image Generation", description: "Create illustrations, product shots, and marketing visuals." },
-  { name: "Code Assistant", description: "Ship software with AI pair programming and code review support." },
-  { name: "Productivity", description: "Automate notes, planning, and internal knowledge workflows." },
-  { name: "Video & Audio", description: "Generate voice, edit clips, and repurpose media with AI." },
-  { name: "Research", description: "Summarize documents, compare sources, and gather evidence." },
-  { name: "Presentation", description: "Turn outlines into decks, visuals, and presenter notes." },
-  { name: "Design", description: "Support UI, branding, and creative production with AI." },
-  { name: "Sales", description: "Prospect accounts, prep outreach, and automate sales follow-up." },
-  { name: "Marketing", description: "Plan campaigns, landing pages, SEO content, and reporting." },
-  { name: "SEO", description: "Research keywords, optimize pages, and grow search visibility." },
-  { name: "Customer Support", description: "Deflect tickets and assist agents with AI workflows." },
-  { name: "Education", description: "Build lessons, quizzes, and learning assistants." },
-  { name: "Finance", description: "Handle reporting, scenario planning, and spreadsheet analysis." },
-  { name: "HR", description: "Improve hiring, onboarding, and people operations." },
-  { name: "Legal", description: "Review contracts, extract clauses, and prepare summaries." },
-  { name: "Data Analysis", description: "Query datasets, explain trends, and build dashboards." },
-  { name: "Automation", description: "Connect apps and trigger AI-powered workflows." },
-  { name: "E-commerce", description: "Merchandise catalogs, optimize listings, and answer shoppers." },
-  { name: "Recruiting", description: "Source candidates and standardize interview prep." },
-  { name: "Translation", description: "Localize product copy, docs, and support material." },
-  { name: "Social Media", description: "Draft posts, repurpose content, and track channel ideas." },
+  ...STANDARD_AI_CATEGORIES.map((category) => ({
+    name: category.name,
+    description: category.description,
+  })),
 ];
 
 const TAGS = [
@@ -62,27 +44,25 @@ function titleBase(categoryName: string): string {
 function buildTagSlugs(categorySlug: string, index: number): string[] {
   const categoryMap: Record<string, string[]> = {
     "ai-writing": ["text-generation", "marketing", "free-tier"],
-    "image-generation": ["image-generation", "design", "marketing"],
-    "code-assistant": ["developer-tools", "code-completion", "api"],
-    "productivity": ["notetaking", "knowledge-base", "team-collaboration"],
-    "video-audio": ["voice-ai", "video-editing", "transcription"],
-    research: ["research", "summarization", "document-ai"],
-    presentation: ["presentation", "reporting", "team-collaboration"],
-    design: ["design", "image-generation", "prompting"],
-    sales: ["sales-outreach", "crm", "reporting"],
-    marketing: ["marketing", "landing-pages", "social-media"],
-    seo: ["seo", "analytics", "reporting"],
-    "customer-support": ["customer-support", "knowledge-base", "review-assistant"],
-    education: ["text-generation", "document-ai", "summarization"],
-    finance: ["finance", "spreadsheet", "analytics"],
-    hr: ["recruiting", "team-collaboration", "workflow"],
-    legal: ["legal", "compliance", "review-assistant"],
-    "data-analysis": ["analytics", "spreadsheet", "api"],
-    automation: ["automation", "workflow", "api"],
-    "e-commerce": ["ecommerce", "marketing", "customer-support"],
-    recruiting: ["recruiting", "document-ai", "team-collaboration"],
-    translation: ["translation", "multilingual", "api"],
-    "social-media": ["social-media", "marketing", "analytics"],
+    "ai-chatbots": ["chatbot", "agent", "customer-support"],
+    "ai-image": ["image-generation", "design", "marketing"],
+    "ai-video": ["video-editing", "voice-ai", "marketing"],
+    "ai-audio": ["voice-ai", "transcription", "multilingual"],
+    "ai-coding": ["developer-tools", "code-completion", "api"],
+    "ai-seo": ["seo", "analytics", "reporting"],
+    "ai-marketing": ["marketing", "landing-pages", "social-media"],
+    "ai-productivity": ["notetaking", "knowledge-base", "team-collaboration"],
+    "ai-design": ["design", "image-generation", "prompting"],
+    "ai-business": ["workflow", "reporting", "team-collaboration"],
+    "ai-research": ["research", "summarization", "document-ai"],
+    "ai-education": ["text-generation", "document-ai", "summarization"],
+    "ai-agents": ["agent", "workflow", "automation"],
+    "ai-data": ["analytics", "spreadsheet", "api"],
+    "ai-presentation": ["presentation", "reporting", "team-collaboration"],
+    "ai-social-media": ["social-media", "marketing", "analytics"],
+    "ai-customer-support": ["customer-support", "knowledge-base", "review-assistant"],
+    "ai-developer-tools": ["developer-tools", "api", "workflow"],
+    "ai-automation": ["automation", "workflow", "api"],
   };
   const tags = categoryMap[categorySlug] ?? ["workflow", "team-collaboration", "free-tier"];
   if (index === 0) return [...tags, "free-tier", "browser-based"];
@@ -151,22 +131,25 @@ function buildSnapshot(tool: ToolSeed): Record<string, unknown> {
 export async function seedPublicCatalog(actorId: string): Promise<{ categoryIds: string[]; tagIds: string[]; toolIds: string[] }> {
   const categoryIdBySlug = new Map<string, string>();
   for (const [index, category] of CATEGORIES.entries()) {
-    const slug = slugify(category.name);
+    const definition = STANDARD_AI_CATEGORIES[index];
+    const slug = definition?.slug ?? slugify(category.name);
     const record = await upsertBySlug(prisma.category, slug, {
       name: category.name,
       description: category.description,
-      sortOrder: index,
+      sortOrder: definition?.sortOrder ?? index,
       createdById: actorId,
-      metaTitle: `${category.name} AI Tools`,
-      metaDescription: category.description,
+      metaTitle: definition?.seoTitle ?? `${category.name} AI Tools`,
+      metaDescription: definition?.seoDescription ?? category.description,
+      metadata: { featured: definition?.isFeatured ?? false },
     }, {
       name: category.name,
       description: category.description,
-      sortOrder: index,
+      sortOrder: definition?.sortOrder ?? index,
       deletedAt: null,
       updatedById: actorId,
-      metaTitle: `${category.name} AI Tools`,
-      metaDescription: category.description,
+      metaTitle: definition?.seoTitle ?? `${category.name} AI Tools`,
+      metaDescription: definition?.seoDescription ?? category.description,
+      metadata: { featured: definition?.isFeatured ?? false },
     });
     categoryIdBySlug.set(slug, record.id);
   }

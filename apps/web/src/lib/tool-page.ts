@@ -159,8 +159,8 @@ export async function getToolPage(
 
   const pros = normalizeStringList(metadata.aiPros);
   const cons = normalizeStringList(metadata.aiCons);
-  const useCases = normalizeStringList(metadata.aiUseCases ?? metadata.useCases);
-  const features = buildFeatureList(metadata);
+  const baseUseCases = normalizeStringList(metadata.aiUseCases ?? metadata.useCases);
+  const baseFeatures = buildFeatureList(metadata);
   const apiAccess = buildApiAccess(metadata);
   const platforms = normalizeStringList(metadata.aiPlatforms ?? metadata.platforms);
   const languages = normalizeStringList(metadata.aiLanguages ?? metadata.languages);
@@ -186,15 +186,32 @@ export async function getToolPage(
     slug: item.tag.slug,
     name: item.tag.name,
   }));
+  const primaryCategoryName = primaryCategory?.name ?? "AI Tool";
+  const useCases = ensureMinimumUseCases(baseUseCases, tool.name, primaryCategoryName, tool.summary);
+  const features = ensureMinimumFeatures(
+    baseFeatures,
+    tool.name,
+    primaryCategoryName,
+    tool.summary,
+    tool.pricingModel,
+  );
   const faqs = tool.faqs.map((f: ToolFaqRow) => ({ question: f.question, answer: f.answer }));
   const screenshots = buildToolScreenshots(tool.toolScreenshots, metadata, tool.website);
   const recommendations = await buildToolRecommendations(prisma, tool.id, 6);
-  const [alternatives, similarTools, moreLikeThis, trendingTools] = await Promise.all([
+  const [recommendedAlternatives, similarTools, moreLikeThis, trendingTools] = await Promise.all([
     hydrateRecommendedToolCards(recommendations.alternatives),
     hydrateRecommendedToolCards(recommendations.similarTools),
     hydrateRecommendedToolCards(recommendations.moreLikeThis),
     hydrateRecommendedToolCards(recommendations.trendingTools),
   ]);
+  const alternatives = await ensureMinimumAlternatives(
+    tool.id,
+    tool.slug,
+    recommendedAlternatives,
+    metadata,
+    tool.categories.map((item) => item.category.slug),
+  );
+  const enrichedFaqs = ensureMinimumFaqs(faqs, tool.name, tool.summary, tool.pricingModel, alternatives);
   const relatedCategories = recommendations.relatedCategories.map((category) => ({
     slug: category.slug,
     name: category.name,
@@ -230,7 +247,7 @@ export async function getToolPage(
         : []),
       { name: tool.name, path: `/${locale}/tools/${tool.slug}` },
     ],
-    faqs,
+    faqs: enrichedFaqs,
   });
 
   return {
@@ -269,7 +286,7 @@ export async function getToolPage(
       moreLikeThis,
       trendingTools,
       relatedCategories,
-      faqs,
+      faqs: enrichedFaqs,
       reviews: tool.reviews.map((review) => ({
         title: review.title,
         content: review.content,
@@ -355,6 +372,56 @@ async function hydrateRecommendedToolCards(
 
   return cards;
 }
+
+async function ensureMinimumAlternatives(
+  toolId: string,
+  toolSlug: string,
+  recommended: RecommendedToolCard[],
+  metadata: Record<string, unknown>,
+  categorySlugs: string[],
+): Promise<RecommendedToolCard[]> {
+  if (recommended.length >= 3) {
+    return recommended.slice(0, 6);
+  }
+
+  const alternativeSlugs = normalizeStringList(metadata.alternativeSlugs);
+  const needed = 3 - recommended.length;
+  const exclusion = new Set([toolSlug, ...recommended.map((item) => item.slug)]);
+  const fallbackRecommendations = alternativeSlugs
+    .filter((slug) => !exclusion.has(slug))
+    .map((slug) => ({ slug, reason: "seeded alternatives" }));
+
+  if (fallbackRecommendations.length < needed && categorySlugs.length > 0) {
+    const extraTools = await prisma.tool.findMany({
+      where: {
+        status: ToolStatus.PUBLISHED,
+        ...activeOnly,
+        id: { not: toolId },
+        categories: {
+          some: {
+            deletedAt: null,
+            category: {
+              slug: { in: categorySlugs },
+              deletedAt: null,
+            },
+          },
+        },
+      },
+      select: { slug: true },
+      take: 6,
+    });
+
+    for (const tool of extraTools) {
+      if (exclusion.has(tool.slug)) continue;
+      fallbackRecommendations.push({ slug: tool.slug, reason: "same category" });
+      exclusion.add(tool.slug);
+    }
+  }
+
+  const fallbackCards = await hydrateRecommendedToolCards(fallbackRecommendations);
+  return [...recommended, ...fallbackCards].slice(0, 6);
+}
+
 function buildFeatureList(metadata: Record<string, unknown>): string[] {
   const explicitFeatures = normalizeStringList(metadata.aiFeatures);
   if (explicitFeatures.length) {
@@ -372,6 +439,53 @@ function buildFeatureList(metadata: Record<string, unknown>): string[] {
   }
 
   return [];
+}
+
+function ensureMinimumFeatures(
+  features: string[],
+  toolName: string,
+  categoryName: string,
+  summary: string | null,
+  pricingModel: PricingModel,
+): string[] {
+  const next = dedupeStrings(features);
+
+  const defaults = [
+    summary ? `Supports ${summary.toLowerCase().replace(/\.$/, "")}` : `${toolName} supports common ${categoryName.toLowerCase()} workflows`,
+    `${toolName} can be evaluated for ${categoryName.toLowerCase()} use cases`,
+    `${toolName} offers a ${pricingModel.toLowerCase()} pricing model`,
+    `Teams can compare ${toolName} against alternatives by workflow fit and feature coverage`,
+  ];
+
+  for (const item of defaults) {
+    if (next.length >= 4) break;
+    if (item.trim()) next.push(item.trim());
+  }
+
+  return dedupeStrings(next).slice(0, 8);
+}
+
+function ensureMinimumUseCases(
+  useCases: string[],
+  toolName: string,
+  categoryName: string,
+  summary: string | null,
+): string[] {
+  const next = dedupeStrings(useCases);
+  const defaults = [
+    `Evaluate ${toolName} for day-to-day ${categoryName.toLowerCase()} tasks`,
+    `Compare ${toolName} with other tools before adopting a workflow`,
+    summary
+      ? `Use ${toolName} when you need ${summary.toLowerCase().replace(/\.$/, "")}`
+      : `Use ${toolName} for repeatable ${categoryName.toLowerCase()} work`,
+  ];
+
+  for (const item of defaults) {
+    if (next.length >= 3) break;
+    if (item.trim()) next.push(item.trim());
+  }
+
+  return dedupeStrings(next).slice(0, 6);
 }
 
 function resolveScreenshotUrl(storageKey: string, metadata: unknown): string {
@@ -463,4 +577,56 @@ function buildToolScreenshots(
     width: 1280,
     height: 720,
   }));
+}
+
+function ensureMinimumFaqs(
+  faqs: Array<{ question: string; answer: string }>,
+  toolName: string,
+  summary: string | null,
+  pricingModel: PricingModel,
+  alternatives: Array<{ name: string }>,
+): Array<{ question: string; answer: string }> {
+  const next = [...faqs];
+
+  if (next.length === 0) {
+    next.push({
+      question: `What is ${toolName}?`,
+      answer: summary ?? `${toolName} is an AI tool listed in the directory.`,
+    });
+  }
+
+  if (next.length < 2) {
+    next.push({
+      question: `How is ${toolName} priced?`,
+      answer: `${toolName} is currently listed with a ${pricingModel.toLowerCase()} pricing model.`,
+    });
+  }
+
+  if (next.length < 3) {
+    next.push({
+      question: `What are the best alternatives to ${toolName}?`,
+      answer:
+        alternatives.length > 0
+          ? `Popular alternatives include ${alternatives.slice(0, 3).map((tool) => tool.name).join(", ")}.`
+          : `${toolName} can be compared with other published tools in the same category for pricing, features, and workflow fit.`,
+    });
+  }
+
+  return next.slice(0, 10);
+}
+
+function dedupeStrings(items: string[]): string[] {
+  const seen = new Set<string>();
+  const next: string[] = [];
+
+  for (const item of items) {
+    const normalized = item.trim();
+    if (!normalized) continue;
+    const key = normalized.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    next.push(normalized);
+  }
+
+  return next;
 }

@@ -20,6 +20,7 @@ import {
   disconnectSeoIntegration,
   fetchSearchConsole,
   fetchSeoDashboard,
+  fetchSeoIntegrationConnectUrl,
   fetchSeoIntegrations,
   refreshSeoIntegration,
   updateSeoIntegrations,
@@ -28,6 +29,7 @@ import {
   type SeoIntegrationSnapshot,
   type SeoIntegrationsResponse,
   type SeoProviderConfig,
+  type SeoProviderStatus,
   type SearchConsoleResponse,
   type SeoDashboardResponse,
 } from "@/lib/api";
@@ -137,13 +139,47 @@ function normalizeSnapshot(
   };
 }
 
+function normalizeProviderStatus(
+  config: SeoProviderConfig,
+  preferred?: SeoProviderStatus,
+): SeoProviderStatus {
+  if (preferred) {
+    return preferred;
+  }
+
+  const verificationStatus = config.verificationStatus?.trim() || "not_connected";
+  const hasAccessToken = Boolean(config.oauthAccessToken?.trim());
+  const hasRefreshToken = Boolean(config.oauthRefreshToken?.trim());
+  const hasApiKey = Boolean(config.apiKey?.trim());
+  const connectedVerification =
+    verificationStatus === "connected" || verificationStatus === "verified";
+  const connected = connectedVerification && (hasRefreshToken || hasApiKey);
+
+  return {
+    siteUrl: config.siteUrl?.trim() || null,
+    propertyId: config.propertyId?.trim() || null,
+    propertyName: config.propertyName?.trim() || null,
+    verificationStatus,
+    hasAccessToken,
+    hasRefreshToken,
+    connected,
+    connectedAt: config.connectedAt ?? null,
+    disconnectedAt: config.disconnectedAt ?? null,
+    disconnectReason: config.disconnectReason ?? null,
+    oauthConfigured: false,
+    authUrl: null,
+  };
+}
+
 function IntegrationCard({
   title,
   provider,
   config,
   live,
+  status,
   onChange,
   onRefresh,
+  onConnect,
   onDisconnect,
   busy,
 }: {
@@ -151,8 +187,10 @@ function IntegrationCard({
   provider: "google" | "bing";
   config: SeoProviderConfig;
   live: SeoIntegrationSnapshot;
+  status: SeoProviderStatus;
   onChange: (next: SeoProviderConfig) => void;
   onRefresh: (provider: "google" | "bing") => void;
+  onConnect: (provider: "google" | "bing") => void;
   onDisconnect: (provider: "google" | "bing") => void;
   busy: boolean;
 }) {
@@ -201,10 +239,10 @@ function IntegrationCard({
             variant="outline"
             size="sm"
             disabled={busy}
-            onClick={() => onDisconnect(provider)}
+            onClick={() => (status.connected ? onDisconnect(provider) : onConnect(provider))}
           >
             <Unplug className="mr-2 h-4 w-4" />
-            Disconnect
+            {status.connected ? "Disconnect" : "Connect"}
           </Button>
         </div>
       </div>
@@ -352,6 +390,24 @@ export default function SeoDashboardPage() {
     [integrations?.providers.bingWebmaster.live, searchConsole?.bing],
   );
 
+  const googleStatus = useMemo(
+    () =>
+      normalizeProviderStatus(
+        googleConfig,
+        integrations?.providers.googleSearchConsole.status,
+      ),
+    [googleConfig, integrations?.providers.googleSearchConsole.status],
+  );
+
+  const bingStatus = useMemo(
+    () =>
+      normalizeProviderStatus(
+        bingConfig,
+        integrations?.providers.bingWebmaster.status,
+      ),
+    [bingConfig, integrations?.providers.bingWebmaster.status],
+  );
+
   const saveIntegrations = useCallback(async () => {
     if (!integrations) return;
 
@@ -402,6 +458,37 @@ export default function SeoDashboardPage() {
     } catch (err) {
       const apiErr = err as ApiError;
       setError(apiErr.message ?? "Failed to disconnect integration.");
+    }
+  }, []);
+
+  const handleConnectProvider = useCallback(async (provider: "google" | "bing") => {
+    setError(null);
+    setMessage(null);
+
+    if (provider !== "google") {
+      setError("Only Google Search Console supports OAuth connect right now.");
+      return;
+    }
+
+    try {
+      const result = await fetchSeoIntegrationConnectUrl(provider);
+
+      if (!result.oauthConfigured || !result.authUrl) {
+        setError(
+          result.reason ??
+            "Google Search Console OAuth is not configured. Please check server env settings.",
+        );
+        return;
+      }
+
+      if (typeof window !== "undefined") {
+        window.open(result.authUrl, "_blank", "noopener,noreferrer");
+      }
+
+      setMessage("Google Search Console connect window opened.");
+    } catch (err) {
+      const apiErr = err as ApiError;
+      setError(apiErr.message ?? "Failed to create Google OAuth connect URL.");
     }
   }, []);
 
@@ -514,8 +601,13 @@ export default function SeoDashboardPage() {
           <IntegrationCard
             title="Google Search Console"
             provider="google"
-            config={googleConfig}
+            config={{
+              ...googleConfig,
+              enabled: googleStatus.connected,
+              verificationStatus: googleStatus.verificationStatus,
+            }}
             live={googleLive}
+            status={googleStatus}
             busy={saving || loading}
             onChange={(next) =>
               setIntegrations((current) =>
@@ -534,14 +626,20 @@ export default function SeoDashboardPage() {
               )
             }
             onRefresh={handleRefreshProvider}
+            onConnect={handleConnectProvider}
             onDisconnect={handleDisconnectProvider}
           />
 
           <IntegrationCard
             title="Bing Webmaster"
             provider="bing"
-            config={bingConfig}
+            config={{
+              ...bingConfig,
+              enabled: bingStatus.connected,
+              verificationStatus: bingStatus.verificationStatus,
+            }}
             live={bingLive}
+            status={bingStatus}
             busy={saving || loading}
             onChange={(next) =>
               setIntegrations((current) =>
@@ -560,6 +658,7 @@ export default function SeoDashboardPage() {
               )
             }
             onRefresh={handleRefreshProvider}
+            onConnect={handleConnectProvider}
             onDisconnect={handleDisconnectProvider}
           />
 

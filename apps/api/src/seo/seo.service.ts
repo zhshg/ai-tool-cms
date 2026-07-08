@@ -17,6 +17,7 @@ import {
   getSiteConfig,
 } from "@ai-tool-cms/seo";
 import { isSupportedLocale } from "@ai-tool-cms/i18n";
+import { STANDARD_AI_CATEGORIES } from "@ai-tool-cms/common";
 import { PromptStatus, ToolStatus } from "@ai-tool-cms/database";
 import { PrismaService } from "../prisma/prisma.service";
 import { activeOnly } from "../common/prisma.util";
@@ -41,6 +42,36 @@ type SeoProviderConfig = {
   disconnectedAt?: string;
   disconnectReason?: string;
   lastRefreshedAt?: string;
+};
+
+type SeoProviderStatus = {
+  siteUrl: string | null;
+  propertyId: string | null;
+  propertyName: string | null;
+  verificationStatus: string;
+  hasAccessToken: boolean;
+  hasRefreshToken: boolean;
+  connected: boolean;
+  connectedAt: string | null;
+  disconnectedAt: string | null;
+  disconnectReason: string | null;
+  oauthConfigured: boolean;
+  authUrl: string | null;
+};
+
+type GoogleOAuthCallbackParams = {
+  code?: string;
+  error?: string;
+};
+
+type GoogleOAuthTokenResponse = {
+  access_token?: string;
+  refresh_token?: string;
+  expires_in?: number;
+  token_type?: string;
+  scope?: string;
+  error?: string;
+  error_description?: string;
 };
 
 type SeoGeneralConfig = {
@@ -87,6 +118,7 @@ export class SeoService {
     "ai/country",
     "ai/language",
   ] as const;
+  private readonly standardCategorySlugs = STANDARD_AI_CATEGORIES.map((category) => category.slug);
 
   async getSitemapIndexXml(): Promise<string> {
     const config = getSiteConfig();
@@ -261,10 +293,12 @@ export class SeoService {
         googleSearchConsole: {
           config: this.maskProviderConfig(googleConfig),
           live: googleLive,
+          status: this.buildProviderStatus("googleSearchConsole", googleConfig),
         },
         bingWebmaster: {
           config: this.maskProviderConfig(bingConfig),
           live: bingLive,
+          status: this.buildProviderStatus("bingWebmaster", bingConfig),
         },
       },
       general: this.maskGeneralConfig(generalConfig),
@@ -272,7 +306,27 @@ export class SeoService {
   }
 
   async updateIntegrations(dto: UpdateSeoIntegrationsDto, actorId: string) {
-    const current = await this.getIntegrations();
+    const [googleCurrent, bingCurrent, generalCurrent] = await Promise.all([
+      this.readSetting<SeoProviderConfig>(
+        this.integrationSettingKeys.googleSearchConsole,
+        this.getDefaultProviderConfig(),
+      ),
+      this.readSetting<SeoProviderConfig>(
+        this.integrationSettingKeys.bingWebmaster,
+        this.getDefaultProviderConfig(),
+      ),
+      this.readSetting<SeoGeneralConfig>(
+        this.integrationSettingKeys.general,
+        this.getDefaultGeneralConfig(),
+      ),
+    ]);
+    const current = {
+      providers: {
+        googleSearchConsole: { config: this.maskProviderConfig(googleCurrent) },
+        bingWebmaster: { config: this.maskProviderConfig(bingCurrent) },
+      },
+      general: this.maskGeneralConfig(generalCurrent),
+    };
     const nextGoogle = this.mergeProviderConfig(
       current.providers.googleSearchConsole.config,
       dto.googleSearchConsole,
@@ -281,27 +335,27 @@ export class SeoService {
     const nextGeneral = this.mergeGeneralConfig(current.general, dto.general);
 
     await Promise.all([
-      this.upsertSetting(
-        this.integrationSettingKeys.googleSearchConsole,
-        this.restoreSecrets(nextGoogle, current.providers.googleSearchConsole.config),
-        "seo",
-        "Google Search Console integration configuration",
-        actorId,
-      ),
-      this.upsertSetting(
-        this.integrationSettingKeys.bingWebmaster,
-        this.restoreSecrets(nextBing, current.providers.bingWebmaster.config),
-        "seo",
-        "Bing Webmaster integration configuration",
-        actorId,
-      ),
-      this.upsertSetting(
-        this.integrationSettingKeys.general,
-        this.restoreGeneralSecrets(nextGeneral, current.general),
-        "seo",
-        "General SEO integration configuration",
-        actorId,
-      ),
+        this.upsertSetting(
+          this.integrationSettingKeys.googleSearchConsole,
+          this.restoreSecrets(nextGoogle, googleCurrent),
+          "seo",
+          "Google Search Console integration configuration",
+          actorId,
+        ),
+        this.upsertSetting(
+          this.integrationSettingKeys.bingWebmaster,
+          this.restoreSecrets(nextBing, bingCurrent),
+          "seo",
+          "Bing Webmaster integration configuration",
+          actorId,
+        ),
+        this.upsertSetting(
+          this.integrationSettingKeys.general,
+          this.restoreGeneralSecrets(nextGeneral, generalCurrent),
+          "seo",
+          "General SEO integration configuration",
+          actorId,
+        ),
     ]);
 
     return this.getIntegrations();
@@ -320,7 +374,9 @@ export class SeoService {
       oauthRefreshToken: undefined,
       apiKey: undefined,
       verificationStatus: "disconnected",
+      connectedAt: undefined,
       disconnectedAt: new Date().toISOString(),
+      lastRefreshedAt: new Date().toISOString(),
     };
 
     await this.upsertSetting(
@@ -340,13 +396,22 @@ export class SeoService {
       this.integrationSettingKeys[normalized],
       this.getDefaultProviderConfig(),
     );
+    const hasAccessToken = Boolean(config.oauthAccessToken?.trim());
+    const hasRefreshToken = Boolean(config.oauthRefreshToken?.trim());
+    const hasApiKey = Boolean(config.apiKey?.trim());
+    const connected =
+      normalized === "googleSearchConsole"
+        ? hasRefreshToken && this.isConnectedVerificationStatus(config.verificationStatus)
+        : hasApiKey && this.isConnectedVerificationStatus(config.verificationStatus);
     const next: SeoProviderConfig = {
       ...config,
       lastRefreshedAt: new Date().toISOString(),
-      verificationStatus:
-        config.enabled && (config.oauthAccessToken || config.apiKey || config.siteUrl)
-          ? "verified"
-          : config.verificationStatus || "pending",
+      enabled: connected,
+      verificationStatus: connected
+        ? config.verificationStatus || "connected"
+        : hasAccessToken || hasRefreshToken || hasApiKey || Boolean(config.siteUrl?.trim())
+          ? "disconnected"
+          : "not_connected",
     };
 
     await this.upsertSetting(
@@ -360,13 +425,167 @@ export class SeoService {
     return this.getIntegrations();
   }
 
+  getIntegrationConnectUrl(provider: string) {
+    const normalized = this.assertProvider(provider);
+    if (normalized !== "googleSearchConsole") {
+      return {
+        provider: normalized,
+        authUrl: null,
+        oauthConfigured: false,
+        reason: "OAuth connect URL is only supported for Google Search Console.",
+      };
+    }
+
+    const { clientId, redirectUri, oauthConfigured } = this.getGoogleOAuthConfig();
+
+    if (!oauthConfigured) {
+      return {
+        provider: normalized,
+        authUrl: null,
+        oauthConfigured: false,
+        reason:
+          "Missing GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, or GOOGLE_SEARCH_CONSOLE_REDIRECT_URI.",
+      };
+    }
+
+    const params = new URLSearchParams({
+      client_id: clientId,
+      redirect_uri: redirectUri,
+      response_type: "code",
+      access_type: "offline",
+      prompt: "consent",
+      scope: "https://www.googleapis.com/auth/webmasters.readonly",
+      include_granted_scopes: "true",
+    });
+
+    return {
+      provider: normalized,
+      authUrl: `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`,
+      oauthConfigured: true,
+      redirectUri,
+      hasClientId: true,
+      hasClientSecret: true,
+    };
+  }
+
+  async handleGoogleSearchConsoleCallback({ code, error }: GoogleOAuthCallbackParams) {
+    if (error) {
+      return {
+        statusCode: 400,
+        html: this.renderOAuthResultPage({
+          title: "Google Search Console connect failed",
+          message: `Google returned an OAuth error: ${error}.`,
+          success: false,
+        }),
+      };
+    }
+
+    if (!code?.trim()) {
+      return {
+        statusCode: 400,
+        html: this.renderOAuthResultPage({
+          title: "Google Search Console connect failed",
+          message: "Missing OAuth code from Google callback.",
+          success: false,
+        }),
+      };
+    }
+
+    const { clientId, clientSecret, redirectUri, oauthConfigured } = this.getGoogleOAuthConfig();
+    if (!oauthConfigured) {
+      return {
+        statusCode: 500,
+        html: this.renderOAuthResultPage({
+          title: "Google Search Console connect failed",
+          message:
+            "Server OAuth environment is incomplete. Missing GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, or GOOGLE_SEARCH_CONSOLE_REDIRECT_URI.",
+          success: false,
+        }),
+      };
+    }
+
+    const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: new URLSearchParams({
+        code: code.trim(),
+        client_id: clientId,
+        client_secret: clientSecret,
+        redirect_uri: redirectUri,
+        grant_type: "authorization_code",
+      }),
+    });
+
+    const tokenPayload = (await tokenResponse.json()) as GoogleOAuthTokenResponse;
+    if (!tokenResponse.ok || !tokenPayload.access_token) {
+      const reason =
+        tokenPayload.error_description?.trim() ||
+        tokenPayload.error?.trim() ||
+        "Token exchange failed.";
+      return {
+        statusCode: 502,
+        html: this.renderOAuthResultPage({
+          title: "Google Search Console connect failed",
+          message: `Google token exchange failed: ${reason}`,
+          success: false,
+        }),
+      };
+    }
+
+    const current = await this.readSetting<SeoProviderConfig>(
+      this.integrationSettingKeys.googleSearchConsole,
+      this.getDefaultProviderConfig(),
+    );
+
+    const next: SeoProviderConfig = {
+      ...current,
+      enabled: true,
+      oauthAccessToken: tokenPayload.access_token,
+      oauthRefreshToken: tokenPayload.refresh_token?.trim() || current.oauthRefreshToken,
+      verificationStatus: "connected",
+      connectedAt: current.connectedAt ?? new Date().toISOString(),
+      disconnectedAt: undefined,
+      disconnectReason: undefined,
+      lastRefreshedAt: new Date().toISOString(),
+    };
+
+    await this.upsertSetting(
+      this.integrationSettingKeys.googleSearchConsole,
+      next,
+      "seo",
+      "Google Search Console integration configuration",
+      null,
+    );
+
+    return {
+      statusCode: 200,
+      html: this.renderOAuthResultPage({
+        title: "Google Search Console connected",
+        message:
+          "Google Search Console OAuth completed successfully. You can return to the admin SEO page and refresh the integration card.",
+        success: true,
+      }),
+    };
+  }
+
   private async loadLocaleSitemapEntries(locale: string): Promise<SitemapEntry[]> {
     const tools = await this.prisma.client.tool.findMany({
       where: { status: ToolStatus.PUBLISHED, ...activeOnly },
       select: { slug: true, updatedAt: true },
     });
     const categories = await this.prisma.client.category.findMany({
-      where: activeOnly,
+      where: {
+        ...activeOnly,
+        slug: { in: this.standardCategorySlugs },
+        tools: {
+          some: {
+            deletedAt: null,
+            tool: { status: ToolStatus.PUBLISHED, deletedAt: null },
+          },
+        },
+      },
       select: { slug: true, updatedAt: true },
     });
 
@@ -445,7 +664,16 @@ export class SeoService {
       }
       case "category": {
         const categories = await this.prisma.client.category.findMany({
-          where: activeOnly,
+          where: {
+            ...activeOnly,
+            slug: { in: this.standardCategorySlugs },
+            tools: {
+              some: {
+                deletedAt: null,
+                tool: { status: ToolStatus.PUBLISHED, deletedAt: null },
+              },
+            },
+          },
           select: { slug: true, updatedAt: true },
         });
         return categories.flatMap((c) =>
@@ -515,14 +743,15 @@ export class SeoService {
   }
 
   private async fetchGoogleSearchConsole(config: SeoProviderConfig) {
-    if (!config.enabled) {
+    const status = this.buildProviderStatus("googleSearchConsole", config);
+    if (!status.connected) {
       return {
         provider: "google",
         configured: false,
-        verificationStatus: config.verificationStatus || "disconnected",
-        propertyId: config.propertyId || null,
-        propertyName: config.propertyName || null,
-        siteUrl: config.siteUrl || null,
+        verificationStatus: status.verificationStatus,
+        propertyId: status.propertyId,
+        propertyName: status.propertyName,
+        siteUrl: status.siteUrl,
         clicks: 0,
         impressions: 0,
         ctr: 0,
@@ -537,10 +766,10 @@ export class SeoService {
     return {
       provider: "google",
       configured: true,
-      verificationStatus: config.verificationStatus || "verified",
-      propertyId: config.propertyId || null,
-      propertyName: config.propertyName || null,
-      siteUrl: config.siteUrl || null,
+      verificationStatus: status.verificationStatus,
+      propertyId: status.propertyId,
+      propertyName: status.propertyName,
+      siteUrl: status.siteUrl,
       clicks: 0,
       impressions: 0,
       ctr: 0,
@@ -549,19 +778,20 @@ export class SeoService {
       coverage: 0,
       sitemaps: 0,
       lastSyncedAt: config.lastRefreshedAt ?? config.connectedAt ?? new Date().toISOString(),
-      note: config.oauthAccessToken
+      note: status.hasAccessToken
         ? "OAuth credentials saved. Connect the Google Search Console data source to replace placeholder metrics."
         : "Save OAuth tokens and property metadata to enable live Google Search Console sync.",
     };
   }
 
   private async fetchBingWebmaster(config: SeoProviderConfig) {
-    if (!config.enabled) {
+    const status = this.buildProviderStatus("bingWebmaster", config);
+    if (!status.connected) {
       return {
         provider: "bing",
         configured: false,
-        verificationStatus: config.verificationStatus || "disconnected",
-        siteUrl: config.siteUrl || null,
+        verificationStatus: status.verificationStatus,
+        siteUrl: status.siteUrl,
         clicks: 0,
         impressions: 0,
         keywords: 0,
@@ -574,8 +804,8 @@ export class SeoService {
     return {
       provider: "bing",
       configured: true,
-      verificationStatus: config.verificationStatus || "verified",
-      siteUrl: config.siteUrl || null,
+      verificationStatus: status.verificationStatus,
+      siteUrl: status.siteUrl,
       clicks: 0,
       impressions: 0,
       keywords: 0,
@@ -608,6 +838,43 @@ export class SeoService {
       indexNowEnabled: false,
       analyticsProvider: "ga4",
     };
+  }
+
+  private buildProviderStatus(provider: IntegrationProvider, config: SeoProviderConfig): SeoProviderStatus {
+    const hasAccessToken = Boolean(config.oauthAccessToken?.trim());
+    const hasRefreshToken = Boolean(config.oauthRefreshToken?.trim());
+    const hasApiKey = Boolean(config.apiKey?.trim());
+    const verificationStatus = (config.verificationStatus || "not_connected").trim();
+    const connected =
+      provider === "googleSearchConsole"
+        ? hasRefreshToken && this.isConnectedVerificationStatus(verificationStatus)
+        : hasApiKey && this.isConnectedVerificationStatus(verificationStatus);
+    const connectInfo =
+      provider === "googleSearchConsole"
+        ? this.getIntegrationConnectUrl("google")
+        : { oauthConfigured: false, authUrl: null };
+
+    return {
+      siteUrl: config.siteUrl?.trim() || null,
+      propertyId: config.propertyId?.trim() || null,
+      propertyName: config.propertyName?.trim() || null,
+      verificationStatus: connected
+        ? verificationStatus || "connected"
+        : verificationStatus || "not_connected",
+      hasAccessToken,
+      hasRefreshToken,
+      connected,
+      connectedAt: connected ? config.connectedAt ?? null : null,
+      disconnectedAt: config.disconnectedAt ?? null,
+      disconnectReason: config.disconnectReason ?? null,
+      oauthConfigured: Boolean(connectInfo.oauthConfigured),
+      authUrl: connectInfo.authUrl ?? null,
+    };
+  }
+
+  private isConnectedVerificationStatus(status?: string | null) {
+    const normalized = (status || "").trim().toLowerCase();
+    return normalized === "connected" || normalized === "verified";
   }
 
   private maskProviderConfig(config: SeoProviderConfig) {
@@ -675,7 +942,10 @@ export class SeoService {
       oauthRefreshToken: patch.oauthRefreshToken ?? current.oauthRefreshToken ?? "",
       apiKey: patch.apiKey ?? current.apiKey ?? "",
       verificationStatus: patch.verificationStatus ?? current.verificationStatus ?? "pending",
-      connectedAt: current.connectedAt ?? new Date().toISOString(),
+      connectedAt:
+        patch.verificationStatus && this.isConnectedVerificationStatus(patch.verificationStatus)
+          ? current.connectedAt ?? new Date().toISOString()
+          : current.connectedAt,
       disconnectedAt: current.disconnectedAt,
       disconnectReason: patch.disconnectReason ?? current.disconnectReason,
       lastRefreshedAt: current.lastRefreshedAt,
@@ -734,7 +1004,7 @@ export class SeoService {
     value: object,
     group: string,
     description: string,
-    actorId: string,
+    actorId?: string | null,
   ) {
     return this.prisma.client.setting.upsert({
       where: { key },
@@ -743,7 +1013,7 @@ export class SeoService {
         group,
         description,
         isPublic: false,
-        updatedById: actorId,
+        updatedById: actorId ?? null,
         deletedAt: null,
       },
       create: {
@@ -752,9 +1022,59 @@ export class SeoService {
         group,
         description,
         isPublic: false,
-        createdById: actorId,
-        updatedById: actorId,
+        createdById: actorId ?? null,
+        updatedById: actorId ?? null,
       },
     });
+  }
+
+  private getGoogleOAuthConfig() {
+    const clientId = process.env.GOOGLE_CLIENT_ID?.trim() ?? "";
+    const clientSecret = process.env.GOOGLE_CLIENT_SECRET?.trim() ?? "";
+    const redirectUri = process.env.GOOGLE_SEARCH_CONSOLE_REDIRECT_URI?.trim() ?? "";
+
+    return {
+      clientId,
+      clientSecret,
+      redirectUri,
+      oauthConfigured: Boolean(clientId && clientSecret && redirectUri),
+    };
+  }
+
+  private renderOAuthResultPage(input: { title: string; message: string; success: boolean }) {
+    const tone = input.success ? "#166534" : "#b91c1c";
+    const badge = input.success ? "Connected" : "Failed";
+
+    return `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>${this.escapeHtml(input.title)}</title>
+    <style>
+      body { font-family: Arial, sans-serif; background: #f8fafc; color: #0f172a; margin: 0; }
+      main { max-width: 640px; margin: 10vh auto; background: #fff; border-radius: 16px; padding: 32px; box-shadow: 0 10px 35px rgba(15, 23, 42, 0.08); }
+      .badge { display: inline-block; padding: 6px 12px; border-radius: 999px; background: ${tone}; color: #fff; font-size: 12px; letter-spacing: 0.04em; text-transform: uppercase; }
+      h1 { margin: 18px 0 12px; font-size: 28px; }
+      p { margin: 0; line-height: 1.6; color: #334155; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <span class="badge">${badge}</span>
+      <h1>${this.escapeHtml(input.title)}</h1>
+      <p>${this.escapeHtml(input.message)}</p>
+    </main>
+  </body>
+</html>`;
+  }
+
+  private escapeHtml(value: string) {
+    return value
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
   }
 }

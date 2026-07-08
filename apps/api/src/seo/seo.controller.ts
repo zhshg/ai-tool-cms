@@ -54,6 +54,13 @@ export class SeoController {
     return this.seoService.refreshIntegration(provider, user.id);
   }
 
+  @Get("integrations/:provider/connect-url")
+  @RequirePermission(PermissionCode.SeoRead)
+  @ApiOperation({ summary: "Build a safe connect URL for an SEO integration" })
+  getIntegrationConnectUrl(@Param("provider") provider: string) {
+    return this.seoService.getIntegrationConnectUrl(provider);
+  }
+
   @Public()
   @Get("sitemap-index.xml")
   @Header("Content-Type", "application/xml; charset=utf-8")

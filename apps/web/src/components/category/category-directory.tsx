@@ -165,15 +165,6 @@ export function CategoryLandingExperience({ locale, data }: CategoryDetailProps)
             </div>
           </section>
 
-          <InternalLinkStrip
-            locale={locale}
-            labels={labels}
-            currentCategorySlug={data.category.slug}
-            relatedCategories={data.relatedCategories}
-            popularCategories={data.popularCategories}
-            collections={data.popularCollections}
-          />
-
           <section className="space-y-4">
             <SectionHeading title={labels.featuredTools} description={labels.featuredToolsText} />
             <div className="grid gap-4 md:grid-cols-2">
@@ -215,20 +206,6 @@ export function CategoryLandingExperience({ locale, data }: CategoryDetailProps)
             </div>
           </section>
 
-          <section className="space-y-4">
-            <SectionHeading title={labels.faq} description={labels.faqText} />
-            <div className="space-y-3">
-              {data.faqs.map((faq) => (
-                <div
-                  key={faq.question}
-                  className="rounded-2xl border border-slate-200 bg-white p-5"
-                >
-                  <h3 className="text-sm font-semibold text-slate-950">{faq.question}</h3>
-                  <p className="mt-2 text-sm leading-7 text-slate-600">{faq.answer}</p>
-                </div>
-              ))}
-            </div>
-          </section>
         </div>
 
         <aside className="space-y-5 lg:sticky lg:top-20 lg:self-start">
@@ -422,66 +399,6 @@ function ToolDirectoryCard({
   );
 }
 
-function InternalLinkStrip({
-  locale,
-  labels,
-  currentCategorySlug,
-  relatedCategories,
-  popularCategories,
-  collections,
-}: {
-  locale: string;
-  labels: ReturnType<typeof getLabels>;
-  currentCategorySlug: string;
-  relatedCategories: CategoriesPageCategory[];
-  popularCategories: CategoriesPageCategory[];
-  collections: CategorySidebarLink[];
-}) {
-  const visiblePopular = popularCategories.filter(
-    (category) => category.slug !== currentCategorySlug,
-  );
-
-  return (
-    <section className="rounded-[24px] border border-slate-200 bg-slate-50 p-5">
-      <div className="flex flex-wrap gap-3">
-        <Button asChild variant="outline" className="rounded-full bg-white">
-          <Link href={`/${locale}/categories`}>{labels.backToCategories}</Link>
-        </Button>
-      </div>
-
-      <div className="mt-5 grid gap-5 xl:grid-cols-3">
-        <LinkCluster
-          title={labels.relatedCategories}
-          locale={locale}
-          items={relatedCategories.map((item) => ({
-            href: `/${locale}/category/${item.slug}`,
-            label: item.name,
-            meta: `${item.toolCount} ${labels.toolsWord}`,
-          }))}
-        />
-        <LinkCluster
-          title={labels.popularCategories}
-          locale={locale}
-          items={visiblePopular.slice(0, 6).map((item) => ({
-            href: `/${locale}/category/${item.slug}`,
-            label: item.name,
-            meta: `${item.toolCount} ${labels.toolsWord}`,
-          }))}
-        />
-        <LinkCluster
-          title={labels.popularCollections}
-          locale={locale}
-          items={collections.map((item) => ({
-            href: item.href,
-            label: item.label,
-            meta: item.description,
-          }))}
-        />
-      </div>
-    </section>
-  );
-}
-
 function SidebarGroup({
   title,
   items,
@@ -511,33 +428,6 @@ function SidebarGroup({
         ))}
       </div>
     </section>
-  );
-}
-
-function LinkCluster({
-  title,
-  items,
-}: {
-  title: string;
-  locale: string;
-  items: Array<{ href: string; label: string; meta?: string | null }>;
-}) {
-  return (
-    <div>
-      <h3 className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">{title}</h3>
-      <div className="mt-3 space-y-2">
-        {items.map((item) => (
-          <Link
-            key={`${title}-${item.href}`}
-            href={item.href}
-            className="block rounded-2xl bg-white px-4 py-3 transition hover:bg-slate-100"
-          >
-            <div className="text-sm font-semibold text-slate-900">{item.label}</div>
-            {item.meta ? <div className="mt-1 text-xs text-slate-500">{item.meta}</div> : null}
-          </Link>
-        ))}
-      </div>
-    </div>
   );
 }
 

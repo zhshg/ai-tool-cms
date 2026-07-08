@@ -1,5 +1,10 @@
 import { BillingPeriod, PricingModel, ToolStatus } from "../../packages/database/generated/client";
-import { slugify } from "@ai-tool-cms/common";
+import {
+  STANDARD_AI_CATEGORIES,
+  resolveCanonicalCategorySlug,
+  resolveCanonicalCategorySlugs,
+  slugify,
+} from "@ai-tool-cms/common";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -25,6 +30,11 @@ type ImportToolRecord = {
   seo_description: string;
 };
 
+type AlternativeContext = {
+  alternativeSlugs: string[];
+  alternativeNames: string[];
+};
+
 type ValidationResult = {
   toolCount: number;
   errors: string[];
@@ -37,86 +47,11 @@ type CategorySeed = {
 };
 
 const PRIMARY_CATEGORIES: CategorySeed[] = [
-  {
-    name: "Writing",
-    description: "AI tools for drafting, editing, and improving written communication.",
-    sortOrder: 0,
-  },
-  {
-    name: "Image",
-    description: "AI tools for image generation, editing, and visual asset creation.",
-    sortOrder: 1,
-  },
-  {
-    name: "Video",
-    description: "AI tools for generating, editing, and repurposing video content.",
-    sortOrder: 2,
-  },
-  {
-    name: "Audio",
-    description: "AI tools for speech, music, voice, and audio production workflows.",
-    sortOrder: 3,
-  },
-  {
-    name: "Code",
-    description: "AI tools for software development, coding help, and product building.",
-    sortOrder: 4,
-  },
-  {
-    name: "Productivity",
-    description: "AI tools for notes, planning, meetings, and day-to-day knowledge work.",
-    sortOrder: 5,
-  },
-  {
-    name: "Marketing",
-    description: "AI tools for campaigns, copy, content, and growth workflows.",
-    sortOrder: 6,
-  },
-  {
-    name: "SEO",
-    description: "AI tools for keyword research, content optimization, and search growth.",
-    sortOrder: 7,
-  },
-  {
-    name: "Research",
-    description: "AI tools for discovery, synthesis, source review, and analysis.",
-    sortOrder: 8,
-  },
-  {
-    name: "Education",
-    description: "AI tools for study support, tutoring, and learning content creation.",
-    sortOrder: 9,
-  },
-  {
-    name: "Automation",
-    description: "AI tools for connecting apps, orchestrating workflows, and reducing manual work.",
-    sortOrder: 10,
-  },
-  {
-    name: "Business",
-    description: "AI tools for operations, services, and company knowledge workflows.",
-    sortOrder: 11,
-  },
-  {
-    name: "Design",
-    description: "AI tools for creative direction, presentations, and interface design.",
-    sortOrder: 12,
-  },
-  {
-    name: "Data",
-    description: "AI tools for structured records, data workflows, and operational analysis.",
-    sortOrder: 13,
-  },
-  {
-    name: "Sales",
-    description: "AI tools for outreach, enablement, and revenue team workflows.",
-    sortOrder: 14,
-  },
-  {
-    name: "Customer Support",
-    description: "AI tools for service operations, support automation, and knowledge workflows.",
-    sortOrder: 15,
-  },
+  ...STANDARD_AI_CATEGORIES.map((category) => ({
+    name: category.name,
+    description: category.description,
+    sortOrder: category.sortOrder,
+  })),
 ];
 
 const ALLOWED_PRICING = new Set(["Free", "Freemium", "Paid", "Custom", "Trial", "Open Source"]);
@@ -134,6 +69,16 @@ function loadCuratedTools(): ImportToolRecord[] {
 
 function normalizeWebsite(url: string): string {
   return url.trim().replace(/\/+$/, "").toLowerCase();
+}
+
+function buildLogoUrl(website: string): string | null {
+  try {
+    const hostname = new URL(website).hostname;
+    if (!hostname) return null;
+    return `https://www.google.com/s2/favicons?sz=128&domain=${hostname}`;
+  } catch {
+    return null;
+  }
 }
 
 function validateCuratedTools(tools: ImportToolRecord[]): ValidationResult {
@@ -184,22 +129,24 @@ function validateCuratedTools(tools: ImportToolRecord[]): ValidationResult {
     }
     websiteSet.add(normalizedWebsite);
 
-    if (!categorySet.has(tool.primary_category)) {
+    const primaryCategoryName = getCanonicalCategoryName(tool.primary_category);
+    if (!primaryCategoryName || !categorySet.has(primaryCategoryName)) {
       errors.push(`${tool.slug}: invalid primary category ${tool.primary_category}`);
     }
 
     const secondarySeen = new Set<string>();
     for (const category of tool.secondary_categories ?? []) {
-      if (!categorySet.has(category)) {
+      const canonicalSecondaryName = getCanonicalCategoryName(category);
+      if (!canonicalSecondaryName || !categorySet.has(canonicalSecondaryName)) {
         errors.push(`${tool.slug}: invalid secondary category ${category}`);
       }
-      if (category === tool.primary_category) {
+      if (canonicalSecondaryName === primaryCategoryName) {
         errors.push(`${tool.slug}: primary category repeated in secondary categories`);
       }
-      if (secondarySeen.has(category)) {
+      if (canonicalSecondaryName && secondarySeen.has(canonicalSecondaryName)) {
         errors.push(`${tool.slug}: duplicate secondary category ${category}`);
       }
-      secondarySeen.add(category);
+      if (canonicalSecondaryName) secondarySeen.add(canonicalSecondaryName);
     }
 
     const tagSeen = new Set<string>();
@@ -248,8 +195,9 @@ function buildLongDescription(tool: ImportToolRecord): string {
   const targetUsers = (tool.target_users ?? []).slice(0, 4).join(", ");
   return [
     tool.description,
-    useCases ? `${tool.name} is often used to ${useCases.toLowerCase()}.` : "",
-    features ? `Core capabilities typically include ${features.toLowerCase()}.` : "",
+    `${tool.name} is listed in ToolsDar as a practical AI tool for teams comparing features, pricing, and workflow fit before adopting a new product.`,
+    useCases ? `Popular workflows include ${useCases.toLowerCase()}.` : "",
+    features ? `Core capabilities include ${features.toLowerCase()}.` : "",
     targetUsers ? `It is especially relevant for ${targetUsers.toLowerCase()}.` : "",
   ]
     .filter(Boolean)
@@ -258,6 +206,7 @@ function buildLongDescription(tool: ImportToolRecord): string {
 
 function buildFaq(
   tool: ImportToolRecord,
+  alternatives: AlternativeContext,
 ): Array<{ slug: string; question: string; answer: string }> {
   return [
     {
@@ -269,6 +218,14 @@ function buildFaq(
       slug: `who-should-use-${tool.slug}`,
       question: `Who should use ${tool.name}?`,
       answer: `${tool.name} is a strong fit for ${(tool.target_users ?? ["teams"]).join(", ").toLowerCase()} who need ${tool.summary.toLowerCase()}.`,
+    },
+    {
+      slug: `best-alternatives-to-${tool.slug}`,
+      question: `What are the best alternatives to ${tool.name}?`,
+      answer:
+        alternatives.alternativeNames.length > 0
+          ? `Common alternatives to ${tool.name} include ${alternatives.alternativeNames.join(", ")} depending on your workflow, pricing needs, and preferred category.`
+          : `${tool.name} can also be compared with other published tools in the same category when you want different pricing, workflow depth, or platform support.`,
     },
   ];
 }
@@ -340,29 +297,116 @@ function buildSnapshot(tool: ImportToolRecord): Record<string, unknown> {
   };
 }
 
+function buildAlternativeContextMap(tools: ImportToolRecord[]): Map<string, AlternativeContext> {
+  const bySlug = new Map(tools.map((tool) => [tool.slug, tool]));
+  const context = new Map<string, AlternativeContext>();
+
+  for (const tool of tools) {
+    const primarySlug = resolveCanonicalCategorySlug(tool.primary_category);
+    const secondarySlugs = new Set(
+      (tool.secondary_categories ?? [])
+        .flatMap((category) => resolveCanonicalCategorySlugs(category))
+        .filter(Boolean),
+    );
+
+    const candidates = tools
+      .filter((candidate) => candidate.slug !== tool.slug)
+      .map((candidate) => {
+        const candidatePrimary = resolveCanonicalCategorySlug(candidate.primary_category);
+        const candidateSecondary = new Set(
+          (candidate.secondary_categories ?? [])
+            .flatMap((category) => resolveCanonicalCategorySlugs(category))
+            .filter(Boolean),
+        );
+        let score = 0;
+        if (primarySlug && candidatePrimary === primarySlug) score += 10;
+        if (secondarySlugs.has(candidatePrimary ?? "")) score += 4;
+        if (candidateSecondary.has(primarySlug ?? "")) score += 3;
+        for (const slug of secondarySlugs) {
+          if (candidateSecondary.has(slug)) score += 2;
+        }
+        if ((tool.tags ?? []).some((tag) => (candidate.tags ?? []).includes(tag))) score += 1;
+        return { slug: candidate.slug, score };
+      })
+      .sort((a, b) => b.score - a.score || a.slug.localeCompare(b.slug))
+      .slice(0, 3);
+
+    const alternativeSlugs = candidates.map((candidate) => candidate.slug);
+    context.set(tool.slug, {
+      alternativeSlugs,
+      alternativeNames: alternativeSlugs
+        .map((slug) => bySlug.get(slug)?.name)
+        .filter((name): name is string => Boolean(name)),
+    });
+  }
+
+  return context;
+}
+
+function buildSeoTitle(toolName: string): string {
+  return `${toolName} Review, Features, Pricing and Alternatives`.slice(0, 160);
+}
+
+function buildSeoDescription(
+  tool: ImportToolRecord,
+  alternatives: AlternativeContext,
+): string {
+  const categoryLabel =
+    getCanonicalCategoryName(tool.primary_category) ?? tool.primary_category ?? "AI";
+  const alternativeText =
+    alternatives.alternativeNames.length > 0
+      ? ` Compare it with ${alternatives.alternativeNames.join(", ")}.`
+      : "";
+  const description = `${tool.name} helps teams ${tool.use_cases?.[0]?.toLowerCase() ?? "work faster"} with ${categoryLabel.toLowerCase()} workflows, pricing insights, key features, and real alternatives.${alternativeText}`;
+  return description.slice(0, 155);
+}
+
+function buildPros(tool: ImportToolRecord): string[] {
+  return [
+    ...(tool.features ?? []).slice(0, 2).map((feature) => `${feature} supports daily workflows`),
+    tool.use_cases?.[0] ? `${tool.use_cases[0]} without a long setup cycle` : "",
+    tool.pricing === "Free" || tool.pricing === "Freemium"
+      ? "Lower barrier to entry for evaluation and testing"
+      : "Positioned for committed teams that need stronger output quality",
+  ].filter(Boolean);
+}
+
+function buildCons(tool: ImportToolRecord): string[] {
+  return [
+    tool.pricing === "Paid" || tool.pricing === "Custom"
+      ? "Full value may depend on paid access or sales-led plans"
+      : "Advanced teams may still need deeper workflow customization",
+    tool.platform?.includes("API")
+      ? "API and integration depth can vary by plan and use case"
+      : "Automation depth may be lighter than API-first tools",
+    "Output quality still benefits from human review before publishing",
+  ].filter(Boolean);
+}
+
 export async function seedCuratedTools(
   actorId: string,
 ): Promise<{ categoryIds: string[]; tagIds: string[]; toolIds: string[] }> {
   const tools = loadCuratedTools();
   const validation = validateCuratedTools(tools);
+  const alternativeContextBySlug = buildAlternativeContextMap(tools);
 
   if (validation.errors.length > 0) {
     throw new Error(`Curated tool dataset validation failed:\n${validation.errors.join("\n")}`);
   }
 
-  const categoryIdByName = new Map<string, string>();
-  for (const category of PRIMARY_CATEGORIES) {
-    const slug = slugify(category.name);
+  const categoryIdBySlug = new Map<string, string>();
+  for (const category of STANDARD_AI_CATEGORIES) {
     const record = await upsertBySlug(
       prisma.category,
-      slug,
+      category.slug,
       {
         name: category.name,
         description: category.description,
         sortOrder: category.sortOrder,
         createdById: actorId,
-        metaTitle: `${category.name} AI Tools`,
-        metaDescription: category.description,
+        metaTitle: category.seoTitle,
+        metaDescription: category.seoDescription,
+        metadata: { featured: category.isFeatured },
       },
       {
         name: category.name,
@@ -370,11 +414,12 @@ export async function seedCuratedTools(
         sortOrder: category.sortOrder,
         deletedAt: null,
         updatedById: actorId,
-        metaTitle: `${category.name} AI Tools`,
-        metaDescription: category.description,
+        metaTitle: category.seoTitle,
+        metaDescription: category.seoDescription,
+        metadata: { featured: category.isFeatured },
       },
     );
-    categoryIdByName.set(category.name, record.id);
+    categoryIdBySlug.set(category.slug, record.id);
   }
 
   const tagNames = [
@@ -408,13 +453,22 @@ export async function seedCuratedTools(
 
   const toolIds: string[] = [];
 
-  for (const tool of tools) {
+  for (const [toolIndex, tool] of tools.entries()) {
+    const alternatives = alternativeContextBySlug.get(tool.slug) ?? {
+      alternativeSlugs: [],
+      alternativeNames: [],
+    };
+    const canonicalCategorySlug = resolveCanonicalCategorySlug(tool.primary_category);
+    const logoUrl = buildLogoUrl(tool.website);
+    const metaTitle = buildSeoTitle(tool.name);
+    const metaDescription = buildSeoDescription(tool, alternatives);
     const record = await upsertBySlug(
       prisma.tool,
       tool.slug,
       {
         name: tool.name,
         website: tool.website,
+        logoUrl,
         pricingModel: mapPricingModel(tool.pricing),
         status: ToolStatus.PUBLISHED,
         publishedAt: new Date(),
@@ -422,10 +476,22 @@ export async function seedCuratedTools(
         description: tool.description,
         longDescription: buildLongDescription(tool),
         createdById: actorId,
-        metaTitle: tool.seo_title,
-        metaDescription: tool.seo_description,
+        metaTitle,
+        metaDescription,
         metadata: {
           aiSummary: tool.summary,
+          aiFeatures: tool.features ?? [],
+          aiUseCases: tool.use_cases ?? [],
+          aiPros: buildPros(tool),
+          aiCons: buildCons(tool),
+          aiAlternatives: alternatives.alternativeNames,
+          alternativeSlugs: alternatives.alternativeSlugs,
+          categorySlug: canonicalCategorySlug,
+          tags: tool.tags ?? [],
+          isFeatured: toolIndex < 12,
+          isPublished: true,
+          website: tool.website,
+          logoUrl,
           features: tool.features ?? [],
           useCases: tool.use_cases ?? [],
           targetUsers: tool.target_users ?? [],
@@ -440,6 +506,7 @@ export async function seedCuratedTools(
       {
         name: tool.name,
         website: tool.website,
+        logoUrl,
         pricingModel: mapPricingModel(tool.pricing),
         status: ToolStatus.PUBLISHED,
         publishedAt: new Date(),
@@ -448,10 +515,22 @@ export async function seedCuratedTools(
         longDescription: buildLongDescription(tool),
         deletedAt: null,
         updatedById: actorId,
-        metaTitle: tool.seo_title,
-        metaDescription: tool.seo_description,
+        metaTitle,
+        metaDescription,
         metadata: {
           aiSummary: tool.summary,
+          aiFeatures: tool.features ?? [],
+          aiUseCases: tool.use_cases ?? [],
+          aiPros: buildPros(tool),
+          aiCons: buildCons(tool),
+          aiAlternatives: alternatives.alternativeNames,
+          alternativeSlugs: alternatives.alternativeSlugs,
+          categorySlug: canonicalCategorySlug,
+          tags: tool.tags ?? [],
+          isFeatured: toolIndex < 12,
+          isPublished: true,
+          website: tool.website,
+          logoUrl,
           features: tool.features ?? [],
           useCases: tool.use_cases ?? [],
           targetUsers: tool.target_users ?? [],
@@ -466,7 +545,8 @@ export async function seedCuratedTools(
     );
     toolIds.push(record.id);
 
-    const primaryCategoryId = categoryIdByName.get(tool.primary_category);
+    const primaryCategorySlug = resolveCanonicalCategorySlug(tool.primary_category);
+    const primaryCategoryId = primaryCategorySlug ? categoryIdBySlug.get(primaryCategorySlug) : null;
     if (!primaryCategoryId) {
       throw new Error(`Missing primary category ${tool.primary_category} for ${tool.slug}`);
     }
@@ -478,14 +558,16 @@ export async function seedCuratedTools(
     });
 
     for (const categoryName of tool.secondary_categories ?? []) {
-      const categoryId = categoryIdByName.get(categoryName);
-      if (!categoryId) continue;
+      for (const categorySlug of resolveCanonicalCategorySlugs(categoryName)) {
+        const categoryId = categoryIdBySlug.get(categorySlug);
+        if (!categoryId || categoryId === primaryCategoryId) continue;
 
-      await prisma.toolCategory.upsert({
-        where: { toolId_categoryId: { toolId: record.id, categoryId } },
-        update: { isPrimary: false, deletedAt: null },
-        create: { toolId: record.id, categoryId, isPrimary: false },
-      });
+        await prisma.toolCategory.upsert({
+          where: { toolId_categoryId: { toolId: record.id, categoryId } },
+          update: { isPrimary: false, deletedAt: null },
+          create: { toolId: record.id, categoryId, isPrimary: false },
+        });
+      }
     }
 
     for (const tagName of tool.tags ?? []) {
@@ -557,7 +639,7 @@ export async function seedCuratedTools(
       },
     });
 
-    for (const [index, faq] of buildFaq(tool).entries()) {
+    for (const [index, faq] of buildFaq(tool, alternatives).entries()) {
       const existingFaq = await prisma.faq.findFirst({
         where: { toolId: record.id, slug: faq.slug, deletedAt: null },
       });
@@ -589,8 +671,13 @@ export async function seedCuratedTools(
   }
 
   return {
-    categoryIds: [...categoryIdByName.values()],
+    categoryIds: [...categoryIdBySlug.values()],
     tagIds: [...tagIdBySlug.values()],
     toolIds,
   };
+}
+
+function getCanonicalCategoryName(input: string): string | null {
+  const slug = resolveCanonicalCategorySlug(input);
+  return STANDARD_AI_CATEGORIES.find((category) => category.slug === slug)?.name ?? null;
 }

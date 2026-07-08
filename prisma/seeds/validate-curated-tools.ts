@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
+import { STANDARD_AI_CATEGORIES, resolveCanonicalCategorySlug } from "@ai-tool-cms/common";
 
 type ToolRecord = {
   name: string;
@@ -21,24 +22,7 @@ type ToolRecord = {
   seo_description: string;
 };
 
-const ALLOWED_CATEGORIES = new Set([
-  "Writing",
-  "Image",
-  "Video",
-  "Audio",
-  "Code",
-  "Productivity",
-  "Marketing",
-  "SEO",
-  "Research",
-  "Education",
-  "Automation",
-  "Business",
-  "Design",
-  "Data",
-  "Sales",
-  "Customer Support",
-]);
+const ALLOWED_CATEGORIES = new Set(STANDARD_AI_CATEGORIES.map((category) => category.name));
 
 const ALLOWED_PRICING = new Set(["Free", "Freemium", "Paid", "Custom", "Trial", "Open Source"]);
 
@@ -105,23 +89,25 @@ function validateDataset(tools: ToolRecord[]): string[] {
     }
     websites.add(normalizedWebsite);
 
-    if (!ALLOWED_CATEGORIES.has(tool.primary_category)) {
+    const primaryCategoryName = getCanonicalCategoryName(tool.primary_category);
+    if (!primaryCategoryName || !ALLOWED_CATEGORIES.has(primaryCategoryName)) {
       errors.push(`${label}: invalid primary category ${tool.primary_category}`);
     }
 
     const secondaryCategories = tool.secondary_categories ?? [];
     const secondarySeen = new Set<string>();
     for (const category of secondaryCategories) {
-      if (!ALLOWED_CATEGORIES.has(category)) {
+      const canonicalSecondaryName = getCanonicalCategoryName(category);
+      if (!canonicalSecondaryName || !ALLOWED_CATEGORIES.has(canonicalSecondaryName)) {
         errors.push(`${label}: invalid secondary category ${category}`);
       }
-      if (category === tool.primary_category) {
+      if (canonicalSecondaryName === primaryCategoryName) {
         errors.push(`${label}: primary category repeated in secondary_categories`);
       }
-      if (secondarySeen.has(category)) {
+      if (canonicalSecondaryName && secondarySeen.has(canonicalSecondaryName)) {
         errors.push(`${label}: duplicate secondary category ${category}`);
       }
-      secondarySeen.add(category);
+      if (canonicalSecondaryName) secondarySeen.add(canonicalSecondaryName);
     }
 
     const tagSeen = new Set<string>();
@@ -161,6 +147,11 @@ function validateDataset(tools: ToolRecord[]): string[] {
   }
 
   return errors;
+}
+
+function getCanonicalCategoryName(input: string): string | null {
+  const slug = resolveCanonicalCategorySlug(input);
+  return STANDARD_AI_CATEGORIES.find((category) => category.slug === slug)?.name ?? null;
 }
 
 function main(): void {
