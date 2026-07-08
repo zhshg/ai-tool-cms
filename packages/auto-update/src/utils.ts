@@ -145,7 +145,10 @@ export function normalizeLogoUrl(
   websiteUrl: string | null,
 ): string | null {
   const cleaned = cleanText(logoUrl);
-  if (cleaned && isHttpsUrl(cleaned)) return cleaned;
+  if (cleaned) {
+    const absoluteFromWebsite = absolutizeLogoUrl(cleaned, websiteUrl);
+    if (absoluteFromWebsite && isHttpsUrl(absoluteFromWebsite)) return absoluteFromWebsite;
+  }
   return buildGoogleFavicon(websiteUrl);
 }
 
@@ -265,4 +268,15 @@ export function similarity(a: string, b: string): number {
     if (rightTokens.has(token)) common += 1;
   }
   return common / Math.max(leftTokens.size, rightTokens.size);
+}
+
+function absolutizeLogoUrl(logoUrl: string, websiteUrl: string | null): string | null {
+  if (isHttpsUrl(logoUrl)) return logoUrl;
+  if (!websiteUrl) return null;
+
+  try {
+    return new URL(logoUrl, websiteUrl).toString();
+  } catch {
+    return null;
+  }
 }

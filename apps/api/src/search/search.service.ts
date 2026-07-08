@@ -351,26 +351,19 @@ function resolveApiLogoUrl(
   metadata: Record<string, unknown>,
   website: string | null | undefined,
 ): string | null {
-  const primary = cleanString(primaryLogoUrl);
-  if (primary) return primary;
-
-  const candidates = [
-    metadata.logoUrl,
-    metadata.logo,
-    metadata.collectedLogoUrl,
-    metadata.faviconUrl,
-    metadata.appleTouchIconUrl,
-    metadata.openGraphImageUrl,
-    metadata.imageUrl,
-    metadata.iconUrl,
-  ];
+  const candidates = buildOrderedLogoCandidates(primaryLogoUrl, metadata, website);
 
   for (const candidate of candidates) {
-    const value = cleanString(candidate);
-    if (value) return value;
+    if (!candidate) continue;
+    if (isPreferredPrimaryLogo(candidate)) return candidate;
   }
 
-  const source = cleanString(website) ?? cleanString(metadata.website) ?? cleanString(metadata.canonicalUrl);
+  for (const candidate of candidates) {
+    if (candidate) return candidate;
+  }
+
+  const source =
+    cleanString(website) ?? cleanString(metadata.website) ?? cleanString(metadata.canonicalUrl);
   if (!source) return null;
 
   try {
@@ -384,4 +377,55 @@ function resolveApiLogoUrl(
 
 function cleanString(value: unknown): string | null {
   return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function buildOrderedLogoCandidates(
+  primaryLogoUrl: string | null | undefined,
+  metadata: Record<string, unknown>,
+  website: string | null | undefined,
+) {
+  const source =
+    cleanString(website) ?? cleanString(metadata.website) ?? cleanString(metadata.canonicalUrl);
+  const directFavicon = buildDirectWebsiteFaviconUrl(source);
+
+  return [
+    cleanString(primaryLogoUrl),
+    cleanString(metadata.logoUrl),
+    cleanString(metadata.logo),
+    cleanString(metadata.svgLogoUrl),
+    cleanString(metadata.officialLogoUrl),
+    cleanString(metadata.collectedLogoUrl),
+    cleanString(metadata.faviconUrl),
+    cleanString(metadata.appleTouchIconUrl),
+    cleanString(metadata.openGraphImageUrl),
+    cleanString(metadata.imageUrl),
+    cleanString(metadata.iconUrl),
+    directFavicon,
+  ];
+}
+
+function buildDirectWebsiteFaviconUrl(source: string | null) {
+  if (!source) return null;
+
+  try {
+    const url = new URL(source);
+    if (!url.hostname) return null;
+    return new URL("/favicon.ico", url).toString();
+  } catch {
+    return null;
+  }
+}
+
+function isPreferredPrimaryLogo(value: string) {
+  if (value.startsWith("/logos/") || value.startsWith("/storage/")) return true;
+
+  try {
+    const url = new URL(value);
+    if (url.hostname.toLowerCase() === "img.toolsdar.io") return true;
+    if (url.pathname.startsWith("/logos/")) return true;
+    if (url.pathname.includes("/storage/logos/")) return true;
+    return false;
+  } catch {
+    return false;
+  }
 }

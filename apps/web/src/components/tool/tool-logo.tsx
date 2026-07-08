@@ -25,34 +25,20 @@ export function ToolLogo({
   name,
   logoUrl,
   fallbackLogoUrl,
-  categoryIconUrl,
   size = "md",
   className = "",
 }: ToolLogoProps) {
   const [logoFailed, setLogoFailed] = useState(false);
   const [fallbackLogoFailed, setFallbackLogoFailed] = useState(false);
-  const [categoryIconFailed, setCategoryIconFailed] = useState(false);
 
   const initials = useMemo(() => buildInitials(name), [name]);
   const primaryLogoSrc = useMemo(() => resolveClientAssetUrl(logoUrl), [logoUrl]);
-  const fallbackLogoSrc = useMemo(
-    () => resolveClientAssetUrl(fallbackLogoUrl),
-    [fallbackLogoUrl],
-  );
-  const categoryIconSrc = useMemo(
-    () => resolveClientAssetUrl(categoryIconUrl),
-    [categoryIconUrl],
-  );
+  const fallbackLogoSrc = useMemo(() => resolveClientAssetUrl(fallbackLogoUrl), [fallbackLogoUrl]);
 
   const showPrimaryLogo = Boolean(primaryLogoSrc) && !logoFailed;
   const showCollectedLogo = !showPrimaryLogo && Boolean(fallbackLogoSrc) && !fallbackLogoFailed;
-  const showGeneratedAvatar = !showPrimaryLogo && !showCollectedLogo && initials.length > 0;
-  const showCategoryIcon =
-    !showPrimaryLogo &&
-    !showCollectedLogo &&
-    !showGeneratedAvatar &&
-    Boolean(categoryIconSrc) &&
-    !categoryIconFailed;
+  const showGeneratedAvatar = !showPrimaryLogo && !showCollectedLogo;
+  const avatarLabel = initials || buildFallbackMonogram(name) || "AI";
 
   return (
     <span
@@ -67,7 +53,7 @@ export function ToolLogo({
         <img
           src={primaryLogoSrc ?? ""}
           alt={`${name} logo`}
-          className="size-full object-cover"
+          className="size-full object-contain p-2"
           loading="lazy"
           decoding="async"
           onError={() => setLogoFailed(true)}
@@ -79,7 +65,7 @@ export function ToolLogo({
         <img
           src={fallbackLogoSrc ?? ""}
           alt={`${name} collected logo`}
-          className="size-full object-cover"
+          className="size-full object-contain p-2"
           loading="lazy"
           decoding="async"
           onError={() => setFallbackLogoFailed(true)}
@@ -87,22 +73,10 @@ export function ToolLogo({
       ) : null}
 
       {showGeneratedAvatar ? (
-        <span className="select-none font-semibold uppercase tracking-[0.08em]">{initials}</span>
+        <span className="select-none font-semibold uppercase tracking-[0.08em]">{avatarLabel}</span>
       ) : null}
 
-      {showCategoryIcon ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={categoryIconSrc ?? ""}
-          alt={`${name} category icon`}
-          className="size-full object-cover"
-          loading="lazy"
-          decoding="async"
-          onError={() => setCategoryIconFailed(true)}
-        />
-      ) : null}
-
-      {!showPrimaryLogo && !showCollectedLogo && !showGeneratedAvatar && !showCategoryIcon ? (
+      {!showPrimaryLogo && !showCollectedLogo && !showGeneratedAvatar ? (
         <Bot className="size-[55%] text-slate-500 dark:text-slate-400" aria-hidden="true" />
       ) : null}
     </span>
@@ -118,4 +92,13 @@ function buildInitials(name: string) {
     .map((part) => part[0])
     .join("")
     .toUpperCase();
+}
+
+function buildFallbackMonogram(name: string) {
+  return (
+    name
+      .replace(/[^a-zA-Z0-9]/g, "")
+      .slice(0, 1)
+      .toUpperCase() || null
+  );
 }

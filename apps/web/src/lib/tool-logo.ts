@@ -1,4 +1,5 @@
 const ABSOLUTE_URL_PATTERN = /^https?:\/\//i;
+const TOOLS_DAR_LOGO_HOSTS = new Set(["img.toolsdar.io"]);
 
 export function buildFaviconLogoUrl(website: string | null | undefined): string | null {
   if (!website) return null;
@@ -17,10 +18,13 @@ export function resolveToolLogoUrl(
   metadata: Record<string, unknown>,
   website?: string | null,
 ): string | null {
-  const primary = cleanString(primaryLogoUrl);
-  if (primary) return primary;
+  const candidates = buildOrderedLogoCandidates(primaryLogoUrl, metadata, website);
+  for (const candidate of candidates) {
+    if (!candidate) continue;
+    if (isPreferredPrimaryLogo(candidate)) return candidate;
+  }
 
-  for (const candidate of getMetadataLogoCandidates(metadata)) {
+  for (const candidate of candidates) {
     if (candidate) return candidate;
   }
 
@@ -32,16 +36,18 @@ export function resolveToolFallbackLogoUrl(
   metadata: Record<string, unknown>,
   website?: string | null,
 ): string | null {
-  const primary = cleanString(primaryLogoUrl);
+  const primary = resolveToolLogoUrl(primaryLogoUrl, metadata, website);
+  const favicon = buildFaviconLogoUrl(resolveLogoWebsite(metadata, website));
+  const fallbackCandidates = [
+    ...buildOrderedLogoCandidates(primaryLogoUrl, metadata, website),
+    favicon,
+  ];
 
-  for (const candidate of getMetadataLogoCandidates(metadata)) {
+  for (const candidate of fallbackCandidates) {
     if (candidate && candidate !== primary) {
       return candidate;
     }
   }
-
-  const favicon = buildFaviconLogoUrl(resolveLogoWebsite(metadata, website));
-  if (favicon && favicon !== primary) return favicon;
   return null;
 }
 
@@ -68,6 +74,8 @@ function getMetadataLogoCandidates(metadata: Record<string, unknown>): Array<str
   return [
     cleanString(metadata.logoUrl),
     cleanString(metadata.logo),
+    cleanString(metadata.svgLogoUrl),
+    cleanString(metadata.officialLogoUrl),
     cleanString(metadata.collectedLogoUrl),
     cleanString(metadata.faviconUrl),
     cleanString(metadata.appleTouchIconUrl),
@@ -92,4 +100,43 @@ function resolveLogoWebsite(
 
 function cleanString(value: unknown): string | null {
   return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function buildOrderedLogoCandidates(
+  primaryLogoUrl: string | null | undefined,
+  metadata: Record<string, unknown>,
+  website?: string | null,
+) {
+  const primary = cleanString(primaryLogoUrl);
+  const directFavicon = buildDirectWebsiteFaviconUrl(resolveLogoWebsite(metadata, website));
+
+  return [primary, ...getMetadataLogoCandidates(metadata), directFavicon];
+}
+
+function buildDirectWebsiteFaviconUrl(website: string | null | undefined): string | null {
+  const source = cleanString(website);
+  if (!source) return null;
+
+  try {
+    const url = new URL(source);
+    if (!url.hostname) return null;
+    return new URL("/favicon.ico", url).toString();
+  } catch {
+    return null;
+  }
+}
+
+function isPreferredPrimaryLogo(value: string): boolean {
+  if (value.startsWith("/logos/") || value.startsWith("/storage/")) return true;
+  if (!ABSOLUTE_URL_PATTERN.test(value)) return false;
+
+  try {
+    const url = new URL(value);
+    if (TOOLS_DAR_LOGO_HOSTS.has(url.hostname.toLowerCase())) return true;
+    if (url.pathname.startsWith("/logos/")) return true;
+    if (url.pathname.includes("/storage/logos/")) return true;
+    return false;
+  } catch {
+    return false;
+  }
 }
