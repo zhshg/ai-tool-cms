@@ -59,7 +59,10 @@ FROM base AS builder
 COPY --from=deps /app ./
 COPY . .
 ARG APP_NAME=api
-RUN pnpm turbo run build --filter=@ai-tool-cms/${APP_NAME}
+ENV PRISMA_HIDE_UPDATE_MESSAGE=1
+ENV PRISMA_GENERATE_SKIP_AUTOINSTALL=1
+RUN --mount=type=cache,id=prisma-engine-cache,target=/root/.cache/prisma \
+  pnpm turbo run build --filter=@ai-tool-cms/${APP_NAME}
 
 FROM base AS runner
 WORKDIR /app
