@@ -1,13 +1,10 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import {
-  SOURCE_NAMES,
-  DEFAULT_SOURCE_LIMITS,
-  CATEGORY_WHITELIST_SET,
-} from "./constants";
+import { SOURCE_NAMES, DEFAULT_SOURCE_LIMITS, CATEGORY_WHITELIST_SET } from "./constants";
 import type { CandidateDraft, SourceId, SourceRunResult } from "./types";
 import {
   buildSlug,
+  canonicalizeCategoryName,
   cleanText,
   detectCategory,
   getHostname,
@@ -71,6 +68,8 @@ const AI_DISCOVERY_KEYWORDS = [
   /gemini/i,
 ] as const;
 
+const BLOCKED_IMPORT_HOST_PATTERNS = [/(^|\.)github\.com$/i, /(^|\.)huggingface\.co$/i] as const;
+
 async function fetchTextViaPowerShell(url: string, acceptHeader: string): Promise<string> {
   const command = [
     "$ErrorActionPreference = 'Stop'",
@@ -99,7 +98,7 @@ async function fetchTextViaCurl(url: string, acceptHeader: string): Promise<stri
       url,
     ],
     {
-    maxBuffer: 10 * 1024 * 1024,
+      maxBuffer: 10 * 1024 * 1024,
     },
   );
   return stdout;
@@ -175,9 +174,7 @@ async function fetchTextOnce(url: string, timeoutMs = 15000): Promise<string> {
       if (!response.ok) {
         const body = await response.text().catch(() => "");
         const snippet = cleanText(body)?.slice(0, 180);
-        throw new Error(
-          `HTTP ${response.status} for ${url}${snippet ? ` :: ${snippet}` : ""}`,
-        );
+        throw new Error(`HTTP ${response.status} for ${url}${snippet ? ` :: ${snippet}` : ""}`);
       }
       return await response.text();
     } catch (error) {
@@ -238,6 +235,12 @@ function decodeHtmlEntities(value: string): string {
     .replace(/&gt;/g, ">");
 }
 
+function isBlockedImportHost(value: string | null | undefined): boolean {
+  const hostname = value ? getHostname(value) : null;
+  if (!hostname) return false;
+  return BLOCKED_IMPORT_HOST_PATTERNS.some((pattern) => pattern.test(hostname));
+}
+
 function stripHtml(value: string): string {
   return decodeHtmlEntities(value)
     .replace(/<[^>]+>/g, " ")
@@ -280,6 +283,90 @@ function parseFuturepediaHomepage(limit: number, html: string): RawSourceRecord[
   return rows;
 }
 
+function extractFuturepediaCategoryUrls(html: string): string[] {
+  return [
+    ...new Set(
+      [...html.matchAll(/href="(https:\/\/www\.futurepedia\.io\/ai-tools\/[^"#?]+)"/gi)]
+        .map((match) => match[1]?.trim())
+        .filter((value): value is string => Boolean(value))
+        .slice(0, 12),
+    ),
+  ];
+}
+
+function extractFuturepediaToolSlugs(html: string): string[] {
+  return [
+    ...new Set(
+      [...html.matchAll(/href="https:\/\/www\.futurepedia\.io\/tool\/([^"#?\/]+)"/gi)]
+        .map((match) => match[1]?.trim())
+        .filter((value): value is string => Boolean(value)),
+    ),
+  ];
+}
+
+function extractMetaContent(html: string, attribute: string, value: string): string | null {
+  const match =
+    html.match(new RegExp(`<meta[^>]+${attribute}="${value}"[^>]+content="([^"]+)"`, "i")) ??
+    html.match(new RegExp(`<meta[^>]+content="([^"]+)"[^>]+${attribute}="${value}"`, "i"));
+  return cleanText(match?.[1] ? decodeHtmlEntities(match[1]) : null);
+}
+
+function parseFuturepediaDetailRecord(slug: string, html: string): RawSourceRecord | null {
+  const sourceUrl = `https://www.futurepedia.io/tool/${slug}`;
+  const name =
+    extractMetaContent(html, "property", "og:title")?.replace(/\s*\|\s*Futurepedia\s*$/i, "") ??
+    extractMetaContent(html, "name", "twitter:title")?.replace(/\s*\|\s*Futurepedia\s*$/i, "") ??
+    cleanText(
+      html.match(/<title>([^<]+)<\/title>/i)?.[1]?.replace(/\s*\|\s*Futurepedia\s*$/i, "") ?? null,
+    );
+  const normalizedName = cleanText(
+    name?.replace(/\s+AI Reviews:\s+Use Cases,\s+Pricing\s*&\s*Alternatives\s*$/i, "") ?? name,
+  );
+  const shortDescription =
+    extractMetaContent(html, "name", "description") ??
+    extractMetaContent(html, "property", "og:description");
+  const logoUrl =
+    extractMetaContent(html, "property", "og:image") ??
+    extractMetaContent(html, "name", "twitter:image");
+  const categoryLinks = [
+    ...html.matchAll(/href="https:\/\/www\.futurepedia\.io\/ai-tools\/([^"#?]+)"/gi),
+  ]
+    .map((match) => match[1]?.trim()?.replace(/-/g, " "))
+    .filter((value): value is string => Boolean(value));
+  const officialWebsiteUrl = (() => {
+    const hrefMatch =
+      html.match(/href="(https:\/\/[^"]+)"[^>]*>\s*<button[^>]*>Visit Site/i) ??
+      html.match(/"href":"(https:\\\/\\\/[^"]+)"/i);
+    if (!hrefMatch?.[1]) return null;
+    const candidate = stripTrackingParams(hrefMatch[1]);
+    if (!candidate || /futurepedia\.io/i.test(candidate)) return null;
+    return candidate;
+  })();
+
+  if (!normalizedName) return null;
+
+  return {
+    sourceId: "futurepedia",
+    sourceName: SOURCE_NAMES.futurepedia,
+    sourceUrl,
+    externalId: slug,
+    name: normalizedName,
+    websiteUrl: officialWebsiteUrl,
+    logoUrl,
+    shortDescription,
+    description: shortDescription,
+    category: categoryLinks[0] ?? null,
+    tags: ["futurepedia", "directory", "ai"],
+    confidenceBase: 0.72,
+    metadata: {
+      slug,
+      source: "detail-page",
+      categoryHints: categoryLinks.slice(0, 4),
+      officialWebsiteResolved: Boolean(officialWebsiteUrl),
+    },
+  };
+}
+
 async function resolveFuturepediaOfficialWebsite(sourceUrl: string): Promise<string | null> {
   const html = await fetchText(sourceUrl);
   const hrefMatch =
@@ -317,6 +404,65 @@ async function enrichFuturepediaRecords(records: RawSourceRecord[]): Promise<Raw
     }
   }
   return enriched;
+}
+
+async function fetchFuturepediaRecords(limit: number): Promise<RawSourceRecord[]> {
+  const homepageHtml = await fetchText("https://www.futurepedia.io/");
+  const seen = new Set<string>();
+  const combined: RawSourceRecord[] = [];
+
+  const appendRecords = (records: RawSourceRecord[]) => {
+    for (const record of records) {
+      const key = record.externalId ?? record.sourceUrl;
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      combined.push(record);
+      if (combined.length >= limit) break;
+    }
+  };
+
+  appendRecords(parseFuturepediaHomepage(limit, homepageHtml));
+  if (combined.length >= limit) {
+    return enrichFuturepediaRecords(combined.slice(0, limit));
+  }
+
+  const categoryUrls = extractFuturepediaCategoryUrls(homepageHtml);
+  for (const url of categoryUrls) {
+    if (combined.length >= limit) break;
+    try {
+      const html = await fetchText(url);
+      appendRecords(parseFuturepediaHomepage(limit - combined.length, html));
+      if (combined.length >= limit) break;
+
+      const slugs = extractFuturepediaToolSlugs(html);
+      for (const slug of slugs) {
+        if (combined.length >= limit) break;
+        if (seen.has(slug)) continue;
+        try {
+          const detailHtml = await fetchText(`https://www.futurepedia.io/tool/${slug}`);
+          const record = parseFuturepediaDetailRecord(slug, detailHtml);
+          if (!record) continue;
+          appendRecords([record]);
+        } catch {
+          continue;
+        }
+      }
+    } catch {
+      continue;
+    }
+  }
+
+  const needsOfficialSite = combined.filter(
+    (record) => !record.websiteUrl || /futurepedia\.io/i.test(record.websiteUrl),
+  );
+  const enriched = await enrichFuturepediaRecords(needsOfficialSite);
+  const enrichedMap = new Map(
+    enriched.map((record) => [record.externalId ?? record.sourceUrl, record]),
+  );
+  return combined.slice(0, limit).map((record) => {
+    const key = record.externalId ?? record.sourceUrl;
+    return enrichedMap.get(key) ?? record;
+  });
 }
 
 function parseTaaftHomepage(limit: number, html: string): RawSourceRecord[] {
@@ -359,7 +505,7 @@ function looksAiGithubProject(name: string, description: string | null): boolean
 }
 
 function looksAiStory(name: string, description: string | null): boolean {
-  const haystack = `${name} ${description ?? ""}`;
+  const haystack = `${name} ${(description ?? "").slice(0, 240)}`;
   return AI_DISCOVERY_KEYWORDS.some((pattern) => pattern.test(haystack));
 }
 
@@ -395,6 +541,8 @@ function looksToolLikeStory(
     /\bstudy\b/i,
     /\bcourse\b/i,
     /\bcosts more than\b/i,
+    /\bfile manager\b/i,
+    /\bmac app\b/i,
   ];
 
   if (negativeSignals.some((pattern) => pattern.test(haystack) || pattern.test(websiteUrl ?? ""))) {
@@ -418,19 +566,22 @@ const adapters: SourceAdapter[] = [
         if (!url || seen.has(url)) return [];
         seen.add(url);
         const slug = url.split("/").pop() ?? url;
-        return [{
-        sourceId: "producthunt",
-        sourceName: SOURCE_NAMES.producthunt,
-        sourceUrl: url,
-        externalId: slug,
-        name: slug.replace(/-/g, " ").trim(),
-        websiteUrl: null,
-        shortDescription: "AI tool launch discovered from Product Hunt.",
-        description: "AI tool launch discovered from Product Hunt and queued for editorial review.",
-        tags: ["producthunt", "new-launch"],
-        confidenceBase: 0.42,
-        metadata: { discoveredUrl: url },
-      }];
+        return [
+          {
+            sourceId: "producthunt",
+            sourceName: SOURCE_NAMES.producthunt,
+            sourceUrl: url,
+            externalId: slug,
+            name: slug.replace(/-/g, " ").trim(),
+            websiteUrl: null,
+            shortDescription: "AI tool launch discovered from Product Hunt.",
+            description:
+              "AI tool launch discovered from Product Hunt and queued for editorial review.",
+            tags: ["producthunt", "new-launch"],
+            confidenceBase: 0.42,
+            metadata: { discoveredUrl: url },
+          },
+        ];
       });
     },
   },
@@ -439,9 +590,7 @@ const adapters: SourceAdapter[] = [
     name: SOURCE_NAMES.futurepedia,
     enabledByDefault: true,
     async fetch(limit) {
-      const html = await fetchText("https://www.futurepedia.io/");
-      const records = parseFuturepediaHomepage(limit, html);
-      return enrichFuturepediaRecords(records);
+      return fetchFuturepediaRecords(limit);
     },
   },
   {
@@ -461,7 +610,8 @@ const adapters: SourceAdapter[] = [
       const html = await fetchText("https://github.com/trending?spoken_language_code=en");
       const rows: RawSourceRecord[] = [];
       const seen = new Set<string>();
-      const articleRegex = /<article\b[^>]*class="[^"]*\bBox-row\b[^"]*"[^>]*>([\s\S]*?)<\/article>/gi;
+      const articleRegex =
+        /<article\b[^>]*class="[^"]*\bBox-row\b[^"]*"[^>]*>([\s\S]*?)<\/article>/gi;
       let articleMatch: RegExpExecArray | null;
       while ((articleMatch = articleRegex.exec(html)) !== null && rows.length < limit) {
         const article = articleMatch[1];
@@ -483,10 +633,8 @@ const adapters: SourceAdapter[] = [
           externalId: slug,
           name: repoName.trim(),
           websiteUrl: `https://github.com/${slug}`,
-          shortDescription:
-            description || "Trending AI repository discovered from GitHub.",
-          description:
-            description || "Trending AI repository discovered from GitHub.",
+          shortDescription: description || "Trending AI repository discovered from GitHub.",
+          description: description || "Trending AI repository discovered from GitHub.",
           category: "Developer Tools",
           tags: ["github", "open-source", "ai"],
           pricingType: "free",
@@ -589,21 +737,21 @@ const adapters: SourceAdapter[] = [
         .filter((item): item is NonNullable<typeof item> => Boolean(item?.title))
         .slice(0, limit)
         .map((item) => {
-        const hostname = item.url ? getHostname(item.url) : null;
-        const externalUrl = hostname && !/reddit\.com/i.test(hostname) ? item.url : null;
-        return {
-          sourceId: "reddit-ai",
-          sourceName: SOURCE_NAMES["reddit-ai"],
-          sourceUrl: item.url ?? `https://reddit.com/comments/${item.id}`,
-          externalId: item.id,
-          name: item.title!,
-          websiteUrl: externalUrl,
-          shortDescription: cleanText(item.selftext),
-          description: cleanText(item.selftext),
-          tags: ["reddit", "ai"],
-          confidenceBase: 0.34,
-        };
-      });
+          const hostname = item.url ? getHostname(item.url) : null;
+          const externalUrl = hostname && !/reddit\.com/i.test(hostname) ? item.url : null;
+          return {
+            sourceId: "reddit-ai",
+            sourceName: SOURCE_NAMES["reddit-ai"],
+            sourceUrl: item.url ?? `https://reddit.com/comments/${item.id}`,
+            externalId: item.id,
+            name: item.title!,
+            websiteUrl: externalUrl,
+            shortDescription: cleanText(item.selftext),
+            description: cleanText(item.selftext),
+            tags: ["reddit", "ai"],
+            confidenceBase: 0.34,
+          };
+        });
     },
   },
 ];
@@ -613,14 +761,22 @@ function normalizeCandidate(raw: RawSourceRecord): CandidateDraft {
   const shortDescription = normalizeShortDescription(
     raw.shortDescription ?? raw.description ?? null,
   );
-  const category =
-    (() => {
-      const rawCategory = cleanText(raw.category);
-      if (rawCategory && CATEGORY_WHITELIST_SET.has(rawCategory)) return rawCategory;
-      return detectCategory(
-        [raw.name, raw.shortDescription ?? "", raw.description ?? "", ...(raw.tags ?? [])].join(" "),
-      );
-    })();
+  const category = (() => {
+    const rawCategory = canonicalizeCategoryName(raw.category);
+    if (rawCategory && CATEGORY_WHITELIST_SET.has(rawCategory)) return rawCategory;
+    return (
+      canonicalizeCategoryName(
+        [raw.name, raw.shortDescription ?? "", raw.description ?? "", ...(raw.tags ?? [])].join(
+          " ",
+        ),
+      ) ??
+      detectCategory(
+        [raw.name, raw.shortDescription ?? "", raw.description ?? "", ...(raw.tags ?? [])].join(
+          " ",
+        ),
+      )
+    );
+  })();
   const description = normalizeLongDescription(
     raw.description ?? raw.shortDescription,
     raw.name,
@@ -649,9 +805,13 @@ function normalizeCandidate(raw: RawSourceRecord): CandidateDraft {
   if (!category) validationErrors.push("category is missing");
   if (!logoUrl) validationErrors.push("logoUrl is missing");
   if (placeholder) validationErrors.push("placeholder content detected");
-  if (raw.websiteUrl && !websiteUrl) warnings.push("source websiteUrl was rejected by safety rules");
+  if (isBlockedImportHost(websiteUrl))
+    warnings.push("websiteUrl uses platform host and needs official site resolution");
+  if (raw.websiteUrl && !websiteUrl)
+    warnings.push("source websiteUrl was rejected by safety rules");
   if (!raw.websiteUrl) warnings.push("source did not provide websiteUrl");
-  if (raw.sourceId === "producthunt") warnings.push("Product Hunt candidate needs website verification");
+  if (raw.sourceId === "producthunt")
+    warnings.push("Product Hunt candidate needs website verification");
 
   return {
     sourceId: raw.sourceId,

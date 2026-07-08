@@ -155,7 +155,7 @@
     "description": "Cursor is an AI code editor that combines editing, codebase understanding, and generation workflows inside a desktop development environment. It is designed for developers who want fast iteration, refactoring help, and contextual assistance.",
     "primary_category": "Code",
     "secondary_categories": ["Productivity", "Data"],
-    "tags": ["Code Editor", "Code Generation", "Refactoring", "Developer Tools", "AI Coding"],
+    "tags": ["Code Editor", "Code Generation", "Refactoring", "Developer Tools", "Code Assistant"],
     "pricing": "Freemium",
     "features": ["Code generation", "Codebase context", "Refactoring help", "Integrated chat"],
     "use_cases": [
@@ -178,7 +178,7 @@
     "description": "GitHub Copilot helps developers move faster with inline code suggestions, chat-based help, and coding support integrated into common developer environments. It fits teams that want AI assistance during day-to-day software work.",
     "primary_category": "Code",
     "secondary_categories": ["Productivity", "Education"],
-    "tags": ["Code Suggestions", "IDE", "Developer Tools", "Pair Programming", "AI Coding"],
+    "tags": ["Code Suggestions", "IDE", "Developer Tools", "Pair Programming", "Code Assistant"],
     "pricing": "Paid",
     "features": ["Inline suggestions", "Coding chat", "Developer workflows", "Repo assistance"],
     "use_cases": ["Complete code", "Explain code", "Start new functions", "Accelerate development"],
@@ -373,8 +373,8 @@
     "summary": "Automation tools and AI workflow features for connecting apps and operational processes.",
     "description": "Zapier AI extends workflow automation with AI steps, natural language workflow creation, and task orchestration across connected apps. It is useful for teams building operational automations without heavy engineering work.",
     "primary_category": "Automation",
-    "secondary_categories": ["Business", "Marketing", "Sales"],
-    "tags": ["Workflow Automation", "Integrations", "No-Code", "Operations", "AI Agents"],
+    "secondary_categories": ["Business", "Marketing"],
+    "tags": ["Workflow Automation", "Integrations", "No-Code", "Operations", "Agent Workflows"],
     "pricing": "Freemium",
     "features": ["Workflow automation", "AI actions", "App integrations", "Operational triggers"],
     "use_cases": [
@@ -402,7 +402,7 @@
       "Open Source",
       "Integrations",
       "Technical Automation",
-      "AI Agents"
+      "Agent Workflows"
     ],
     "pricing": "Open Source",
     "features": ["Workflow builder", "Custom logic", "Integrations", "Self-hosting options"],
@@ -425,7 +425,7 @@
     "summary": "Visual automation platform for connecting apps and designing process workflows at scale.",
     "description": "Make helps teams automate operational tasks through a visual workflow builder and broad app connectivity. It works well for marketing, sales, and operations teams that need multi-step automation without custom backend development.",
     "primary_category": "Automation",
-    "secondary_categories": ["Marketing", "Sales", "Business"],
+    "secondary_categories": ["Marketing", "Sales"],
     "tags": ["Workflow Automation", "Visual Builder", "Integrations", "Operations", "No-Code"],
     "pricing": "Freemium",
     "features": [
@@ -572,7 +572,7 @@
     "summary": "AI writing platform for go-to-market teams creating copy, messaging, and workflow content.",
     "description": "Copy.ai supports marketing and sales teams with AI-assisted writing for messaging, campaign ideas, and go-to-market workflows. It is useful when teams need structured content production across multiple revenue-facing functions.",
     "primary_category": "Marketing",
-    "secondary_categories": ["Sales", "Writing", "Business"],
+    "secondary_categories": ["Sales", "Writing"],
     "tags": ["Go-to-Market", "Sales Content", "Marketing Copy", "Workflow Content", "Messaging"],
     "pricing": "Freemium",
     "features": [
@@ -624,7 +624,7 @@
       "Marketing Copy",
       "Content Production",
       "Growth Content",
-      "AI Writing"
+      "Content Writing"
     ],
     "pricing": "Freemium",
     "features": ["Content drafting", "Blog writing", "Marketing copy", "Workflow support"],
@@ -728,7 +728,7 @@
     "summary": "AI video platform for creating training, internal communication, and presenter-led video content.",
     "description": "Synthesia helps organizations create presenter-style videos for training, internal updates, product education, and communication. It is built for teams that need repeatable video production without a full filming process.",
     "primary_category": "Video",
-    "secondary_categories": ["Education", "Business", "Sales"],
+    "secondary_categories": ["Education", "Business"],
     "tags": [
       "Presenter Video",
       "Training",
@@ -929,7 +929,7 @@
     "summary": "Conversation intelligence and meeting assistant for notes, transcripts, and follow-up visibility.",
     "description": "Fireflies helps teams record meetings, extract notes, and make conversations easier to revisit across sales, support, and operations workflows. It is often used to reduce manual note-taking and improve follow-up quality.",
     "primary_category": "Productivity",
-    "secondary_categories": ["Sales", "Customer Support", "Business"],
+    "secondary_categories": ["Sales", "Customer Support"],
     "tags": [
       "Meeting Assistant",
       "Conversation Intelligence",
@@ -1020,7 +1020,7 @@
     "summary": "Presentation design platform that helps teams create cleaner slides and business-ready decks.",
     "description": "Beautiful.ai helps teams produce structured presentations with design assistance and easier slide building. It is a strong fit for business presentations, sales decks, and internal reporting where speed and polish both matter.",
     "primary_category": "Design",
-    "secondary_categories": ["Productivity", "Sales", "Business"],
+    "secondary_categories": ["Productivity", "Sales"],
     "tags": [
       "Presentations",
       "Slide Design",

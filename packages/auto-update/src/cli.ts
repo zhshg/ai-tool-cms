@@ -1,6 +1,6 @@
 import path from "node:path";
 import { loadRootDotenv, findWorkspaceRoot } from "@ai-tool-cms/config";
-import { slugify } from "@ai-tool-cms/common";
+import { STANDARD_AI_CATEGORIES, resolveCanonicalCategorySlug, slugify } from "@ai-tool-cms/common";
 import { PrismaClient } from "../../database/generated/client/index.js";
 import type {
   AutoUpdateMode,
@@ -10,12 +10,7 @@ import type {
   SourceId,
 } from "./types";
 import { CATEGORY_WHITELIST_SET, DEFAULT_SOURCE_LIMITS } from "./constants";
-import {
-  buildRunArtifactId,
-  writeCandidateSnapshot,
-  writeLog,
-  writeReport,
-} from "./persistence";
+import { buildRunArtifactId, writeCandidateSnapshot, writeLog, writeReport } from "./persistence";
 import { mapDecisionStatusToToolStatus, planCandidates } from "./planner";
 import { renderReport } from "./report";
 import { runSources } from "./sources";
@@ -32,7 +27,8 @@ function parseArgs(argv: string[]): AutoUpdateOptions {
     .map((arg) => arg.slice("--source=".length) as SourceId);
   const mode =
     (getValue("--mode=") as AutoUpdateMode | undefined) ??
-    ((process.env.TOOLS_AUTO_MODE as AutoUpdateMode | undefined) ?? "manual-review");
+    (process.env.TOOLS_AUTO_MODE as AutoUpdateMode | undefined) ??
+    "manual-review";
   const date = getValue("--date=") ?? new Date().toISOString().slice(0, 10);
   const limit = Number(getValue("--limit=") ?? process.env.TOOLS_AUTO_DAILY_LIMIT ?? "5");
   const apply = argv.includes("--apply");
@@ -43,9 +39,7 @@ function parseArgs(argv: string[]): AutoUpdateOptions {
     apply,
     report: true,
     date,
-    sourceIds: sourceIds.length
-      ? sourceIds
-      : (Object.keys(DEFAULT_SOURCE_LIMITS) as SourceId[]),
+    sourceIds: sourceIds.length ? sourceIds : (Object.keys(DEFAULT_SOURCE_LIMITS) as SourceId[]),
     autoApplyEnabled: String(process.env.TOOLS_AUTO_APPLY ?? "false").toLowerCase() === "true",
     autoUpdateEnabled:
       String(process.env.TOOLS_AUTO_UPDATE_ENABLED ?? "true").toLowerCase() === "true",
@@ -88,10 +82,12 @@ async function loadExistingTools(): Promise<ExistingToolLite[]> {
 
 async function ensureCategoryId(name: string): Promise<string> {
   const normalizedName = name.trim();
-  if (!CATEGORY_WHITELIST_SET.has(normalizedName)) {
+  const canonicalSlug = resolveCanonicalCategorySlug(normalizedName);
+  const canonicalCategory = STANDARD_AI_CATEGORIES.find((item) => item.slug === canonicalSlug);
+  if (!canonicalSlug || !canonicalCategory || !CATEGORY_WHITELIST_SET.has(canonicalCategory.name)) {
     throw new Error(`Category '${normalizedName}' is outside the whitelist`);
   }
-  const slug = slugify(normalizedName);
+  const slug = canonicalSlug;
   const existing = await prisma.category.findFirst({
     where: { slug, deletedAt: null },
     select: { id: true },
@@ -100,10 +96,10 @@ async function ensureCategoryId(name: string): Promise<string> {
   const created = await prisma.category.create({
     data: {
       slug,
-      name: normalizedName,
-      description: `${normalizedName} AI tools discovered by the automated pipeline.`,
-      metaTitle: `${normalizedName} AI Tools`,
-      metaDescription: `${normalizedName} AI tools curated by the automated discovery pipeline.`,
+      name: canonicalCategory.name,
+      description: canonicalCategory.description,
+      metaTitle: canonicalCategory.seoTitle,
+      metaDescription: canonicalCategory.seoDescription,
       metadata: { autoUpdateCreated: true },
     },
     select: { id: true },
@@ -262,9 +258,7 @@ async function main() {
   if (!summary.createCount) warnings.push("new tool count is 0");
   if (decisions.every((item) => !item.candidate.logoUrl)) warnings.push("logo all missing");
   if (decisions.some((item) => !item.candidate.category)) warnings.push("category missing");
-  if (
-    decisions.some((item) => item.reasons.some((reason) => reason.includes("placeholder")))
-  ) {
+  if (decisions.some((item) => item.reasons.some((reason) => reason.includes("placeholder")))) {
     warnings.push("suspectedFake > 0");
   }
   if (options.mode === "safe-auto" && decisions.some((item) => item.status === "update-empty")) {
@@ -295,12 +289,7 @@ async function main() {
 
   const runId = buildRunArtifactId(options.date, options.sourceIds, snapshot.generatedAt);
   const snapshotPath = writeCandidateSnapshot(runId, snapshot);
-  const logPathPlaceholder = path.join(
-    findWorkspaceRoot(),
-    "logs",
-    "auto-update",
-    `${runId}.log`,
-  );
+  const logPathPlaceholder = path.join(findWorkspaceRoot(), "logs", "auto-update", `${runId}.log`);
 
   const report = renderReport({
     options,
@@ -329,9 +318,7 @@ async function main() {
     `[tools:auto-update] create=${summary.createCount} draft=${summary.draftCount} updateEmpty=${summary.updateEmptyCount} skip=${summary.skipCount}`,
   );
   console.info(`[tools:auto-update] report=${path.relative(findWorkspaceRoot(), reportPath)}`);
-  console.info(
-    `[tools:auto-update] snapshot=${path.relative(findWorkspaceRoot(), snapshotPath)}`,
-  );
+  console.info(`[tools:auto-update] snapshot=${path.relative(findWorkspaceRoot(), snapshotPath)}`);
   console.info(`[tools:auto-update] log=${path.relative(findWorkspaceRoot(), logPath)}`);
   warnings.forEach((warning) => console.warn(`[tools:auto-update][warning] ${warning}`));
 }

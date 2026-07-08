@@ -1,8 +1,4 @@
-import {
-  STANDARD_AI_CATEGORIES,
-  resolveCanonicalCategorySlug,
-  slugify,
-} from "@ai-tool-cms/common";
+import { STANDARD_AI_CATEGORIES, resolveCanonicalCategorySlug, slugify } from "@ai-tool-cms/common";
 import { PricingModel } from "@ai-tool-cms/database";
 
 const PLACEHOLDER_PATTERNS = [
@@ -16,26 +12,83 @@ const PLACEHOLDER_PATTERNS = [
 ] as const;
 
 const CATEGORY_RULES: Array<{ category: string; pattern: RegExp }> = [
-  { category: "AI Writing", pattern: /\b(write|writer|copy|content|grammar|translation|blog|email|inbox)\b/i },
-  { category: "AI Image", pattern: /\b(image|photo|art|avatar|diffusion|illustration|artistry|midjourney|dating photos|selfies)\b/i },
+  {
+    category: "AI Writing",
+    pattern: /\b(write|writer|copy|content|grammar|translation|blog|email|inbox)\b/i,
+  },
+  {
+    category: "AI Image",
+    pattern:
+      /\b(image|photo|art|avatar|diffusion|illustration|artistry|midjourney|dating photos|selfies)\b/i,
+  },
   { category: "AI Video", pattern: /\b(video|motion|clip|movie|animation|3d motion)\b/i },
   { category: "AI Audio", pattern: /\b(audio|voice|speech|music|podcast|sound)\b/i },
-  { category: "AI Coding", pattern: /\b(code|coding|copilot|programming|developer|webgpu|repository|open source)\b/i },
-  { category: "AI Productivity", pattern: /\b(productivity|notes|meeting|workspace|assistant|organize|workflow|team email|resume)\b/i },
-  { category: "AI Education", pattern: /\b(worksheet|worksheets|lesson|study|learning|curriculum|tutor|classroom|student)\b/i },
-  { category: "AI Marketing", pattern: /\b(marketing|campaign|brand|copywriting|ecommerce|landing page|ugc)\b/i },
-  { category: "AI SEO", pattern: /\b(seo|search ranking|keyword|backlink|answer engine optimization|aeo|visibility|discoverability|brand exists|business exists|reddit trends)\b/i },
-  { category: "AI Business", pattern: /\b(crm|sales|finance|customer|operations|law firm|legal|city guide|business team|quotes)\b/i },
-  { category: "AI Research", pattern: /\b(research|analysis|citation|citations|paper|search|summarize|model|visualization|visualize|benchmark|eval|ocr)\b/i },
-  { category: "AI Chatbots", pattern: /\b(chat|chatbot|assistant|chatgpt|conversational|imessage)\b/i },
+  {
+    category: "AI Coding",
+    pattern: /\b(code|coding|copilot|programming|developer|webgpu|repository|open source)\b/i,
+  },
+  {
+    category: "AI Productivity",
+    pattern:
+      /\b(productivity|notes|meeting|workspace|assistant|organize|workflow|team email|resume|app builder|custom apps)\b/i,
+  },
+  {
+    category: "AI Education",
+    pattern: /\b(worksheet|worksheets|lesson|study|learning|curriculum|tutor|classroom|student)\b/i,
+  },
+  {
+    category: "AI Marketing",
+    pattern:
+      /\b(marketing|campaign|brand|copywriting|ecommerce|landing page|ugc|lead qualification|conversion)\b/i,
+  },
+  {
+    category: "AI SEO",
+    pattern:
+      /\b(seo|search ranking|keyword|backlink|answer engine optimization|aeo|visibility|discoverability|brand exists|business exists|reddit trends)\b/i,
+  },
+  {
+    category: "AI Business",
+    pattern:
+      /\b(crm|sales|finance|customer|operations|law firm|legal|city guide|business team|quotes|market alerts|call management)\b/i,
+  },
+  {
+    category: "AI Research",
+    pattern:
+      /\b(research|analysis|citation|citations|paper|search|summarize|model|visualization|visualize|benchmark|eval|ocr|documents|document analysis|insights from documents)\b/i,
+  },
+  {
+    category: "AI Chatbots",
+    pattern: /\b(chat|chatbot|assistant|chatgpt|conversational|imessage)\b/i,
+  },
   { category: "AI Agents", pattern: /\b(agent|agents|autonomous|multi-step)\b/i },
-  { category: "AI Design", pattern: /\b(ui|ux|prototype|figma|creative|design|3d model|3d models|interior|player card|mockup)\b/i },
+  {
+    category: "AI Design",
+    pattern:
+      /\b(ui|ux|prototype|figma|creative|design|3d model|3d models|interior|player card|mockup)\b/i,
+  },
   { category: "AI Automation", pattern: /\b(automation|workflow|zapier|make|n8n)\b/i },
-  { category: "AI Developer Tools", pattern: /\b(api|sdk|terminal|cli|devops|repository|schema validation|typescript|data stack)\b/i },
-  { category: "AI Data", pattern: /\b(data extraction|dataset|analytics|spreadsheet|structured data|web scraping)\b/i },
-  { category: "AI Presentation", pattern: /\b(slide deck|slide decks|presentation|presentations|pitch deck)\b/i },
-  { category: "AI Social Media", pattern: /\b(social media|reddit|followers|engagement|creator posts|social growth)\b/i },
-  { category: "AI Customer Support", pattern: /\b(customer support|support inbox|ticketing|help desk|knowledge base)\b/i },
+  {
+    category: "AI Developer Tools",
+    pattern:
+      /\b(api|sdk|terminal|cli|devops|repository|schema validation|typescript|data stack|git command|development workflows)\b/i,
+  },
+  {
+    category: "AI Data",
+    pattern:
+      /\b(data extraction|dataset|analytics|spreadsheet|structured data|web scraping|excel formulas|formula bot)\b/i,
+  },
+  {
+    category: "AI Presentation",
+    pattern: /\b(slide deck|slide decks|presentation|presentations|pitch deck)\b/i,
+  },
+  {
+    category: "AI Social Media",
+    pattern: /\b(social media|reddit|followers|engagement|creator posts|social growth)\b/i,
+  },
+  {
+    category: "AI Customer Support",
+    pattern: /\b(customer support|support inbox|ticketing|help desk|knowledge base)\b/i,
+  },
 ];
 
 const STANDARD_CATEGORY_NAME_BY_SLUG = new Map(
@@ -108,7 +161,9 @@ export function normalizeWebsiteUrl(value: string | null | undefined): string | 
         normalized === "ref" ||
         normalized === "source" ||
         normalized === "campaign" ||
-        normalized === "medium"
+        normalized === "medium" ||
+        normalized === "via" ||
+        normalized === "fpr"
       );
     });
     for (const key of removableKeys) {
@@ -157,7 +212,7 @@ export function canonicalizeCategoryName(value: string | null | undefined): stri
   if (!cleaned) return null;
   const slug = resolveCanonicalCategorySlug(cleaned);
   if (!slug) return null;
-  return STANDARD_CATEGORY_NAME_BY_SLUG.get(slug) ?? null;
+  return (STANDARD_CATEGORY_NAME_BY_SLUG.get(slug) as string | undefined) ?? null;
 }
 
 export function buildSlug(name: string, websiteUrl: string | null): string {

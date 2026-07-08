@@ -1,4 +1,4 @@
-import type { Prisma, PrismaClient } from "@prisma/client";
+import type { Prisma, PrismaClient } from "../../packages/database/generated/client";
 
 const DEFAULT_TOOL_PUBLISH_WORKFLOW = [
   { id: "crawl", type: "CRAWL" },

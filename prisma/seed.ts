@@ -8,6 +8,7 @@
  */
 import { prisma } from "./seeds/context";
 import { seedBulkData } from "./seeds/bulk";
+import { seedAutoDiscoveredTools } from "./seeds/auto-discovered-tools";
 import { seedCuratedTools } from "./seeds/curated-tools";
 import { seedCrawlSources } from "./seeds/crawl-sources";
 import { seedRolesAndPermissions } from "./seeds/rbac";
@@ -42,6 +43,10 @@ async function main(): Promise<void> {
     const publicCatalog = await seedCuratedTools(adminUserId);
     console.info(
       `[seed] public catalog: ${publicCatalog.categoryIds.length} categories, ${publicCatalog.tagIds.length} tags, ${publicCatalog.toolIds.length} tools`,
+    );
+    const autoDiscoveredCatalog = await seedAutoDiscoveredTools(adminUserId);
+    console.info(
+      `[seed] auto discovered catalog: ${autoDiscoveredCatalog.tagIds.length} tags, ${autoDiscoveredCatalog.toolIds.length} tools`,
     );
     await seedCrawlSources(adminUserId);
     console.info("[seed] mock crawl source seeded (framework validation)");
