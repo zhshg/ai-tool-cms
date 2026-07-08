@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { PageHeader } from "@/components/layout/page-header";
 import { RequirePermission } from "@/components/rbac/require-permission";
@@ -18,32 +18,38 @@ import {
 import { Permission } from "@/lib/permissions";
 
 export default function ToolsPage() {
+  const pageSize = 50;
   const searchParams = useSearchParams();
   const [items, setItems] = useState<AdminTool[]>([]);
   const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [error, setError] = useState<ApiError | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [message, setMessage] = useState<string | null>(null);
   const [activeToolId, setActiveToolId] = useState<string | null>(null);
   const [isBulkRefreshingLogos, setIsBulkRefreshingLogos] = useState(false);
 
-  async function loadPage() {
-    setIsLoading(true);
-    try {
-      const toolsData = await fetchTools();
-      setItems(toolsData.items);
-      setTotal(toolsData.total);
-      setError(null);
-    } catch (err) {
-      setError(err as ApiError);
-    } finally {
-      setIsLoading(false);
-    }
-  }
+  const loadPage = useCallback(
+    async (nextPage = page) => {
+      setIsLoading(true);
+      try {
+        const toolsData = await fetchTools(nextPage, pageSize);
+        setItems(toolsData.items);
+        setTotal(toolsData.total);
+        setPage(toolsData.page);
+        setError(null);
+      } catch (err) {
+        setError(err as ApiError);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [page, pageSize],
+  );
 
   useEffect(() => {
     void loadPage();
-  }, []);
+  }, [loadPage]);
 
   useEffect(() => {
     if (searchParams.get("success") === "1") {
@@ -60,7 +66,7 @@ export default function ToolsPage() {
     try {
       await deleteTool(tool.id);
       setMessage(`Tool "${tool.name}" deleted.`);
-      await loadPage();
+      await loadPage(page);
     } catch (err) {
       setError(err as ApiError);
     } finally {
@@ -94,7 +100,7 @@ export default function ToolsPage() {
     try {
       await updateTool(tool.id, { status: "ARCHIVED" });
       setMessage(`Tool "${tool.name}" archived.`);
-      await loadPage();
+      await loadPage(page);
     } catch (err) {
       setError(err as ApiError);
     } finally {
@@ -165,84 +171,137 @@ export default function ToolsPage() {
             </div>
           ) : null}
           {!isLoading && !error && items.length > 0 ? (
-            <table className="w-full text-sm">
-              <thead className="border-b bg-muted/50 text-left text-muted-foreground">
-                <tr>
-                  <th className="px-4 py-3 font-medium">Tool</th>
-                  <th className="px-4 py-3 font-medium">Category</th>
-                  <th className="px-4 py-3 font-medium">Pricing</th>
-                  <th className="px-4 py-3 font-medium">Status</th>
-                  <th className="px-4 py-3 font-medium">Updated</th>
-                  <th className="px-4 py-3 font-medium">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((tool) => (
-                  <tr key={tool.id} className="border-b last:border-0">
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-3">
-                        <ToolLogo
-                          name={tool.name}
-                          logoUrl={tool.logoUrl}
-                          fallbackLogoUrl={
-                            typeof tool.metadata?.collectedLogoUrl === "string"
-                              ? tool.metadata.collectedLogoUrl
-                              : typeof tool.metadata?.logo === "string"
-                                ? tool.metadata.logo
-                                : null
-                          }
-                          categoryIconUrl={tool.categories?.[0]?.category?.iconUrl ?? null}
-                          size="sm"
-                        />
-                        <div>
-                          <p className="font-medium">{tool.name}</p>
-                          <p className="text-muted-foreground">{tool.slug}</p>
+            <>
+              <table className="w-full text-sm">
+                <thead className="border-b bg-muted/50 text-left text-muted-foreground">
+                  <tr>
+                    <th className="px-4 py-3 font-medium">Tool</th>
+                    <th className="px-4 py-3 font-medium">Category</th>
+                    <th className="px-4 py-3 font-medium">Pricing</th>
+                    <th className="px-4 py-3 font-medium">Status</th>
+                    <th className="px-4 py-3 font-medium">Updated</th>
+                    <th className="px-4 py-3 font-medium">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.map((tool) => (
+                    <tr key={tool.id} className="border-b last:border-0">
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-3">
+                          <ToolLogo
+                            name={tool.name}
+                            logoUrl={tool.logoUrl}
+                            fallbackLogoUrl={
+                              typeof tool.metadata?.collectedLogoUrl === "string"
+                                ? tool.metadata.collectedLogoUrl
+                                : typeof tool.metadata?.logo === "string"
+                                  ? tool.metadata.logo
+                                  : null
+                            }
+                            categoryIconUrl={tool.categories?.[0]?.category?.iconUrl ?? null}
+                            size="sm"
+                          />
+                          <div>
+                            <p className="font-medium">{tool.name}</p>
+                            <p className="text-muted-foreground">{tool.slug}</p>
+                          </div>
                         </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {tool.categories?.map((item) => item.category.name).join(", ") || "None"}
-                    </td>
-                    <td className="px-4 py-3">{tool.pricingModel}</td>
-                    <td className="px-4 py-3">{tool.status}</td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {new Date(tool.updatedAt).toLocaleString()}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex gap-2">
-                        <Link
-                          href={`/tools/${tool.id}/edit`}
-                          className="rounded-md border px-3 py-2 text-xs font-medium hover:bg-muted"
-                        >
-                          Edit
-                        </Link>
-                        {tool.status !== "ARCHIVED" ? (
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground">
+                        {tool.categories?.map((item) => item.category.name).join(", ") || "None"}
+                      </td>
+                      <td className="px-4 py-3">{tool.pricingModel}</td>
+                      <td className="px-4 py-3">{tool.status}</td>
+                      <td className="px-4 py-3 text-muted-foreground">
+                        {new Date(tool.updatedAt).toLocaleString()}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex gap-2">
+                          <Link
+                            href={`/tools/${tool.id}/edit`}
+                            className="rounded-md border px-3 py-2 text-xs font-medium hover:bg-muted"
+                          >
+                            Edit
+                          </Link>
+                          {tool.status !== "ARCHIVED" ? (
+                            <button
+                              type="button"
+                              className="rounded-md border px-3 py-2 text-xs font-medium hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
+                              onClick={() => void handleArchive(tool)}
+                              disabled={activeToolId === tool.id}
+                            >
+                              {activeToolId === tool.id ? "Working..." : "Archive"}
+                            </button>
+                          ) : null}
                           <button
                             type="button"
                             className="rounded-md border px-3 py-2 text-xs font-medium hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
-                            onClick={() => void handleArchive(tool)}
+                            onClick={() => void handleDelete(tool)}
                             disabled={activeToolId === tool.id}
                           >
-                            {activeToolId === tool.id ? "Working..." : "Archive"}
+                            {activeToolId === tool.id ? "Working..." : "Delete"}
                           </button>
-                        ) : null}
-                        <button
-                          type="button"
-                          className="rounded-md border px-3 py-2 text-xs font-medium hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
-                          onClick={() => void handleDelete(tool)}
-                          disabled={activeToolId === tool.id}
-                        >
-                          {activeToolId === tool.id ? "Working..." : "Delete"}
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <PaginationBar
+                page={page}
+                total={total}
+                pageSize={pageSize}
+                onPageChange={(nextPage) => void loadPage(nextPage)}
+              />
+            </>
           ) : null}
         </div>
       </div>
     </RequirePermission>
+  );
+}
+
+function PaginationBar({
+  page,
+  total,
+  pageSize,
+  onPageChange,
+}: {
+  page: number;
+  total: number;
+  pageSize: number;
+  onPageChange: (page: number) => void;
+}) {
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const start = total === 0 ? 0 : (page - 1) * pageSize + 1;
+  const end = Math.min(total, page * pageSize);
+
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 border-t px-4 py-3 text-sm">
+      <p className="text-muted-foreground">
+        Showing {start}-{end} of {total}
+      </p>
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          className="rounded-md border px-3 py-2 hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
+          onClick={() => onPageChange(page - 1)}
+          disabled={page <= 1}
+        >
+          Previous
+        </button>
+        <span className="text-muted-foreground">
+          Page {page} / {totalPages}
+        </span>
+        <button
+          type="button"
+          className="rounded-md border px-3 py-2 hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
+          onClick={() => onPageChange(page + 1)}
+          disabled={page >= totalPages}
+        >
+          Next
+        </button>
+      </div>
+    </div>
   );
 }

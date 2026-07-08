@@ -1038,8 +1038,8 @@ export function fetchSeoIntegrationConnectUrl(provider: "google" | "bing") {
   return apiFetch<SeoIntegrationConnectUrlResponse>(`/seo/integrations/${provider}/connect-url`);
 }
 
-export function fetchTools() {
-  return apiFetch<PaginatedResponse<AdminTool>>("/tools?pageSize=50");
+export function fetchTools(page = 1, pageSize = 50) {
+  return apiFetch<PaginatedResponse<AdminTool>>(`/tools?page=${page}&pageSize=${pageSize}`);
 }
 
 export function fetchToolById(id: string) {
@@ -1176,8 +1176,10 @@ export async function uploadToolAsset(file: File, kind: "logo" | "screenshot") {
   };
 }
 
-export function fetchCategories() {
-  return apiFetch<PaginatedResponse<AdminCategory>>("/categories?pageSize=50");
+export function fetchCategories(page = 1, pageSize = 50) {
+  return apiFetch<PaginatedResponse<AdminCategory>>(
+    `/categories?page=${page}&pageSize=${pageSize}`,
+  );
 }
 
 export function fetchCategoryById(id: string) {

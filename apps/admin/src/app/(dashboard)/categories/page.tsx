@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { PageHeader } from "@/components/layout/page-header";
 import { RequirePermission } from "@/components/rbac/require-permission";
@@ -15,9 +15,11 @@ import {
 import { Permission } from "@/lib/permissions";
 
 export default function CategoriesPage() {
+  const pageSize = 50;
   const searchParams = useSearchParams();
   const [items, setItems] = useState<AdminCategory[]>([]);
   const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [error, setError] = useState<ApiError | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -25,23 +27,27 @@ export default function CategoriesPage() {
 
   const rootCategories = useMemo(() => items.filter((category) => !category.parentId), [items]);
 
-  async function loadCategories() {
-    setIsLoading(true);
-    try {
-      const data = await fetchCategories();
-      setItems(data.items);
-      setTotal(data.total);
-      setError(null);
-    } catch (err) {
-      setError(err as ApiError);
-    } finally {
-      setIsLoading(false);
-    }
-  }
+  const loadCategories = useCallback(
+    async (nextPage = page) => {
+      setIsLoading(true);
+      try {
+        const data = await fetchCategories(nextPage, pageSize);
+        setItems(data.items);
+        setTotal(data.total);
+        setPage(data.page);
+        setError(null);
+      } catch (err) {
+        setError(err as ApiError);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [page, pageSize],
+  );
 
   useEffect(() => {
     void loadCategories();
-  }, []);
+  }, [loadCategories]);
   useEffect(() => {
     if (searchParams.get("success") === "1") {
       setMessage("Category changes saved successfully.");
@@ -57,7 +63,7 @@ export default function CategoriesPage() {
     try {
       await deleteCategory(category.id);
       setMessage(`Category "${category.name}" deleted.`);
-      await loadCategories();
+      await loadCategories(page);
     } catch (err) {
       setError(err as ApiError);
     } finally {
@@ -123,50 +129,103 @@ export default function CategoriesPage() {
             </div>
           ) : null}
           {!isLoading && !error && items.length > 0 ? (
-            <table className="w-full text-sm">
-              <thead className="border-b bg-muted/50 text-left text-muted-foreground">
-                <tr>
-                  <th className="px-4 py-3 font-medium">Name</th>
-                  <th className="px-4 py-3 font-medium">Slug</th>
-                  <th className="px-4 py-3 font-medium">Sort</th>
-                  <th className="px-4 py-3 font-medium">Description</th>
-                  <th className="px-4 py-3 font-medium">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((category) => (
-                  <tr key={category.id} className="border-b last:border-0">
-                    <td className="px-4 py-3 font-medium">{category.name}</td>
-                    <td className="px-4 py-3 text-muted-foreground">{category.slug}</td>
-                    <td className="px-4 py-3">{category.sortOrder}</td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {category.description || "None"}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex gap-2">
-                        <Link
-                          href={`/categories/${category.id}/edit`}
-                          className="rounded-md border px-3 py-2 text-xs font-medium hover:bg-muted"
-                        >
-                          Edit
-                        </Link>
-                        <button
-                          type="button"
-                          className="rounded-md border px-3 py-2 text-xs font-medium hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
-                          onClick={() => void handleDelete(category)}
-                          disabled={activeCategoryId === category.id}
-                        >
-                          {activeCategoryId === category.id ? "Working..." : "Delete"}
-                        </button>
-                      </div>
-                    </td>
+            <>
+              <table className="w-full text-sm">
+                <thead className="border-b bg-muted/50 text-left text-muted-foreground">
+                  <tr>
+                    <th className="px-4 py-3 font-medium">Name</th>
+                    <th className="px-4 py-3 font-medium">Slug</th>
+                    <th className="px-4 py-3 font-medium">Sort</th>
+                    <th className="px-4 py-3 font-medium">Description</th>
+                    <th className="px-4 py-3 font-medium">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {items.map((category) => (
+                    <tr key={category.id} className="border-b last:border-0">
+                      <td className="px-4 py-3 font-medium">{category.name}</td>
+                      <td className="px-4 py-3 text-muted-foreground">{category.slug}</td>
+                      <td className="px-4 py-3">{category.sortOrder}</td>
+                      <td className="px-4 py-3 text-muted-foreground">
+                        {category.description || "None"}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex gap-2">
+                          <Link
+                            href={`/categories/${category.id}/edit`}
+                            className="rounded-md border px-3 py-2 text-xs font-medium hover:bg-muted"
+                          >
+                            Edit
+                          </Link>
+                          <button
+                            type="button"
+                            className="rounded-md border px-3 py-2 text-xs font-medium hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
+                            onClick={() => void handleDelete(category)}
+                            disabled={activeCategoryId === category.id}
+                          >
+                            {activeCategoryId === category.id ? "Working..." : "Delete"}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <PaginationBar
+                page={page}
+                total={total}
+                pageSize={pageSize}
+                onPageChange={(nextPage) => void loadCategories(nextPage)}
+              />
+            </>
           ) : null}
         </div>
       </div>
     </RequirePermission>
+  );
+}
+
+function PaginationBar({
+  page,
+  total,
+  pageSize,
+  onPageChange,
+}: {
+  page: number;
+  total: number;
+  pageSize: number;
+  onPageChange: (page: number) => void;
+}) {
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const start = total === 0 ? 0 : (page - 1) * pageSize + 1;
+  const end = Math.min(total, page * pageSize);
+
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 border-t px-4 py-3 text-sm">
+      <p className="text-muted-foreground">
+        Showing {start}-{end} of {total}
+      </p>
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          className="rounded-md border px-3 py-2 hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
+          onClick={() => onPageChange(page - 1)}
+          disabled={page <= 1}
+        >
+          Previous
+        </button>
+        <span className="text-muted-foreground">
+          Page {page} / {totalPages}
+        </span>
+        <button
+          type="button"
+          className="rounded-md border px-3 py-2 hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
+          onClick={() => onPageChange(page + 1)}
+          disabled={page >= totalPages}
+        >
+          Next
+        </button>
+      </div>
+    </div>
   );
 }
