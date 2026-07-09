@@ -7,6 +7,7 @@ AI Tool CMS 生产环境运维文档索引。
 | 文档 | 内容 |
 |------|------|
 | [Runbook.md](./Runbook.md) | 值班巡检与常见故障处理 |
+| [DailyAutoUpdate.md](./DailyAutoUpdate.md) | `tools:auto-update` 日常运行与产物路径 |
 | [Monitoring.md](./Monitoring.md) | 监控、告警与观测 |
 | [Backup.md](./Backup.md) | 备份策略 |
 

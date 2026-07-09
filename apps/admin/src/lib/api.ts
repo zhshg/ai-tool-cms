@@ -816,9 +816,32 @@ export type CrawlSource = {
   adapterType: string;
   status: string;
   schedule: string;
+  crawlIntervalMinutes: number;
+  robotsTxt?: string | null;
   priority: number;
+  isEnabled?: boolean;
+  config?: Record<string, unknown> | null;
+  metadata?: Record<string, unknown> | null;
   lastRunAt?: string | null;
   nextRunAt?: string | null;
+};
+
+export type CreateCrawlSourceInput = {
+  name: string;
+  slug?: string;
+  baseUrl: string;
+  adapterType: string;
+  status?: string;
+  schedule?: string;
+  crawlIntervalMinutes?: number;
+  robotsTxt?: string;
+  priority?: number;
+  config?: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
+};
+
+export type UpdateCrawlSourceInput = Partial<CreateCrawlSourceInput> & {
+  isEnabled?: boolean;
 };
 
 export type TriggerCrawlJobResponse = {
@@ -827,6 +850,11 @@ export type TriggerCrawlJobResponse = {
   jobType: string;
   status: string;
   createdAt: string;
+};
+
+export type UpdateCrawlFrequencyInput = {
+  schedule: string;
+  crawlIntervalMinutes: number;
 };
 
 export type ContentIssueTool = {
@@ -1568,6 +1596,34 @@ export function fetchCrawlerDashboard() {
 
 export function fetchCrawlSources() {
   return apiFetch<PaginatedResponse<CrawlSource>>("/crawler/sources?pageSize=50");
+}
+
+export function createCrawlSource(payload: CreateCrawlSourceInput) {
+  return apiFetch<CrawlSource>("/crawler/sources", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function updateCrawlSource(id: string, payload: UpdateCrawlSourceInput) {
+  return apiFetch<CrawlSource>(`/crawler/sources/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function updateCrawlSourceFrequency(id: string, payload: UpdateCrawlFrequencyInput) {
+  return apiFetch<CrawlSource>(`/crawler/sources/${id}/frequency`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function setCrawlSourceStatus(id: string, status: "ENABLED" | "DISABLED" | "PAUSED") {
+  const suffix = status === "ENABLED" ? "enable" : status === "DISABLED" ? "disable" : "pause";
+  return apiFetch<CrawlSource>(`/crawler/sources/${id}/${suffix}`, {
+    method: "POST",
+  });
 }
 
 export function triggerCrawlerJob(sourceId: string) {
