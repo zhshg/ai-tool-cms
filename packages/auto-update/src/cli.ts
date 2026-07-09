@@ -1,6 +1,6 @@
 import path from "node:path";
-import { loadRootDotenv, findWorkspaceRoot } from "@ai-tool-cms/config";
-import { STANDARD_AI_CATEGORIES, resolveCanonicalCategorySlug, slugify } from "@ai-tool-cms/common";
+import * as configPkg from "@ai-tool-cms/config";
+import * as commonPkg from "@ai-tool-cms/common";
 import { PrismaClient } from "../../database/generated/client/index.js";
 import type {
   AutoUpdateMode,
@@ -10,10 +10,19 @@ import type {
   SourceId,
 } from "./types";
 import { CATEGORY_WHITELIST_SET, DEFAULT_SOURCE_LIMITS } from "./constants";
-import { buildRunArtifactId, writeCandidateSnapshot, writeLog, writeReport } from "./persistence";
+import {
+  buildRunArtifactId,
+  buildRunArtifactPaths,
+  writeCandidateSnapshot,
+  writeLog,
+  writeReport,
+} from "./persistence";
 import { mapDecisionStatusToToolStatus, planCandidates } from "./planner";
 import { renderReport } from "./report";
 import { runSources } from "./sources";
+
+const { loadRootDotenv, findWorkspaceRoot } = configPkg;
+const { STANDARD_AI_CATEGORIES, resolveCanonicalCategorySlug, slugify } = commonPkg;
 
 loadRootDotenv();
 
@@ -289,7 +298,7 @@ async function main() {
 
   const runId = buildRunArtifactId(options.date, options.sourceIds, snapshot.generatedAt);
   const snapshotPath = writeCandidateSnapshot(runId, snapshot);
-  const logPathPlaceholder = path.join(findWorkspaceRoot(), "logs", "auto-update", `${runId}.log`);
+  const artifactPaths = buildRunArtifactPaths(findWorkspaceRoot(), runId);
 
   const report = renderReport({
     options,
@@ -299,7 +308,7 @@ async function main() {
     errors,
     warnings,
     snapshotPath: path.relative(findWorkspaceRoot(), snapshotPath),
-    logPath: path.relative(findWorkspaceRoot(), logPathPlaceholder),
+    logPath: path.relative(findWorkspaceRoot(), artifactPaths.log),
   });
   const reportPath = writeReport(runId, report);
   logs.push(`[report] ${path.relative(findWorkspaceRoot(), reportPath)}`);

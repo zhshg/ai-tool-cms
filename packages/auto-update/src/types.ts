@@ -3,19 +3,17 @@ import type { PricingModel, ToolStatus } from "@ai-tool-cms/database";
 export type AutoUpdateMode = "manual-review" | "safe-auto" | "full-auto";
 
 export type SourceId =
+  | "aitoolsdirectory"
   | "producthunt"
   | "taaft"
+  | "theresanaiforthat"
   | "futurepedia"
   | "github-trending"
   | "huggingface-spaces"
   | "hackernews"
   | "reddit-ai";
 
-export type CandidateStatus =
-  | "create"
-  | "draft"
-  | "update-empty"
-  | "skip";
+export type CandidateStatus = "create" | "draft" | "update-empty" | "skip";
 
 export type CandidateDraft = {
   sourceId: SourceId;
@@ -47,6 +45,8 @@ export type ExistingToolLite = {
   logoUrl: string | null;
   summary: string | null;
   description: string | null;
+  metaTitle?: string | null;
+  metaDescription?: string | null;
   status: ToolStatus;
   metadata: Record<string, unknown>;
   categorySlugs: string[];
@@ -108,4 +108,70 @@ export type PersistedCandidateSnapshot = {
   sources: SourceRunResult[];
   decisions: CandidateDecision[];
   summary: AutoUpdateSummary;
+};
+
+export type ExistingCategoryLite = {
+  id: string;
+  slug: string;
+  name: string;
+};
+
+export type CrawlerImportOptions = {
+  updateExisting: boolean;
+  categoryFallbackSlug: string | null;
+  defaultStatus: ToolStatus;
+  skipLogo: boolean;
+};
+
+export type PlannedCrawlerTool = {
+  sourceId: SourceId;
+  sourceName: string;
+  sourceUrl: string;
+  externalId?: string;
+  name: string;
+  slug: string;
+  website: string;
+  rootDomain: string;
+  summary: string;
+  description: string;
+  logoUrl: string | null;
+  pricingModel: PricingModel;
+  status: ToolStatus;
+  metaTitle: string;
+  metaDescription: string;
+  categoryId: string;
+  categorySlug: string;
+  categoryName: string;
+  tags: string[];
+  metadata: Record<string, unknown>;
+};
+
+export type CrawlerPlanDecision = {
+  candidate: CandidateDraft;
+  action: "create" | "update" | "skip";
+  matchedToolId: string | null;
+  matchedToolSlug: string | null;
+  normalized: PlannedCrawlerTool;
+  updateFields: string[];
+  duplicateReasons: string[];
+  validationErrors: string[];
+  warnings: string[];
+  suspectedFakeUrl: boolean;
+};
+
+export type CrawlerPlanSummary = {
+  totalFetched: number;
+  planCreateCount: number;
+  planUpdateCount: number;
+  skipCount: number;
+  duplicateCount: number;
+  fallbackCategoryCount: number;
+  missingFieldCount: number;
+  suspectedFakeUrlCount: number;
+  sampleCount: number;
+};
+
+export type CrawlerPlanResult = {
+  decisions: CrawlerPlanDecision[];
+  summary: CrawlerPlanSummary;
 };

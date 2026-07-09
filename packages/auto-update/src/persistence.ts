@@ -1,14 +1,19 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { findWorkspaceRoot } from "@ai-tool-cms/config";
-import type { PersistedCandidateSnapshot } from "./types";
+import * as configPkg from "@ai-tool-cms/config";
+
+const { findWorkspaceRoot } = configPkg;
 
 function ensureDir(target: string) {
   mkdirSync(target, { recursive: true });
 }
 
 function sanitizeSegment(value: string): string {
-  return value.replace(/[^a-z0-9-]+/gi, "-").replace(/-+/g, "-").replace(/^-|-$/g, "").toLowerCase();
+  return value
+    .replace(/[^a-z0-9-]+/gi, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
+    .toLowerCase();
 }
 
 export function buildRunArtifactId(date: string, sourceIds: string[], generatedAt: string): string {
@@ -22,29 +27,36 @@ export function buildRunArtifactId(date: string, sourceIds: string[], generatedA
   return `${date}-${time}-${sourceLabel}`;
 }
 
-export function writeCandidateSnapshot(runId: string, data: PersistedCandidateSnapshot): string {
+export function buildRunArtifactPaths(root: string, runId: string) {
+  const baseDir = path.join(root, "storage", "auto-update");
+
+  return {
+    snapshot: path.join(baseDir, "candidates", `auto-update-${runId}.json`),
+    report: path.join(baseDir, "reports", `auto-update-${runId}.md`),
+    log: path.join(baseDir, "logs", `${runId}.log`),
+  };
+}
+
+export function writeCandidateSnapshot<T>(runId: string, data: T): string {
   const root = findWorkspaceRoot();
-  const dir = path.join(root, "storage", "auto-update", "candidates");
-  ensureDir(dir);
-  const filePath = path.join(dir, `auto-update-${runId}.json`);
+  const filePath = buildRunArtifactPaths(root, runId).snapshot;
+  ensureDir(path.dirname(filePath));
   writeFileSync(filePath, JSON.stringify(data, null, 2), "utf8");
   return filePath;
 }
 
 export function writeLog(runId: string, lines: string[]): string {
   const root = findWorkspaceRoot();
-  const dir = path.join(root, "logs", "auto-update");
-  ensureDir(dir);
-  const filePath = path.join(dir, `${runId}.log`);
+  const filePath = buildRunArtifactPaths(root, runId).log;
+  ensureDir(path.dirname(filePath));
   writeFileSync(filePath, `${lines.join("\n")}\n`, "utf8");
   return filePath;
 }
 
 export function writeReport(runId: string, markdown: string): string {
   const root = findWorkspaceRoot();
-  const dir = path.join(root, "docs", "operations", "reports");
-  ensureDir(dir);
-  const filePath = path.join(dir, `auto-update-${runId}.md`);
+  const filePath = buildRunArtifactPaths(root, runId).report;
+  ensureDir(path.dirname(filePath));
   writeFileSync(filePath, markdown, "utf8");
   return filePath;
 }

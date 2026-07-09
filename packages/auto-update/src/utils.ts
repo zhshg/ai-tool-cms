@@ -1,5 +1,7 @@
-import { STANDARD_AI_CATEGORIES, resolveCanonicalCategorySlug, slugify } from "@ai-tool-cms/common";
+import * as commonPkg from "@ai-tool-cms/common";
 import { PricingModel } from "@ai-tool-cms/database";
+
+const { STANDARD_AI_CATEGORIES, resolveCanonicalCategorySlug, slugify } = commonPkg;
 
 const PLACEHOLDER_PATTERNS = [
   /example\.com/i,

@@ -18,6 +18,8 @@
     "db:studio": "pnpm --filter @ai-tool-cms/database db:studio",
     "db:seed": "pnpm --filter @ai-tool-cms/database db:seed",
     "seed:tools": "pnpm --filter @ai-tool-cms/database exec tsx ../../scripts/seed-production-tools.ts",
+    "crawler:run": "pnpm --filter @ai-tool-cms/auto-update crawler:run",
+    "crawler:dry-run": "pnpm --filter @ai-tool-cms/auto-update crawler:run --dry-run",
     "tools:auto-update:export-review": "node scripts/auto-update/export-review-dataset.mjs",
     "tools:auto-update:validate-review": "node scripts/auto-update/validate-review-dataset.mjs",
     "tools:auto-update:audit-overlaps": "node scripts/auto-update/audit-import-overlaps.mjs",

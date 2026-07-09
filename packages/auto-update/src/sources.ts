@@ -42,7 +42,27 @@ type SourceAdapter = {
   fetch: (limit: number) => Promise<RawSourceRecord[]>;
 };
 
+export type SourceFetchRuntimeOptions = {
+  timeoutMs?: number;
+  retry?: number;
+  delayMs?: number;
+  concurrency?: number;
+};
+
 const execFileAsync = promisify(execFile);
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const DEFAULT_FETCH_RUNTIME: Required<SourceFetchRuntimeOptions> = {
+  timeoutMs: 15000,
+  retry: 2,
+  delayMs: 1000,
+  concurrency: 2,
+};
+
+let fetchRuntime: Required<SourceFetchRuntimeOptions> = { ...DEFAULT_FETCH_RUNTIME };
+let activeFetches = 0;
+let nextFetchWindow = 0;
+const waitingFetches: Array<() => void> = [];
 
 const AI_DISCOVERY_KEYWORDS = [
   /\bai\b/i,
@@ -69,6 +89,35 @@ const AI_DISCOVERY_KEYWORDS = [
 ] as const;
 
 const BLOCKED_IMPORT_HOST_PATTERNS = [/(^|\.)github\.com$/i, /(^|\.)huggingface\.co$/i] as const;
+
+export function configureSourceFetchRuntime(options: SourceFetchRuntimeOptions = {}) {
+  fetchRuntime = {
+    timeoutMs: options.timeoutMs ?? DEFAULT_FETCH_RUNTIME.timeoutMs,
+    retry: options.retry ?? DEFAULT_FETCH_RUNTIME.retry,
+    delayMs: options.delayMs ?? DEFAULT_FETCH_RUNTIME.delayMs,
+    concurrency: Math.max(1, options.concurrency ?? DEFAULT_FETCH_RUNTIME.concurrency),
+  };
+}
+
+async function acquireFetchSlot() {
+  if (activeFetches >= fetchRuntime.concurrency) {
+    await new Promise<void>((resolve) => waitingFetches.push(resolve));
+  }
+
+  activeFetches += 1;
+  const now = Date.now();
+  const waitMs = Math.max(0, nextFetchWindow - now);
+  nextFetchWindow = Math.max(now, nextFetchWindow) + fetchRuntime.delayMs;
+  if (waitMs > 0) {
+    await sleep(waitMs);
+  }
+}
+
+function releaseFetchSlot() {
+  activeFetches = Math.max(0, activeFetches - 1);
+  const next = waitingFetches.shift();
+  next?.();
+}
 
 async function fetchTextViaPowerShell(url: string, acceptHeader: string): Promise<string> {
   const command = [
@@ -140,14 +189,14 @@ async function fetchTextViaPython(url: string, acceptHeader: string): Promise<st
   return Buffer.isBuffer(stdout) ? stdout.toString("utf8") : stdout;
 }
 
-async function fetchText(url: string, timeoutMs = 15000): Promise<string> {
+async function fetchText(url: string, timeoutMs = fetchRuntime.timeoutMs): Promise<string> {
   let lastError: unknown;
-  for (let attempt = 0; attempt < 2; attempt += 1) {
+  for (let attempt = 0; attempt <= fetchRuntime.retry; attempt += 1) {
     try {
       return await fetchTextOnce(url, timeoutMs);
     } catch (error) {
       lastError = error;
-      if (attempt === 1) break;
+      if (attempt >= fetchRuntime.retry) break;
       await new Promise((resolve) => setTimeout(resolve, 800));
     }
   }
@@ -155,6 +204,7 @@ async function fetchText(url: string, timeoutMs = 15000): Promise<string> {
 }
 
 async function fetchTextOnce(url: string, timeoutMs = 15000): Promise<string> {
+  await acquireFetchSlot();
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   const acceptHeader =
@@ -191,6 +241,7 @@ async function fetchTextOnce(url: string, timeoutMs = 15000): Promise<string> {
     }
   } finally {
     clearTimeout(timer);
+    releaseFetchSlot();
   }
 }
 
@@ -297,7 +348,7 @@ function extractFuturepediaCategoryUrls(html: string): string[] {
 function extractFuturepediaToolSlugs(html: string): string[] {
   return [
     ...new Set(
-      [...html.matchAll(/href="https:\/\/www\.futurepedia\.io\/tool\/([^"#?\/]+)"/gi)]
+      [...html.matchAll(/href="https:\/\/www\.futurepedia\.io\/tool\/([^"#?/]+)"/gi)]
         .map((match) => match[1]?.trim())
         .filter((value): value is string => Boolean(value)),
     ),
@@ -309,6 +360,131 @@ function extractMetaContent(html: string, attribute: string, value: string): str
     html.match(new RegExp(`<meta[^>]+${attribute}="${value}"[^>]+content="([^"]+)"`, "i")) ??
     html.match(new RegExp(`<meta[^>]+content="([^"]+)"[^>]+${attribute}="${value}"`, "i"));
   return cleanText(match?.[1] ? decodeHtmlEntities(match[1]) : null);
+}
+
+function sameHost(url: string, hostname: string): boolean {
+  try {
+    return new URL(url).hostname.toLowerCase() === hostname.toLowerCase();
+  } catch {
+    return false;
+  }
+}
+
+function collectLikelyDetailUrls(baseUrl: string, html: string): string[] {
+  const baseHost = getHostname(baseUrl);
+  if (!baseHost) return [];
+
+  const urls = new Set<string>();
+  for (const match of html.matchAll(/href="([^"#]+)"/gi)) {
+    const href = match[1]?.trim();
+    if (!href) continue;
+    try {
+      const absolute = new URL(href, baseUrl).toString();
+      const pathname = new URL(absolute).pathname.toLowerCase();
+      if (!sameHost(absolute, baseHost)) continue;
+      if (/(^|\/)(tool|tools|ai-tool|ai-tools|listing|directory)\//i.test(pathname)) {
+        urls.add(absolute);
+      }
+    } catch {
+      continue;
+    }
+  }
+  return [...urls];
+}
+
+function extractExternalWebsite(html: string, sourceHost: string): string | null {
+  const preferred = [
+    /href="(https?:\/\/[^"]+)"[^>]*>\s*(?:<[^>]+>\s*){0,3}(?:visit website|visit site|website|try tool|launch|open app)\s*</i,
+    /"(https?:\\\/\\\/[^"]+)"[^>]{0,120}(?:visit website|visit site|website|try tool|launch|open app)/i,
+  ];
+  for (const pattern of preferred) {
+    const raw = pattern.exec(html)?.[1];
+    const candidate = raw ? stripTrackingParams(raw) : null;
+    if (candidate && !sameHost(candidate, sourceHost)) {
+      return candidate;
+    }
+  }
+
+  for (const match of html.matchAll(/href="(https?:\/\/[^"]+)"/gi)) {
+    const candidate = stripTrackingParams(match[1] ?? "");
+    if (!candidate || sameHost(candidate, sourceHost)) continue;
+    if (/facebook|instagram|linkedin|twitter|x\.com|youtube|discord|tiktok/i.test(candidate)) {
+      continue;
+    }
+    return candidate;
+  }
+
+  return null;
+}
+
+function parseAitoolsdirectoryDetailRecord(
+  sourceUrl: string,
+  html: string,
+): RawSourceRecord | null {
+  const sourceHost = getHostname(sourceUrl) ?? "aitoolsdirectory.com";
+  const rawName =
+    extractMetaContent(html, "property", "og:title") ??
+    extractMetaContent(html, "name", "twitter:title") ??
+    cleanText(html.match(/<title>([^<]+)<\/title>/i)?.[1] ?? null);
+  const name = cleanText(rawName?.replace(/\s*\|\s*AI Tools Directory\s*$/i, "") ?? rawName);
+  const shortDescription =
+    extractMetaContent(html, "name", "description") ??
+    extractMetaContent(html, "property", "og:description");
+  const logoUrl =
+    extractMetaContent(html, "property", "og:image") ??
+    extractMetaContent(html, "name", "twitter:image");
+  const officialWebsiteUrl = extractExternalWebsite(html, sourceHost);
+  const category =
+    cleanText(html.match(/href="[^"]*\/category\/([^"/?#]+)"/i)?.[1]?.replace(/-/g, " ") ?? null) ??
+    cleanText(html.match(/href="[^"]*\/categories\/([^"/?#]+)"/i)?.[1]?.replace(/-/g, " ") ?? null);
+
+  if (!name) return null;
+
+  return {
+    sourceId: "aitoolsdirectory",
+    sourceName: SOURCE_NAMES.aitoolsdirectory,
+    sourceUrl,
+    externalId: sourceUrl.split("/").filter(Boolean).pop(),
+    name,
+    websiteUrl: officialWebsiteUrl,
+    logoUrl,
+    shortDescription,
+    description: shortDescription,
+    category,
+    tags: ["directory", "ai", "catalog"],
+    confidenceBase: 0.7,
+    metadata: {
+      source: "detail-page",
+      officialWebsiteResolved: Boolean(officialWebsiteUrl),
+    },
+  };
+}
+
+async function fetchAitoolsdirectoryRecords(limit: number): Promise<RawSourceRecord[]> {
+  const homepageUrl = "https://aitoolsdirectory.com/";
+  const homepageHtml = await fetchText(homepageUrl);
+  const detailUrls = collectLikelyDetailUrls(homepageUrl, homepageHtml).slice(
+    0,
+    Math.max(limit * 2, 20),
+  );
+  const records: RawSourceRecord[] = [];
+  const seen = new Set<string>();
+
+  for (const detailUrl of detailUrls) {
+    if (records.length >= limit) break;
+    if (seen.has(detailUrl)) continue;
+    seen.add(detailUrl);
+    try {
+      const detailHtml = await fetchText(detailUrl);
+      const record = parseAitoolsdirectoryDetailRecord(detailUrl, detailHtml);
+      if (!record) continue;
+      records.push(record);
+    } catch {
+      continue;
+    }
+  }
+
+  return records;
 }
 
 function parseFuturepediaDetailRecord(slug: string, html: string): RawSourceRecord | null {
@@ -554,6 +730,14 @@ function looksToolLikeStory(
 
 const adapters: SourceAdapter[] = [
   {
+    id: "aitoolsdirectory",
+    name: SOURCE_NAMES.aitoolsdirectory,
+    enabledByDefault: true,
+    async fetch(limit) {
+      return fetchAitoolsdirectoryRecords(limit);
+    },
+  },
+  {
     id: "producthunt",
     name: SOURCE_NAMES.producthunt,
     enabledByDefault: true,
@@ -600,6 +784,19 @@ const adapters: SourceAdapter[] = [
     async fetch(limit) {
       const html = await fetchText("https://theresanaiforthat.com/");
       return parseTaaftHomepage(limit, html);
+    },
+  },
+  {
+    id: "theresanaiforthat",
+    name: SOURCE_NAMES.theresanaiforthat,
+    enabledByDefault: true,
+    async fetch(limit) {
+      const html = await fetchText("https://theresanaiforthat.com/");
+      return parseTaaftHomepage(limit, html).map((record) => ({
+        ...record,
+        sourceId: "theresanaiforthat",
+        sourceName: SOURCE_NAMES.theresanaiforthat,
+      }));
     },
   },
   {
@@ -836,7 +1033,12 @@ function normalizeCandidate(raw: RawSourceRecord): CandidateDraft {
   };
 }
 
-export async function runSources(sourceIds: SourceId[], limit: number): Promise<SourceRunResult[]> {
+export async function runSources(
+  sourceIds: SourceId[],
+  limit: number,
+  runtimeOptions?: SourceFetchRuntimeOptions,
+): Promise<SourceRunResult[]> {
+  configureSourceFetchRuntime(runtimeOptions);
   const selected = adapters.filter((adapter) => sourceIds.includes(adapter.id));
   const results: SourceRunResult[] = [];
   for (const adapter of selected) {

@@ -15,6 +15,7 @@ COPY packages/affiliate/package.json ./packages/affiliate/package.json
 COPY packages/ai/package.json ./packages/ai/package.json
 COPY packages/api-platform/package.json ./packages/api-platform/package.json
 COPY packages/auth/package.json ./packages/auth/package.json
+COPY packages/auto-update/package.json ./packages/auto-update/package.json
 COPY packages/automation/package.json ./packages/automation/package.json
 COPY packages/cache/package.json ./packages/cache/package.json
 COPY packages/common/package.json ./packages/common/package.json
