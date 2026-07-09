@@ -217,7 +217,9 @@ export function getApiErrorMessage(error: ApiError): string {
   }
 
   if (error.status === 0) {
-    return error.message || "Network request failed. Please check the public API routing and try again.";
+    return (
+      error.message || "Network request failed. Please check the public API routing and try again."
+    );
   }
 
   return error.message || "Request failed.";
@@ -817,6 +819,14 @@ export type CrawlSource = {
   priority: number;
   lastRunAt?: string | null;
   nextRunAt?: string | null;
+};
+
+export type TriggerCrawlJobResponse = {
+  id: string;
+  sourceId: string;
+  jobType: string;
+  status: string;
+  createdAt: string;
 };
 
 export type ContentIssueTool = {
@@ -1558,4 +1568,11 @@ export function fetchCrawlerDashboard() {
 
 export function fetchCrawlSources() {
   return apiFetch<PaginatedResponse<CrawlSource>>("/crawler/sources?pageSize=50");
+}
+
+export function triggerCrawlerJob(sourceId: string) {
+  return apiFetch<TriggerCrawlJobResponse>("/crawler/jobs", {
+    method: "POST",
+    body: JSON.stringify({ sourceId }),
+  });
 }
