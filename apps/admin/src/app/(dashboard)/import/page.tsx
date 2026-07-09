@@ -3,6 +3,7 @@
 import { useMemo, useRef, useState, type DragEvent } from "react";
 import {
   CheckCircle2,
+  CircleAlert,
   FileJson,
   FileSpreadsheet,
   Loader2,
@@ -29,15 +30,26 @@ type LocalRow = {
   name: string;
   slug: string;
   website: string;
+  shortDescription: string;
   category: string;
   tags: string;
   pricing: string;
-  language: string;
-  platform: string;
+  features: string;
+  alternatives: string;
+  status: string;
   errors: string[];
 };
 
-const requiredFields = ["name", "slug", "website", "description", "category", "pricing"];
+const requiredFields = [
+  "name",
+  "slug",
+  "website",
+  "shortDescription",
+  "description",
+  "category",
+  "pricing",
+  "status",
+];
 
 export default function ImportCenterPage() {
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -52,13 +64,20 @@ export default function ImportCenterPage() {
   const [isPreviewing, setIsPreviewing] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [skipDuplicates, setSkipDuplicates] = useState(true);
-  const [dryRun, setDryRun] = useState(true);
 
   const localErrorCount = useMemo(
     () => rows.reduce((total, row) => total + row.errors.length, 0),
     [rows],
   );
+  const previewRows = useMemo(() => rows.slice(0, 12), [rows]);
   const progress = result ? 100 : isImporting ? 66 : preview ? 50 : content ? 25 : 0;
+  const blockingPreviewIssues = useMemo(
+    () =>
+      (preview?.records ?? []).filter(
+        (item) => !item.valid || (item.duplicate && !skipDuplicates),
+      ).length,
+    [preview, skipDuplicates],
+  );
 
   async function handleFile(file: File) {
     const detectedFormat = detectFormat(file.name);
@@ -94,7 +113,6 @@ export default function ImportCenterPage() {
       const response = await previewToolImport(format, content);
       setPreview(response);
       setStep("validation");
-      setDryRun(true);
     } catch (err) {
       setError(formatApiError(err));
     } finally {
@@ -108,19 +126,18 @@ export default function ImportCenterPage() {
       setError("Fix local validation errors before importing.");
       return;
     }
-    if (!skipDuplicates && preview.duplicates > 0) {
-      setError(
-        "Duplicate records found. Enable Skip duplicates or remove duplicates from the file.",
-      );
+    if (blockingPreviewIssues > 0) {
+      setError("Preview contains invalid or duplicate rows. Resolve them before importing.");
       return;
     }
 
     setIsImporting(true);
     setError(null);
     setStep("import");
-    setDryRun(false);
     try {
-      const response = await executeToolImport(format, content, "DRAFT");
+      const response = await executeToolImport(format, content, {
+        skipDuplicates,
+      });
       setResult(response);
       setStep("summary");
     } catch (err) {
@@ -139,7 +156,6 @@ export default function ImportCenterPage() {
     setPreview(null);
     setResult(null);
     setError(null);
-    setDryRun(true);
     if (inputRef.current) inputRef.current.value = "";
   }
 
@@ -148,14 +164,15 @@ export default function ImportCenterPage() {
       <div className="space-y-6">
         <PageHeader
           title="Import Center"
-          description="Bulk import AI tools from CSV or JSON with preview, validation, duplicate detection, and summary reporting."
+          description="Bulk import AI tools from CSV or JSON with preview, duplicate review, category validation, SEO checks, and confirmation before write."
         />
 
-        <div className="grid gap-4 md:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-5">
           <MetricCard label="Rows" value={rows.length} />
-          <MetricCard label="Ready" value={preview?.readyToImport ?? 0} />
+          <MetricCard label="Valid" value={preview?.valid ?? 0} />
+          <MetricCard label="Invalid" value={preview?.invalid ?? localErrorCount} />
           <MetricCard label="Duplicates" value={preview?.duplicates ?? 0} />
-          <MetricCard label="Validation Issues" value={localErrorCount} />
+          <MetricCard label="Missing Category" value={preview?.missingCategory ?? 0} />
         </div>
 
         <div className="rounded-lg border bg-card p-4 text-card-foreground shadow-sm">
@@ -186,8 +203,9 @@ export default function ImportCenterPage() {
           <UploadCloud className="mx-auto size-10 text-muted-foreground" />
           <h2 className="mt-4 text-lg font-semibold">Upload CSV or JSON</h2>
           <p className="mx-auto mt-2 max-w-2xl text-sm text-muted-foreground">
-            Supported fields: name, slug, website, logo, description, category, tags, pricing,
-            language, platform. Tags and multi-value fields can use pipe separators.
+            Supported fields: name, slug, websiteUrl, logoUrl, shortDescription, description,
+            categorySlug, pricing, tags, features, useCases, alternatives, seoTitle,
+            seoDescription, status. Multi-value CSV fields can use pipe separators.
           </p>
           <div className="mt-5 flex flex-wrap justify-center gap-3">
             <button
@@ -256,10 +274,11 @@ export default function ImportCenterPage() {
                       <th className="px-4 py-3 font-medium">Category</th>
                       <th className="px-4 py-3 font-medium">Pricing</th>
                       <th className="px-4 py-3 font-medium">Status</th>
+                      <th className="px-4 py-3 font-medium">Review</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {rows.slice(0, 12).map((row) => {
+                    {previewRows.map((row) => {
                       const remote = preview?.records.find((item) => item.index === row.index);
                       return (
                         <tr key={row.index} className="border-b last:border-0">
@@ -271,6 +290,7 @@ export default function ImportCenterPage() {
                           <td className="px-4 py-3 text-muted-foreground">{row.website || "-"}</td>
                           <td className="px-4 py-3 text-muted-foreground">{row.category || "-"}</td>
                           <td className="px-4 py-3 text-muted-foreground">{row.pricing || "-"}</td>
+                          <td className="px-4 py-3 text-muted-foreground">{row.status || "-"}</td>
                           <td className="px-4 py-3">
                             <RowStatus row={row} remote={remote} />
                           </td>
@@ -294,10 +314,10 @@ export default function ImportCenterPage() {
                   <ChecklistItem ok={Boolean(content)} label="File loaded" />
                   <ChecklistItem ok={rows.length > 0} label="Rows parsed" />
                   <ChecklistItem ok={localErrorCount === 0} label="Required fields valid" />
-                  <ChecklistItem ok={Boolean(preview)} label="API duplicate check completed" />
+                  <ChecklistItem ok={Boolean(preview)} label="API review completed" />
                   <ChecklistItem
-                    ok={!preview || skipDuplicates || preview.duplicates === 0}
-                    label="Duplicate handling selected"
+                    ok={!preview || blockingPreviewIssues === 0}
+                    label="No invalid or duplicate rows remaining"
                   />
                 </div>
               </section>
@@ -314,24 +334,19 @@ export default function ImportCenterPage() {
                   <span>
                     Skip duplicates
                     <span className="block text-xs text-muted-foreground">
-                      Existing slug or website records will be skipped by the API.
+                      Duplicate slug, name, or website domain matches will be marked and skipped.
                     </span>
                   </span>
                 </label>
-                <label className="mt-4 flex items-start gap-3 text-sm">
-                  <input
-                    type="checkbox"
-                    className="mt-1"
-                    checked={dryRun}
-                    onChange={(event) => setDryRun(event.target.checked)}
-                  />
-                  <span>
-                    Dry Run mode
-                    <span className="block text-xs text-muted-foreground">
-                      Preview validates without writing data. Disable before Real Import.
-                    </span>
-                  </span>
-                </label>
+                <div className="mt-4 rounded-md border bg-muted/20 p-3 text-sm">
+                  <div className="flex items-start gap-2">
+                    <CircleAlert className="mt-0.5 size-4 text-amber-600" />
+                    <p className="text-muted-foreground">
+                      Preview does not write data. Confirm Import only becomes available when all
+                      rows pass validation and duplicate review.
+                    </p>
+                  </div>
+                </div>
                 <div className="mt-5 flex flex-col gap-2">
                   <button
                     type="button"
@@ -346,10 +361,10 @@ export default function ImportCenterPage() {
                     type="button"
                     className="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:cursor-not-allowed disabled:opacity-60"
                     onClick={() => void runImport()}
-                    disabled={!preview || dryRun || isImporting || localErrorCount > 0}
+                    disabled={!preview || isImporting || localErrorCount > 0 || blockingPreviewIssues > 0}
                   >
                     {isImporting ? <Loader2 className="size-4 animate-spin" /> : null}
-                    Real Import
+                    Confirm Import
                   </button>
                 </div>
               </section>
@@ -359,13 +374,16 @@ export default function ImportCenterPage() {
 
         {preview ? (
           <section className="rounded-lg border bg-card p-5 text-card-foreground shadow-sm">
-            <h2 className="font-semibold">Duplicate detection</h2>
-            <div className="mt-4 grid gap-3 md:grid-cols-3">
+            <h2 className="font-semibold">Preview Summary</h2>
+            <div className="mt-4 grid gap-3 md:grid-cols-6">
               <MetricCard label="Total" value={preview.total} />
-              <MetricCard label="Ready to import" value={preview.readyToImport} />
+              <MetricCard label="Valid" value={preview.valid} />
+              <MetricCard label="Invalid" value={preview.invalid} />
               <MetricCard label="Duplicates" value={preview.duplicates} />
+              <MetricCard label="Missing Category" value={preview.missingCategory} />
+              <MetricCard label="Missing SEO" value={preview.missingSeo} />
             </div>
-            <div className="mt-4 max-h-64 overflow-auto rounded-md border">
+            <div className="mt-4 max-h-72 overflow-auto rounded-md border">
               {preview.records.map((record) => (
                 <div
                   key={record.index}
@@ -374,13 +392,29 @@ export default function ImportCenterPage() {
                   <div>
                     <p className="font-medium">{record.name || `Row ${record.index + 1}`}</p>
                     <p className="text-xs text-muted-foreground">
-                      {record.slug} �� {record.website}
+                      {record.slug} · {record.website}
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className={record.existing ? "text-amber-600" : "text-emerald-600"}>
-                      {record.existing ? "Duplicate" : "Ready"}
+                    <p
+                      className={
+                        !record.valid
+                          ? "text-destructive"
+                          : record.duplicate
+                            ? "text-amber-600"
+                            : "text-emerald-600"
+                      }
+                    >
+                      {!record.valid ? "Invalid" : record.duplicate ? "Duplicate" : "Ready"}
                     </p>
+                    {record.errors.length ? (
+                      <p className="text-xs text-destructive">{record.errors.join(", ")}</p>
+                    ) : null}
+                    {record.duplicateReasons.length ? (
+                      <p className="text-xs text-amber-700">
+                        {record.duplicateReasons.join(", ")}
+                      </p>
+                    ) : null}
                     {record.warnings.length ? (
                       <p className="text-xs text-muted-foreground">{record.warnings.join(", ")}</p>
                     ) : null}
@@ -448,11 +482,13 @@ function parseLocalRows(format: ImportFormat, content: string): LocalRow[] {
         name: "",
         slug: "",
         website: "",
+        shortDescription: "",
         category: "",
         tags: "",
         pricing: "",
-        language: "",
-        platform: "",
+        features: "",
+        alternatives: "",
+        status: "",
         errors: ["Unable to parse file content"],
       },
     ];
@@ -464,18 +500,24 @@ function normalizeRow(record: Record<string, unknown>, index: number): LocalRow 
     index,
     name: stringValue(record.name),
     slug: stringValue(record.slug),
-    website: stringValue(record.website),
-    category: stringValue(record.category ?? record.categories ?? record.primary_category),
+    website: stringValue(record.website ?? record.websiteUrl),
+    shortDescription: stringValue(record.shortDescription ?? record.summary),
+    category: stringValue(
+      record.categorySlug ?? record.category ?? record.categories ?? record.primary_category,
+    ),
     tags: stringValue(record.tags),
     pricing: stringValue(record.pricing ?? record.pricingModel),
-    language: stringValue(record.language ?? record.languages),
-    platform: stringValue(record.platform ?? record.platforms),
+    features: stringValue(record.features),
+    alternatives: stringValue(record.alternatives),
+    status: stringValue(record.status),
   };
 
   const errors = requiredFields.flatMap((field) => {
     const value = stringValue(
       record[field] ??
-        (field === "category" ? record.categories : undefined) ??
+        (field === "website" ? record.websiteUrl : undefined) ??
+        (field === "shortDescription" ? record.summary : undefined) ??
+        (field === "category" ? record.categorySlug ?? record.categories : undefined) ??
         (field === "pricing" ? record.pricingModel : undefined),
     );
     return value ? [] : [`Missing ${field}`];
@@ -483,6 +525,18 @@ function normalizeRow(record: Record<string, unknown>, index: number): LocalRow 
 
   if (row.website && !/^https?:\/\//i.test(row.website)) {
     errors.push("Website must start with http:// or https://");
+  }
+  if (row.shortDescription && row.shortDescription.length > 120) {
+    errors.push("shortDescription must be 120 characters or fewer");
+  }
+  if (countMultiValue(record.tags) > 0 && countMultiValue(record.tags) < 2) {
+    errors.push("tags must include at least 2 items");
+  }
+  if (countMultiValue(record.features) > 0 && countMultiValue(record.features) < 3) {
+    errors.push("features must include at least 3 items");
+  }
+  if (countMultiValue(record.alternatives) > 0 && countMultiValue(record.alternatives) < 2) {
+    errors.push("alternatives must include at least 2 items");
   }
 
   return { ...row, errors };
@@ -519,6 +573,19 @@ function stringValue(value: unknown) {
       .filter(Boolean)
       .join("|");
   return String(value ?? "").trim();
+}
+
+function countMultiValue(value: unknown) {
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item).trim()).filter(Boolean).length;
+  }
+  if (typeof value === "string") {
+    return value
+      .split("|")
+      .map((item) => item.trim())
+      .filter(Boolean).length;
+  }
+  return 0;
 }
 
 function formatApiError(err: unknown) {
@@ -559,8 +626,11 @@ function RowStatus({
   if (row.errors.length) {
     return <span className="text-destructive">{row.errors.join(", ")}</span>;
   }
-  if (remote?.existing) {
-    return <span className="text-amber-600">Duplicate</span>;
+  if (remote && !remote.valid) {
+    return <span className="text-destructive">{remote.errors.join(", ")}</span>;
+  }
+  if (remote?.duplicate) {
+    return <span className="text-amber-600">{remote.duplicateReasons.join(", ") || "Duplicate"}</span>;
   }
   if (remote) {
     return <span className="text-emerald-600">Ready</span>;

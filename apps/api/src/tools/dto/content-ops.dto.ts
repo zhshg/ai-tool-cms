@@ -5,11 +5,14 @@ import {
   IsArray,
   IsEnum,
   IsIn,
+  IsInt,
   IsObject,
   IsOptional,
   IsString,
   IsUrl,
   IsUUID,
+  Max,
+  Min,
   ValidateNested,
 } from "class-validator";
 
@@ -29,8 +32,18 @@ class ImportToolRecordDto {
 
   @ApiPropertyOptional()
   @IsOptional()
+  @IsUrl()
+  websiteUrl?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
   @IsString()
   summary?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  shortDescription?: string;
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -63,6 +76,40 @@ class ImportToolRecordDto {
   @IsArray()
   @IsString({ each: true })
   tagSlugs?: string[];
+
+  @ApiPropertyOptional({ type: [String] })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  tags?: string[];
+
+  @ApiPropertyOptional({ type: [String] })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  features?: string[];
+
+  @ApiPropertyOptional({ type: [String] })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  useCases?: string[];
+
+  @ApiPropertyOptional({ type: [String] })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  alternatives?: string[];
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  seoTitle?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  seoDescription?: string;
 }
 
 export class ImportPreviewDto {
@@ -80,6 +127,17 @@ export class ImportExecuteDto extends ImportPreviewDto {
   @IsOptional()
   @IsEnum(ToolStatus)
   defaultStatus?: ToolStatus;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  skipDuplicates?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(1000)
+  limit?: number;
 }
 
 export class BulkUpdateToolsDto {

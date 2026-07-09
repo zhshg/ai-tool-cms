@@ -1,4 +1,5 @@
 import { prisma, PricingModel, ReviewStatus, ToolStatus } from "@ai-tool-cms/database";
+import { slugify } from "@ai-tool-cms/common";
 import { buildToolRecommendations } from "@ai-tool-cms/recommendation";
 import { buildGeoContentBlocks, type GeoPageDocument } from "@ai-tool-cms/geo";
 import {
@@ -70,6 +71,7 @@ export type ToolPageData = {
   collectedLogoUrl: string | null;
   pricingModel: PricingModel;
   summary: string | null;
+  description: string | null;
   longDescription: string | null;
   aiSummary: string;
   features: string[];
@@ -260,7 +262,8 @@ export async function getToolPage(
       collectedLogoUrl,
       pricingModel: tool.pricingModel,
       summary: tool.summary,
-      longDescription: tool.longDescription,
+      description: tool.description,
+      longDescription: tool.longDescription ?? tool.description,
       aiSummary,
       features,
       pros,
@@ -385,11 +388,19 @@ async function ensureMinimumAlternatives(
   }
 
   const alternativeSlugs = normalizeStringList(metadata.alternativeSlugs);
+  const alternativeNames = normalizeStringList(metadata.alternatives ?? metadata.alternativeNames);
   const needed = 3 - recommended.length;
   const exclusion = new Set([toolSlug, ...recommended.map((item) => item.slug)]);
   const fallbackRecommendations = alternativeSlugs
     .filter((slug) => !exclusion.has(slug))
     .map((slug) => ({ slug, reason: "seeded alternatives" }));
+
+  for (const alternative of alternativeNames) {
+    const slug = slugify(alternative);
+    if (!slug || exclusion.has(slug)) continue;
+    fallbackRecommendations.push({ slug, reason: "manual alternatives" });
+    exclusion.add(slug);
+  }
 
   if (fallbackRecommendations.length < needed && categorySlugs.length > 0) {
     const extraTools = await prisma.tool.findMany({

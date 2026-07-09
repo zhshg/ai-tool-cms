@@ -11,7 +11,6 @@ import {
   deleteTool,
   fetchTools,
   getApiErrorMessage,
-  updateTool,
   type AdminTool,
   type ApiError,
 } from "@/lib/api";
@@ -88,23 +87,6 @@ export default function ToolsPage() {
       setError(err as ApiError);
     } finally {
       setIsBulkRefreshingLogos(false);
-    }
-  }
-
-  async function handleArchive(tool: AdminTool) {
-    const confirmed = window.confirm(`Archive tool "${tool.name}"?`);
-    if (!confirmed) return;
-
-    setActiveToolId(tool.id);
-    setError(null);
-    try {
-      await updateTool(tool.id, { status: "ARCHIVED" });
-      setMessage(`Tool "${tool.name}" archived.`);
-      await loadPage(page);
-    } catch (err) {
-      setError(err as ApiError);
-    } finally {
-      setActiveToolId(null);
     }
   }
 
@@ -223,16 +205,6 @@ export default function ToolsPage() {
                           >
                             Edit
                           </Link>
-                          {tool.status !== "ARCHIVED" ? (
-                            <button
-                              type="button"
-                              className="rounded-md border px-3 py-2 text-xs font-medium hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
-                              onClick={() => void handleArchive(tool)}
-                              disabled={activeToolId === tool.id}
-                            >
-                              {activeToolId === tool.id ? "Working..." : "Archive"}
-                            </button>
-                          ) : null}
                           <button
                             type="button"
                             className="rounded-md border px-3 py-2 text-xs font-medium hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"

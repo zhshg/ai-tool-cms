@@ -23,6 +23,24 @@ export class ToolMetadataDto {
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
+  useCases?: string[];
+
+  @ApiPropertyOptional({ type: [String] })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  alternatives?: string[];
+
+  @ApiPropertyOptional({ type: [String] })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  alternativeSlugs?: string[];
+
+  @ApiPropertyOptional({ type: [String] })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
   languages?: string[];
 
   @ApiPropertyOptional({ type: [String] })
@@ -88,6 +106,7 @@ export class CreateToolDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
+  @MaxLength(120)
   summary?: string;
 
   @ApiPropertyOptional()
@@ -167,6 +186,7 @@ export class UpdateToolDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
+  @MaxLength(120)
   summary?: string;
 
   @ApiPropertyOptional()

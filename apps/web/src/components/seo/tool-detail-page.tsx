@@ -29,7 +29,11 @@ export function ToolDetailPage({ data, locale }: ToolDetailPageProps) {
   const hasRelatedCategories = data.relatedCategories.length > 0;
 
   const toc: TocItem[] = [
-    { id: "overview", label: "Overview", visible: Boolean(data.aiSummary || data.longDescription) },
+    {
+      id: "overview",
+      label: "Overview",
+      visible: Boolean(data.aiSummary || data.description || data.longDescription),
+    },
     { id: "features", label: "Features", visible: featureItems.length > 0 },
     {
       id: "pros-cons",
@@ -174,6 +178,9 @@ export function ToolDetailPage({ data, locale }: ToolDetailPageProps) {
             <Section id="overview" title="Overview">
               <div className="space-y-4 leading-7 text-muted-foreground">
                 <p>{data.aiSummary}</p>
+                {data.description && data.description !== data.longDescription ? (
+                  <p className="whitespace-pre-wrap">{data.description}</p>
+                ) : null}
                 {data.longDescription ? (
                   <p className="whitespace-pre-wrap">{data.longDescription}</p>
                 ) : null}

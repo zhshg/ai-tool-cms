@@ -13,7 +13,7 @@
       "../../node_modules/.pnpm/@types+node@22.20.0/node_modules/@types"
     ],
     "paths": {
-      "@ai-tool-cms/*": ["packages/*/dist/index.js", "packages/*/dist/index.d.ts"]
+      "@ai-tool-cms/*": ["packages/*/dist/index.d.ts", "packages/*/dist/index.js"]
     }
   },
   "include": ["src/**/*.ts"],

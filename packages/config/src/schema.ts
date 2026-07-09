@@ -90,6 +90,13 @@ export const envSchema = z.object({
     .optional()
     .transform((v) => v !== "false" && v !== "0"),
   AUTOMATION_AI_REFRESH_DAYS: z.coerce.number().int().positive().default(30),
+  INDEXNOW_ENABLED: z
+    .string()
+    .optional()
+    .transform((v) => v === "true" || v === "1"),
+  INDEXNOW_KEY: optionalString,
+  INDEXNOW_KEY_LOCATION: optionalUrl,
+  INDEXNOW_ENDPOINT: optionalUrl,
   BING_INDEXNOW_KEY: optionalString,
   GOOGLE_INDEXING_SERVICE_ACCOUNT_JSON: optionalString,
   OTEL_EXPORTER_OTLP_ENDPOINT: optionalUrl,

@@ -217,7 +217,7 @@ export function getApiErrorMessage(error: ApiError): string {
   }
 
   if (error.status === 0) {
-    return "Network request failed. Please check the public API routing and try again.";
+    return error.message || "Network request failed. Please check the public API routing and try again.";
   }
 
   return error.message || "Request failed.";
@@ -229,19 +229,23 @@ export async function readApiError(
 ): Promise<ApiError> {
   const contentType = response.headers.get("content-type");
   const body = await response.text();
+  const requestUrl = response.url || "unknown API URL";
 
   if (isHtmlResponse(contentType)) {
     return {
       status: response.status,
       message:
         fallbackMessage ||
-        "API route returned HTML instead of JSON. Please verify nginx routes /v1/* to the API service.",
+        `Request to ${requestUrl} returned HTML with status ${response.status}. Please verify nginx routes /v1/* to the API service.`,
     };
   }
 
   return {
     status: response.status,
-    message: body || fallbackMessage || response.statusText,
+    message:
+      body ||
+      fallbackMessage ||
+      `Request to ${requestUrl} failed with status ${response.status} ${response.statusText}`.trim(),
   };
 }
 
@@ -257,9 +261,10 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
     } satisfies ApiError;
   }
 
+  const requestUrl = `${getApiBase()}${path}`;
   let res: Response;
   try {
-    res = await fetch(`${getApiBase()}${path}`, {
+    res = await fetch(requestUrl, {
       ...init,
       headers: {
         "Content-Type": "application/json",
@@ -270,7 +275,7 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
   } catch {
     throw {
       status: 0,
-      message: "Failed to fetch",
+      message: `Failed to fetch ${requestUrl}. Please verify API availability, CORS, and nginx routing.`,
     } satisfies ApiError;
   }
 
@@ -728,13 +733,25 @@ export type AiReviewHistoryResponse = {
 export type ImportPreviewResponse = {
   format: "csv" | "json";
   total: number;
+  valid: number;
+  invalid: number;
+  missingCategory: number;
+  missingSeo: number;
   records: Array<{
     index: number;
     name: string;
     slug: string;
     website: string;
+    websiteDomain: string | null;
+    categorySlugs: string[];
     existing?: { id: string; slug: string; website: string; name: string } | null;
+    duplicateReasons: string[];
+    errors: string[];
     warnings: string[];
+    missingCategory: boolean;
+    missingSeo: boolean;
+    valid: boolean;
+    duplicate: boolean;
   }>;
   readyToImport: number;
   duplicates: number;
@@ -1073,10 +1090,24 @@ export function previewToolImport(format: "csv" | "json", content: string) {
   });
 }
 
-export function executeToolImport(format: "csv" | "json", content: string, defaultStatus?: string) {
+export function executeToolImport(
+  format: "csv" | "json",
+  content: string,
+  options?: {
+    defaultStatus?: string;
+    skipDuplicates?: boolean;
+    limit?: number;
+  },
+) {
   return apiFetch<ImportExecuteResponse>("/tools/import/execute", {
     method: "POST",
-    body: JSON.stringify({ format, content, defaultStatus }),
+    body: JSON.stringify({
+      format,
+      content,
+      defaultStatus: options?.defaultStatus,
+      skipDuplicates: options?.skipDuplicates,
+      limit: options?.limit,
+    }),
   });
 }
 
@@ -1143,9 +1174,10 @@ export async function uploadToolAsset(file: File, kind: "logo" | "screenshot") {
   const body = new FormData();
   body.append("file", file);
 
+  const requestUrl = `${getApiBase()}/tools/assets/upload?kind=${encodeURIComponent(kind)}`;
   let res: Response;
   try {
-    res = await fetch(`${getApiBase()}/tools/assets/upload?kind=${encodeURIComponent(kind)}`, {
+    res = await fetch(requestUrl, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -1155,7 +1187,7 @@ export async function uploadToolAsset(file: File, kind: "logo" | "screenshot") {
   } catch {
     throw {
       status: 0,
-      message: "Failed to fetch",
+      message: `Failed to fetch ${requestUrl}. Please verify API availability, CORS, and nginx routing.`,
     } satisfies ApiError;
   }
 

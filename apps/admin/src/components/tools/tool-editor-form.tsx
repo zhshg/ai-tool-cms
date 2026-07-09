@@ -49,6 +49,8 @@ type ToolFormState = {
   canonicalUrl: string;
   openGraphImageUrl: string;
   features: string[];
+  useCases: string[];
+  alternatives: string[];
   screenshots: string[];
   faqs: Array<{ question: string; answer: string }>;
   createdAt: string;
@@ -73,6 +75,8 @@ const emptyForm: ToolFormState = {
   canonicalUrl: "",
   openGraphImageUrl: "",
   features: [],
+  useCases: [],
+  alternatives: [],
   screenshots: [],
   faqs: [],
   createdAt: "",
@@ -97,6 +101,7 @@ export function ToolEditorForm({ mode, toolId }: ToolEditorFormProps) {
   const [isUploadingScreenshot, setIsUploadingScreenshot] = useState(false);
   const [isPreviewingLogo, setIsPreviewingLogo] = useState(false);
   const [isRefreshingLogo, setIsRefreshingLogo] = useState(false);
+  const [isSlugDirty, setIsSlugDirty] = useState(mode === "edit");
 
   const primaryCategories = useMemo(
     () => categories.filter((category) => !category.parentId),
@@ -209,6 +214,10 @@ export function ToolEditorForm({ mode, toolId }: ToolEditorFormProps) {
           canonicalUrl: resolveString(metadata.canonicalUrl),
           openGraphImageUrl: resolveString(metadata.openGraphImageUrl),
           features: normalizeStringList(metadata.features),
+          useCases: normalizeStringList(metadata.useCases ?? metadata.aiUseCases),
+          alternatives: normalizeStringList(
+            metadata.alternatives ?? metadata.alternativeNames ?? metadata.alternativeSlugs,
+          ),
           screenshots: normalizeStringList(metadata.screenshots),
           faqs: Array.isArray(tool.faqs)
             ? tool.faqs
@@ -223,6 +232,7 @@ export function ToolEditorForm({ mode, toolId }: ToolEditorFormProps) {
           completenessScore:
             typeof tool.completenessScore === "number" ? tool.completenessScore : null,
         });
+        setIsSlugDirty(true);
       }
       setError(null);
     } catch (err) {
@@ -239,8 +249,28 @@ export function ToolEditorForm({ mode, toolId }: ToolEditorFormProps) {
   async function submitTool(nextStatus?: string) {
     const name = form.name.trim();
     const website = form.website.trim();
+    const summary = form.summary.trim();
+    const status = nextStatus ?? form.status;
     if (!name || !website)
       return setError({ status: 400, message: "Name and website are required." });
+    if (!form.primaryCategoryId) {
+      return setError({ status: 400, message: "Primary category is required." });
+    }
+    if (!["DRAFT", "PUBLISHED"].includes(status)) {
+      return setError({ status: 400, message: "Status must be DRAFT or PUBLISHED." });
+    }
+    if (summary.length > 120) {
+      return setError({ status: 400, message: "Short description must be 120 characters or fewer." });
+    }
+    if (form.metaTitle.trim().length > 60) {
+      return setError({ status: 400, message: "SEO title should be 60 characters or fewer." });
+    }
+    if (form.metaDescription.trim().length > 160) {
+      return setError({
+        status: 400,
+        message: "SEO description should be 160 characters or fewer.",
+      });
+    }
     try {
       new URL(website);
     } catch {
@@ -253,10 +283,10 @@ export function ToolEditorForm({ mode, toolId }: ToolEditorFormProps) {
       name,
       slug: form.slug.trim() || undefined,
       website,
-      summary: form.summary.trim() || undefined,
+      summary: summary || undefined,
       description: form.description.trim() || undefined,
       logoUrl: form.logoUrl.trim() || undefined,
-      status: nextStatus ?? form.status,
+      status,
       categoryIds: form.primaryCategoryId ? [form.primaryCategoryId] : [],
       tagIds: form.tagIds,
       pricingModel: form.pricingModel,
@@ -266,6 +296,11 @@ export function ToolEditorForm({ mode, toolId }: ToolEditorFormProps) {
         canonicalUrl: form.canonicalUrl.trim() || undefined,
         openGraphImageUrl: form.openGraphImageUrl.trim() || undefined,
         features: form.features.map((item) => item.trim()).filter(Boolean),
+        useCases: form.useCases.map((item) => item.trim()).filter(Boolean),
+        alternatives: form.alternatives.map((item) => item.trim()).filter(Boolean),
+        alternativeSlugs: form.alternatives
+          .map((item) => slugifyToolValue(item))
+          .filter(Boolean),
         screenshots: form.screenshots.map((item) => item.trim()).filter(Boolean),
       },
       faqs: form.faqs
@@ -393,7 +428,14 @@ export function ToolEditorForm({ mode, toolId }: ToolEditorFormProps) {
                   value={form.name}
                   onChange={(value) => {
                     setError(null);
-                    setForm((current) => ({ ...current, name: value }));
+                    setForm((current) => ({
+                      ...current,
+                      name: value,
+                      slug:
+                        mode === "create" && !isSlugDirty
+                          ? slugifyToolValue(value)
+                          : current.slug,
+                    }));
                   }}
                 />
                 <TextField
@@ -401,6 +443,7 @@ export function ToolEditorForm({ mode, toolId }: ToolEditorFormProps) {
                   value={form.slug}
                   onChange={(value) => {
                     setError(null);
+                    setIsSlugDirty(true);
                     setForm((current) => ({ ...current, slug: value }));
                   }}
                 />
@@ -442,6 +485,7 @@ export function ToolEditorForm({ mode, toolId }: ToolEditorFormProps) {
                 />
                 <TextareaField
                   label="Short Description"
+                  description={`${form.summary.trim().length}/120 characters`}
                   value={form.summary}
                   onChange={(value) => setForm((current) => ({ ...current, summary: value }))}
                 />
@@ -458,13 +502,14 @@ export function ToolEditorForm({ mode, toolId }: ToolEditorFormProps) {
                 <label className="space-y-2 text-sm">
                   <span className="font-medium">Primary Category</span>
                   <select
+                    required
                     className="w-full rounded-md border bg-background px-3 py-2"
                     value={form.primaryCategoryId}
                     onChange={(event) =>
                       setForm((current) => ({ ...current, primaryCategoryId: event.target.value }))
                     }
                   >
-                    <option value="">None</option>
+                    <option value="">Select a category</option>
                     {primaryCategories.map((category) => (
                       <option key={category.id} value={category.id}>
                         {category.name}
@@ -565,6 +610,22 @@ export function ToolEditorForm({ mode, toolId }: ToolEditorFormProps) {
               onChange={(items) => setForm((current) => ({ ...current, features: items }))}
             />
             <EditableStringListSection
+              title="Use Cases"
+              description="Key workflows or scenarios this tool fits."
+              items={form.useCases}
+              placeholder="Add a use case"
+              addLabel="Add Use Case"
+              onChange={(items) => setForm((current) => ({ ...current, useCases: items }))}
+            />
+            <EditableStringListSection
+              title="Alternatives"
+              description="Enter related published tool names or slugs, one item per row."
+              items={form.alternatives}
+              placeholder="e.g. chatgpt or ChatGPT"
+              addLabel="Add Alternative"
+              onChange={(items) => setForm((current) => ({ ...current, alternatives: items }))}
+            />
+            <EditableStringListSection
               title="Screenshots"
               description="Upload assets or keep direct screenshot URLs."
               items={form.screenshots}
@@ -583,6 +644,7 @@ export function ToolEditorForm({ mode, toolId }: ToolEditorFormProps) {
               <div className="grid gap-4 md:grid-cols-2">
                 <TextField
                   label="Title"
+                  description={`${form.metaTitle.trim().length}/60 characters`}
                   value={form.metaTitle}
                   onChange={(value) => setForm((current) => ({ ...current, metaTitle: value }))}
                 />
@@ -593,6 +655,7 @@ export function ToolEditorForm({ mode, toolId }: ToolEditorFormProps) {
                 />
                 <TextareaField
                   label="Description"
+                  description={`${form.metaDescription.trim().length}/160 characters`}
                   value={form.metaDescription}
                   onChange={(value) =>
                     setForm((current) => ({ ...current, metaDescription: value }))
@@ -615,7 +678,7 @@ export function ToolEditorForm({ mode, toolId }: ToolEditorFormProps) {
                 <SelectField
                   label="Publish Status"
                   value={form.status}
-                  options={["DRAFT", "IN_REVIEW", "APPROVED", "PUBLISHED", "ARCHIVED"]}
+                  options={["DRAFT", "PUBLISHED"]}
                   onChange={(value) => setForm((current) => ({ ...current, status: value }))}
                 />
                 <SelectField
@@ -736,12 +799,14 @@ function TextField({
   onChange,
   required,
   className = "",
+  description,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   required?: boolean;
   className?: string;
+  description?: string;
 }) {
   return (
     <label className={`space-y-2 text-sm ${className}`}>
@@ -752,6 +817,7 @@ function TextField({
         value={value}
         onChange={(event) => onChange(event.target.value)}
       />
+      {description ? <span className="block text-xs text-muted-foreground">{description}</span> : null}
     </label>
   );
 }
@@ -760,10 +826,12 @@ function TextareaField({
   label,
   value,
   onChange,
+  description,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
+  description?: string;
 }) {
   return (
     <label className="space-y-2 text-sm">
@@ -773,6 +841,7 @@ function TextareaField({
         value={value}
         onChange={(event) => onChange(event.target.value)}
       />
+      {description ? <span className="block text-xs text-muted-foreground">{description}</span> : null}
     </label>
   );
 }
@@ -838,7 +907,7 @@ function EditableStringListSection({
           <div key={`${title}-${index}`} className="rounded-lg border bg-muted/20 p-3">
             {title === "Screenshots" && item.trim() ? (
               <div className="mb-3 overflow-hidden rounded-md border bg-background">
-                {/* eslint-disable-next-line @next/next/no-img-element */}`r`n{" "}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={item}
                   alt={`Screenshot preview ${index + 1}`}
@@ -997,6 +1066,14 @@ function normalizeStringList(value: unknown) {
 
 function resolveString(value: unknown) {
   return typeof value === "string" ? value : "";
+}
+
+function slugifyToolValue(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
 }
 
 function formatDate(value: string) {
