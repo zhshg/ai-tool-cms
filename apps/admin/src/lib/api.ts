@@ -17,14 +17,10 @@ function normalizeApiOrigin(origin: string | undefined): string {
 
     try {
       const parsed = new URL(normalized, window.location.origin);
-      const hostname = parsed.hostname.toLowerCase();
-      const port = parsed.port;
 
       const isSameOrigin = parsed.origin === window.location.origin;
-      const isLocalApiPort = hostname === "localhost" && (port === "4000" || port === "3001");
-      const isDockerInternalHost = hostname === "api";
 
-      if (isSameOrigin || isLocalApiPort || isDockerInternalHost) {
+      if (isSameOrigin) {
         return "";
       }
     } catch {
@@ -789,6 +785,11 @@ export type CrawlerDashboard = {
   failed: number;
   pending: number;
   enabledSources: number;
+  totalRules: number;
+  totalFields: number;
+  totalRecords: number;
+  sourceKinds: Array<{ kind: string; count: number }>;
+  recordStatuses: Array<{ status: string; count: number }>;
   queue: {
     total: number;
     byName: Record<
@@ -812,6 +813,7 @@ export type CrawlSource = {
   id: string;
   name: string;
   slug: string;
+  kind: string;
   baseUrl: string;
   adapterType: string;
   status: string;
@@ -824,11 +826,18 @@ export type CrawlSource = {
   metadata?: Record<string, unknown> | null;
   lastRunAt?: string | null;
   nextRunAt?: string | null;
+  _count?: {
+    rules: number;
+    fieldDefines: number;
+    records: number;
+    jobs: number;
+  };
 };
 
 export type CreateCrawlSourceInput = {
   name: string;
   slug?: string;
+  kind?: string;
   baseUrl: string;
   adapterType: string;
   status?: string;
@@ -844,12 +853,203 @@ export type UpdateCrawlSourceInput = Partial<CreateCrawlSourceInput> & {
   isEnabled?: boolean;
 };
 
+export type CrawlRule = {
+  id: string;
+  sourceId: string;
+  ruleType: string;
+  name: string;
+  code: string;
+  isEnabled: boolean;
+  priority: number;
+  listConfig: Record<string, unknown>;
+  detailConfig: Record<string, unknown>;
+  parseConfig: Record<string, unknown>;
+  requestConfig: Record<string, unknown>;
+  metadata?: Record<string, unknown> | null;
+  createdAt: string;
+  updatedAt: string;
+  source?: CrawlSource | null;
+  fields?: CrawlFieldDefine[];
+  _count?: {
+    records: number;
+    fields: number;
+  };
+};
+
+export type CrawlArtifactItem = {
+  fileName: string;
+  fullPath: string;
+  size: number;
+  updatedAt: string;
+};
+
+export type CrawlArtifactDetail = {
+  fileName: string;
+  fullPath: string;
+  content: Record<string, unknown>;
+  raw: string;
+};
+
+export type CrawlFieldDefine = {
+  id: string;
+  sourceId: string;
+  ruleId: string;
+  fieldKey: string;
+  label: string;
+  fieldType: string;
+  sourcePath?: string | null;
+  transform?: string | null;
+  defaultValue?: string | null;
+  isRequired: boolean;
+  isArray: boolean;
+  sortOrder: number;
+  config?: Record<string, unknown> | null;
+  metadata?: Record<string, unknown> | null;
+  createdAt: string;
+  updatedAt: string;
+  source?: CrawlSource | null;
+  rule?: CrawlRule | null;
+};
+
+export type CrawlRecord = {
+  id: string;
+  sourceId: string;
+  ruleId?: string | null;
+  crawlJobId?: string | null;
+  recordKey?: string | null;
+  sourceUrl: string;
+  title?: string | null;
+  status: string;
+  rawData: Record<string, unknown>;
+  parsedData: Record<string, unknown>;
+  cleanedData: Record<string, unknown>;
+  publishedToolId?: string | null;
+  errorMessage?: string | null;
+  fetchedAt?: string | null;
+  publishedAt?: string | null;
+  retryCount: number;
+  metadata?: Record<string, unknown> | null;
+  createdAt: string;
+  updatedAt: string;
+  source?: CrawlSource | null;
+  rule?: CrawlRule | null;
+  crawlJob?: CrawlJob | null;
+  publishedTool?: { id: string; name: string; slug: string; website: string } | null;
+};
+
+export type CreateCrawlRuleInput = {
+  name: string;
+  code: string;
+  ruleType: string;
+  priority?: number;
+  isEnabled?: boolean;
+  listConfig?: Record<string, unknown>;
+  detailConfig?: Record<string, unknown>;
+  parseConfig?: Record<string, unknown>;
+  requestConfig?: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
+};
+
+export type UpdateCrawlRuleInput = Partial<CreateCrawlRuleInput>;
+
+export type RunCrawlRuleInput = {
+  limit?: number;
+  dedupeExisting?: boolean;
+};
+
+export type CreateCrawlFieldDefineInput = {
+  fieldKey: string;
+  label: string;
+  fieldType: string;
+  sourcePath?: string;
+  transform?: string;
+  defaultValue?: string;
+  isRequired?: boolean;
+  isArray?: boolean;
+  sortOrder?: number;
+  config?: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
+};
+
+export type UpdateCrawlFieldDefineInput = Partial<CreateCrawlFieldDefineInput>;
+
+export type CrawlRecordsQueryInput = {
+  sourceId?: string;
+  ruleId?: string;
+  status?: string;
+  page?: number;
+  pageSize?: number;
+};
+
 export type TriggerCrawlJobResponse = {
   id: string;
   sourceId: string;
   jobType: string;
   status: string;
   createdAt: string;
+};
+
+export type CrawlStepTestPhase = "LIST" | "DETAIL" | "CONTENT";
+
+export type CrawlStepTestResponse = {
+  phase: CrawlStepTestPhase;
+  source: {
+    id: string;
+    name: string;
+    slug: string;
+    baseUrl: string;
+    adapterType: string;
+    kind: string;
+  };
+  rule?: {
+    id: string;
+    name: string;
+    code: string;
+    ruleType: string;
+  } | null;
+  summary: Record<string, unknown>;
+  categories?: Array<Record<string, unknown>>;
+  listItems?: Array<Record<string, unknown>>;
+  listItem?: Record<string, unknown> | null;
+  detail?: Record<string, unknown> | null;
+  record?: Record<string, unknown> | null;
+  sampleUrl?: string | null;
+  sampleUrls?: string[];
+};
+
+export type CrawlJob = {
+  id: string;
+  sourceId: string;
+  jobType: string;
+  status: string;
+  startedAt?: string | null;
+  finishedAt?: string | null;
+  itemsFound: number;
+  itemsCreated: number;
+  itemsUpdated: number;
+  errorMessage?: string | null;
+  result?: Record<string, unknown> | null;
+  createdAt: string;
+  updatedAt: string;
+  source?: {
+    id: string;
+    name: string;
+    slug: string;
+    baseUrl: string;
+  } | null;
+};
+
+export type CrawlDraftTool = {
+  id: string;
+  name: string;
+  slug: string;
+  website: string;
+  summary?: string | null;
+  status: string;
+  pricingModel: string;
+  createdAt: string;
+  updatedAt: string;
+  metadata?: Record<string, unknown> | null;
 };
 
 export type UpdateCrawlFrequencyInput = {
@@ -1598,6 +1798,113 @@ export function fetchCrawlSources() {
   return apiFetch<PaginatedResponse<CrawlSource>>("/crawler/sources?pageSize=50");
 }
 
+export function fetchCrawlerSourceGraph(sourceId: string) {
+  return apiFetch<
+    CrawlSource & {
+      rules: CrawlRule[];
+      records: CrawlRecord[];
+      _count: { rules: number; fieldDefines: number; records: number; jobs: number };
+    }
+  >(`/crawler/sources/${sourceId}/graph`);
+}
+
+export function fetchCrawlRules(sourceId: string) {
+  return apiFetch<CrawlRule[]>(`/crawler/sources/${sourceId}/rules`);
+}
+
+export function createCrawlRule(sourceId: string, payload: CreateCrawlRuleInput) {
+  return apiFetch<CrawlRule>(`/crawler/sources/${sourceId}/rules`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function updateCrawlRule(ruleId: string, payload: UpdateCrawlRuleInput) {
+  return apiFetch<CrawlRule>(`/crawler/rules/${ruleId}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function deleteCrawlRule(ruleId: string) {
+  return apiFetch<CrawlRule>(`/crawler/rules/${ruleId}`, {
+    method: "DELETE",
+  });
+}
+
+export function runCrawlRule(ruleId: string, payload: RunCrawlRuleInput) {
+  return apiFetch<{
+    rule: { id: string; name: string; code: string };
+    source: { id: string; name: string; adapterType: string };
+    limit: number;
+    dedupeExisting: boolean;
+    command: string;
+    output: string;
+    artifacts: { snapshot: string | null; report: string | null; log: string | null };
+    executedById: string;
+    executedAt: string;
+  }>(`/crawler/rules/${ruleId}/run`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function fetchCrawlFields(sourceId?: string, ruleId?: string) {
+  const query = new URLSearchParams();
+  if (sourceId) query.set("sourceId", sourceId);
+  if (ruleId) query.set("ruleId", ruleId);
+  const suffix = query.toString() ? `?${query.toString()}` : "";
+  return apiFetch<CrawlFieldDefine[]>(`/crawler/fields${suffix}`);
+}
+
+export function createCrawlFieldDefine(ruleId: string, payload: CreateCrawlFieldDefineInput) {
+  return apiFetch<CrawlFieldDefine>(`/crawler/rules/${ruleId}/fields`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function updateCrawlFieldDefine(fieldId: string, payload: UpdateCrawlFieldDefineInput) {
+  return apiFetch<CrawlFieldDefine>(`/crawler/fields/${fieldId}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function fetchCrawlRecords(query: CrawlRecordsQueryInput = {}) {
+  const params = new URLSearchParams();
+  if (query.sourceId) params.set("sourceId", query.sourceId);
+  if (query.ruleId) params.set("ruleId", query.ruleId);
+  if (query.status) params.set("status", query.status);
+  if (query.page) params.set("page", String(query.page));
+  if (query.pageSize) params.set("pageSize", String(query.pageSize));
+  const suffix = params.toString() ? `?${params.toString()}` : "";
+  return apiFetch<PaginatedResponse<CrawlRecord>>(`/crawler/records${suffix}`);
+}
+
+export function fetchRecentCrawlJobs() {
+  return apiFetch<{ items: CrawlJob[]; total: number }>("/crawler/jobs/recent");
+}
+
+export function fetchCrawlerArtifacts(source?: string, pageSize = 20) {
+  const params = new URLSearchParams();
+  if (source) params.set("source", source);
+  params.set("pageSize", String(pageSize));
+  return apiFetch<{ items: CrawlArtifactItem[]; total: number }>(
+    `/crawler/artifacts?${params.toString()}`,
+  );
+}
+
+export function fetchCrawlerArtifact(fileName: string) {
+  return apiFetch<CrawlArtifactDetail>(`/crawler/artifacts/${encodeURIComponent(fileName)}`);
+}
+
+export function fetchCrawlerDraftTools(pageSize = 50) {
+  return apiFetch<{ items: CrawlDraftTool[]; total: number }>(
+    `/crawler/draft-tools?pageSize=${pageSize}`,
+  );
+}
+
 export function createCrawlSource(payload: CreateCrawlSourceInput) {
   return apiFetch<CrawlSource>("/crawler/sources", {
     method: "POST",
@@ -1630,5 +1937,30 @@ export function triggerCrawlerJob(sourceId: string) {
   return apiFetch<TriggerCrawlJobResponse>("/crawler/jobs", {
     method: "POST",
     body: JSON.stringify({ sourceId }),
+  });
+}
+
+export function runCrawlerFlow(sourceId: string) {
+  return apiFetch<{
+    jobId: string;
+    sourceId: string;
+    categoriesCount: number;
+    listItemsCount: number;
+    created: number;
+    updated: number;
+    duplicates: number;
+    skipped: number;
+  }>(`/crawler/sources/${sourceId}/run-flow`, {
+    method: "POST",
+  });
+}
+
+export function testCrawlerStep(
+  sourceId: string,
+  payload: { phase: CrawlStepTestPhase; ruleId?: string },
+) {
+  return apiFetch<CrawlStepTestResponse>(`/crawler/sources/${sourceId}/test`, {
+    method: "POST",
+    body: JSON.stringify(payload),
   });
 }

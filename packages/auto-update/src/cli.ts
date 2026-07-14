@@ -1,7 +1,7 @@
 import path from "node:path";
 import * as configPkg from "@ai-tool-cms/config";
 import * as commonPkg from "@ai-tool-cms/common";
-import { PrismaClient } from "../../database/generated/client/index.js";
+import { PrismaClient } from "../../database/generated/crawler-client/index.js";
 import type {
   AutoUpdateMode,
   AutoUpdateOptions,
@@ -40,6 +40,16 @@ function parseArgs(argv: string[]): AutoUpdateOptions {
     "manual-review";
   const date = getValue("--date=") ?? new Date().toISOString().slice(0, 10);
   const limit = Number(getValue("--limit=") ?? process.env.TOOLS_AUTO_DAILY_LIMIT ?? "5");
+  const fetchDelayMs = Number(
+    getValue("--delay-ms=") ?? process.env.TOOLS_AUTO_FETCH_DELAY_MS ?? "1000",
+  );
+  const fetchConcurrency = Number(
+    getValue("--concurrency=") ?? process.env.TOOLS_AUTO_FETCH_CONCURRENCY ?? "2",
+  );
+  const fetchRetry = Number(getValue("--retry=") ?? process.env.TOOLS_AUTO_FETCH_RETRY ?? "2");
+  const fetchTimeoutMs = Number(
+    getValue("--timeout-ms=") ?? process.env.TOOLS_AUTO_FETCH_TIMEOUT_MS ?? "15000",
+  );
   const apply = argv.includes("--apply");
   return {
     mode,
@@ -54,6 +64,10 @@ function parseArgs(argv: string[]): AutoUpdateOptions {
       String(process.env.TOOLS_AUTO_UPDATE_ENABLED ?? "true").toLowerCase() === "true",
     dailyLimit: Number(process.env.TOOLS_AUTO_DAILY_LIMIT ?? "5"),
     minConfidence: Number(process.env.TOOLS_AUTO_MIN_CONFIDENCE ?? "0.85"),
+    fetchDelayMs: Number.isFinite(fetchDelayMs) ? Math.max(0, fetchDelayMs) : 1000,
+    fetchConcurrency: Number.isFinite(fetchConcurrency) ? Math.max(1, fetchConcurrency) : 2,
+    fetchRetry: Number.isFinite(fetchRetry) ? Math.max(0, fetchRetry) : 2,
+    fetchTimeoutMs: Number.isFinite(fetchTimeoutMs) ? Math.max(1000, fetchTimeoutMs) : 15000,
   };
 }
 
@@ -241,6 +255,9 @@ async function main() {
   logs.push(
     `[run] mode=${options.mode} dryRun=${options.dryRun} apply=${options.apply} date=${options.date}`,
   );
+  logs.push(
+    `[run] fetch delayMs=${options.fetchDelayMs} concurrency=${options.fetchConcurrency} retry=${options.fetchRetry} timeoutMs=${options.fetchTimeoutMs}`,
+  );
 
   if (!options.autoUpdateEnabled) {
     throw new Error("TOOLS_AUTO_UPDATE_ENABLED=false");
@@ -249,7 +266,12 @@ async function main() {
     throw new Error("manual-review mode does not allow apply");
   }
 
-  const sourceRuns = await runSources(options.sourceIds, options.limit);
+  const sourceRuns = await runSources(options.sourceIds, options.limit, {
+    delayMs: options.fetchDelayMs,
+    concurrency: options.fetchConcurrency,
+    retry: options.fetchRetry,
+    timeoutMs: options.fetchTimeoutMs,
+  });
   sourceRuns.forEach((run) => {
     run.errors.forEach((error) => errors.push(`${run.sourceId}: ${error}`));
   });
@@ -286,6 +308,10 @@ async function main() {
       dryRun: options.dryRun,
       apply: options.apply,
       sourceIds: options.sourceIds,
+      fetchDelayMs: options.fetchDelayMs,
+      fetchConcurrency: options.fetchConcurrency,
+      fetchRetry: options.fetchRetry,
+      fetchTimeoutMs: options.fetchTimeoutMs,
     },
     sources: sourceRuns,
     decisions,

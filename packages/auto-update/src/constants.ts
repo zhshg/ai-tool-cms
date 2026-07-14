@@ -12,7 +12,7 @@ export const DEFAULT_SOURCE_LIMITS: Record<SourceId, number> = {
   producthunt: 50,
   taaft: 50,
   theresanaiforthat: 50,
-  futurepedia: 50,
+  futurepedia: 5000,
   "github-trending": 50,
   "huggingface-spaces": 100,
   hackernews: 50,

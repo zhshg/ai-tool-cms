@@ -85,6 +85,10 @@ export type AutoUpdateOptions = {
   autoUpdateEnabled: boolean;
   dailyLimit: number;
   minConfidence: number;
+  fetchDelayMs: number;
+  fetchConcurrency: number;
+  fetchRetry: number;
+  fetchTimeoutMs: number;
 };
 
 export type AutoUpdateSummary = {
@@ -104,7 +108,17 @@ export type PersistedCandidateSnapshot = {
   generatedAt: string;
   date: string;
   mode: AutoUpdateMode;
-  options: Pick<AutoUpdateOptions, "limit" | "dryRun" | "apply" | "sourceIds">;
+  options: Pick<
+    AutoUpdateOptions,
+    | "limit"
+    | "dryRun"
+    | "apply"
+    | "sourceIds"
+    | "fetchDelayMs"
+    | "fetchConcurrency"
+    | "fetchRetry"
+    | "fetchTimeoutMs"
+  >;
   sources: SourceRunResult[];
   decisions: CandidateDecision[];
   summary: AutoUpdateSummary;

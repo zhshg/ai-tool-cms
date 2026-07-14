@@ -8,6 +8,7 @@ import {
   cleanText,
   detectCategory,
   getHostname,
+  isHttpsUrl,
   looksPlaceholder,
   mapPricingType,
   normalizeLogoUrl,
@@ -339,10 +340,49 @@ function extractFuturepediaCategoryUrls(html: string): string[] {
     ...new Set(
       [...html.matchAll(/href="(https:\/\/www\.futurepedia\.io\/ai-tools\/[^"#?]+)"/gi)]
         .map((match) => match[1]?.trim())
-        .filter((value): value is string => Boolean(value))
-        .slice(0, 12),
+        .filter((value): value is string => Boolean(value)),
     ),
   ];
+}
+
+function extractFuturepediaGalleryImages(html: string): string[] {
+  const candidates = [
+    ...html.matchAll(/<a[^>]+href="([^"]+)"[^>]*>\s*<img[^>]+src="([^"]+)"[^>]*>\s*<\/a>/gi),
+  ]
+    .flatMap((match) => [match[1], match[2]])
+    .map((value) => cleanText(decodeHtmlEntities(value ?? "")))
+    .filter((value): value is string => Boolean(value))
+    .map((value) => stripTrackingParams(value))
+    .filter((value) => isHttpsUrl(value));
+
+  return [...new Set(candidates)];
+}
+
+function pickFuturepediaLogoUrl(
+  html: string,
+  normalizedName: string | null,
+  fallback?: string | null,
+) {
+  const safeName = normalizedName ?? "";
+  const preferred =
+    extractMetaContent(html, "property", "og:image") ??
+    extractMetaContent(html, "name", "twitter:image") ??
+    cleanText(
+      html.match(
+        new RegExp(
+          `<img[^>]+src="([^"]+)"[^>]+alt="[^"]*${safeName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}[^"]*"`,
+          "i",
+        ),
+      )?.[1] ?? null,
+    );
+
+  return preferred ?? fallback ?? null;
+}
+
+function pickFuturepediaScreenshotUrls(html: string, logoUrl: string | null): string[] {
+  const linkedImages = extractFuturepediaGalleryImages(html);
+  const screenshots = linkedImages.filter((candidate) => candidate !== logoUrl);
+  return screenshots.slice(0, 6);
 }
 
 function extractFuturepediaToolSlugs(html: string): string[] {
@@ -501,9 +541,8 @@ function parseFuturepediaDetailRecord(slug: string, html: string): RawSourceReco
   const shortDescription =
     extractMetaContent(html, "name", "description") ??
     extractMetaContent(html, "property", "og:description");
-  const logoUrl =
-    extractMetaContent(html, "property", "og:image") ??
-    extractMetaContent(html, "name", "twitter:image");
+  const logoUrl = pickFuturepediaLogoUrl(html, normalizedName);
+  const screenshotUrls = pickFuturepediaScreenshotUrls(html, logoUrl);
   const categoryLinks = [
     ...html.matchAll(/href="https:\/\/www\.futurepedia\.io\/ai-tools\/([^"#?]+)"/gi),
   ]
@@ -539,6 +578,9 @@ function parseFuturepediaDetailRecord(slug: string, html: string): RawSourceReco
       source: "detail-page",
       categoryHints: categoryLinks.slice(0, 4),
       officialWebsiteResolved: Boolean(officialWebsiteUrl),
+      collectedLogoUrl: logoUrl,
+      screenshots: screenshotUrls,
+      openGraphImageUrl: extractMetaContent(html, "property", "og:image"),
     },
   };
 }
@@ -603,12 +645,25 @@ async function fetchFuturepediaRecords(limit: number): Promise<RawSourceRecord[]
   }
 
   const categoryUrls = extractFuturepediaCategoryUrls(homepageHtml);
-  for (const url of categoryUrls) {
+  const queue = [...categoryUrls];
+  const visitedCategoryUrls = new Set<string>();
+
+  while (queue.length > 0 && combined.length < limit) {
+    const url = queue.shift();
+    if (!url || visitedCategoryUrls.has(url)) continue;
+    visitedCategoryUrls.add(url);
     if (combined.length >= limit) break;
     try {
       const html = await fetchText(url);
       appendRecords(parseFuturepediaHomepage(limit - combined.length, html));
       if (combined.length >= limit) break;
+
+      const nestedCategoryUrls = extractFuturepediaCategoryUrls(html);
+      for (const nestedUrl of nestedCategoryUrls) {
+        if (!visitedCategoryUrls.has(nestedUrl)) {
+          queue.push(nestedUrl);
+        }
+      }
 
       const slugs = extractFuturepediaToolSlugs(html);
       for (const slug of slugs) {

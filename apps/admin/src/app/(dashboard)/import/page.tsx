@@ -21,6 +21,7 @@ import {
   type ImportPreviewResponse,
 } from "@/lib/api";
 import { Permission } from "@/lib/permissions";
+import { extractImportJsonRecords } from "@/lib/tool-import";
 
 type ImportFormat = "csv" | "json";
 type Step = "upload" | "preview" | "validation" | "import" | "summary";
@@ -73,9 +74,8 @@ export default function ImportCenterPage() {
   const progress = result ? 100 : isImporting ? 66 : preview ? 50 : content ? 25 : 0;
   const blockingPreviewIssues = useMemo(
     () =>
-      (preview?.records ?? []).filter(
-        (item) => !item.valid || (item.duplicate && !skipDuplicates),
-      ).length,
+      (preview?.records ?? []).filter((item) => !item.valid || (item.duplicate && !skipDuplicates))
+        .length,
     [preview, skipDuplicates],
   );
 
@@ -204,8 +204,8 @@ export default function ImportCenterPage() {
           <h2 className="mt-4 text-lg font-semibold">Upload CSV or JSON</h2>
           <p className="mx-auto mt-2 max-w-2xl text-sm text-muted-foreground">
             Supported fields: name, slug, websiteUrl, logoUrl, shortDescription, description,
-            categorySlug, pricing, tags, features, useCases, alternatives, seoTitle,
-            seoDescription, status. Multi-value CSV fields can use pipe separators.
+            categorySlug, pricing, tags, features, useCases, alternatives, seoTitle, seoDescription,
+            status. Multi-value CSV fields can use pipe separators.
           </p>
           <div className="mt-5 flex flex-wrap justify-center gap-3">
             <button
@@ -361,7 +361,9 @@ export default function ImportCenterPage() {
                     type="button"
                     className="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:cursor-not-allowed disabled:opacity-60"
                     onClick={() => void runImport()}
-                    disabled={!preview || isImporting || localErrorCount > 0 || blockingPreviewIssues > 0}
+                    disabled={
+                      !preview || isImporting || localErrorCount > 0 || blockingPreviewIssues > 0
+                    }
                   >
                     {isImporting ? <Loader2 className="size-4 animate-spin" /> : null}
                     Confirm Import
@@ -411,9 +413,7 @@ export default function ImportCenterPage() {
                       <p className="text-xs text-destructive">{record.errors.join(", ")}</p>
                     ) : null}
                     {record.duplicateReasons.length ? (
-                      <p className="text-xs text-amber-700">
-                        {record.duplicateReasons.join(", ")}
-                      </p>
+                      <p className="text-xs text-amber-700">{record.duplicateReasons.join(", ")}</p>
                     ) : null}
                     {record.warnings.length ? (
                       <p className="text-xs text-muted-foreground">{record.warnings.join(", ")}</p>
@@ -461,8 +461,10 @@ function detectFormat(fileName: string): ImportFormat | null {
 function parseLocalRows(format: ImportFormat, content: string): LocalRow[] {
   try {
     if (format === "json") {
-      const parsed = JSON.parse(content) as Array<Record<string, unknown>>;
-      return parsed.map((item, index) => normalizeRow(item, index));
+      const parsed = JSON.parse(content) as unknown;
+      const records = extractImportJsonRecords(parsed);
+      if (!records) throw new Error("Unsupported JSON shape");
+      return records.map((item, index) => normalizeRow(item, index));
     }
 
     const [headerLine, ...lines] = content.split(/\r?\n/).filter(Boolean);
@@ -496,6 +498,21 @@ function parseLocalRows(format: ImportFormat, content: string): LocalRow[] {
 }
 
 function normalizeRow(record: Record<string, unknown>, index: number): LocalRow {
+  const metadata =
+    record.metadata && typeof record.metadata === "object"
+      ? (record.metadata as Record<string, unknown>)
+      : undefined;
+  const metadataSourceCategories = Array.isArray(metadata?.sourceCategories)
+    ? metadata.sourceCategories
+    : undefined;
+  const metadataCategorySlugs = metadataSourceCategories
+    ?.map((item) => {
+      if (!item || typeof item !== "object") return undefined;
+      const slug = (item as Record<string, unknown>).slug;
+      return typeof slug === "string" ? slug.trim() : undefined;
+    })
+    .filter((item): item is string => Boolean(item));
+
   const row = {
     index,
     name: stringValue(record.name),
@@ -503,10 +520,14 @@ function normalizeRow(record: Record<string, unknown>, index: number): LocalRow 
     website: stringValue(record.website ?? record.websiteUrl),
     shortDescription: stringValue(record.shortDescription ?? record.summary),
     category: stringValue(
-      record.categorySlug ?? record.category ?? record.categories ?? record.primary_category,
+      record.categorySlug ??
+        record.category ??
+        record.categories ??
+        record.primary_category ??
+        metadataCategorySlugs,
     ),
     tags: stringValue(record.tags),
-    pricing: stringValue(record.pricing ?? record.pricingModel),
+    pricing: stringValue(record.pricing ?? record.pricingModel ?? metadata?.sourcePricingModel),
     features: stringValue(record.features),
     alternatives: stringValue(record.alternatives),
     status: stringValue(record.status),
@@ -517,8 +538,10 @@ function normalizeRow(record: Record<string, unknown>, index: number): LocalRow 
       record[field] ??
         (field === "website" ? record.websiteUrl : undefined) ??
         (field === "shortDescription" ? record.summary : undefined) ??
-        (field === "category" ? record.categorySlug ?? record.categories : undefined) ??
-        (field === "pricing" ? record.pricingModel : undefined),
+        (field === "category"
+          ? (record.categorySlug ?? record.categories ?? metadataCategorySlugs)
+          : undefined) ??
+        (field === "pricing" ? (record.pricingModel ?? metadata?.sourcePricingModel) : undefined),
     );
     return value ? [] : [`Missing ${field}`];
   });
@@ -630,7 +653,9 @@ function RowStatus({
     return <span className="text-destructive">{remote.errors.join(", ")}</span>;
   }
   if (remote?.duplicate) {
-    return <span className="text-amber-600">{remote.duplicateReasons.join(", ") || "Duplicate"}</span>;
+    return (
+      <span className="text-amber-600">{remote.duplicateReasons.join(", ") || "Duplicate"}</span>
+    );
   }
   if (remote) {
     return <span className="text-emerald-600">Ready</span>;

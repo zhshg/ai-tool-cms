@@ -21,6 +21,8 @@
     "typecheck": "tsc --noEmit",
     "crawler:run": "tsx --tsconfig tsconfig.runtime.json src/crawler-cli.ts",
     "tools:auto-update": "tsx --tsconfig tsconfig.runtime.json src/cli.ts",
+    "futurepedia:export": "tsx --tsconfig tsconfig.runtime.json ../../scripts/futurepedia/export-futurepedia-all.ts",
+    "futurepedia:build-import": "tsx --tsconfig tsconfig.runtime.json ../../scripts/futurepedia/build-futurepedia-import-json.ts",
     "clean": "rm -rf dist"
   },
   "dependencies": {

@@ -1,7 +1,16 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
 import type { Prisma } from "@ai-tool-cms/database";
 import { PricingModel, ToolStatus } from "@ai-tool-cms/database";
-import { slugify } from "@ai-tool-cms/common";
+import {
+  getStandardAiCategoryBySlug,
+  resolveCanonicalCategorySlugs,
+  slugify,
+} from "@ai-tool-cms/common";
 import { startAiPipeline } from "@ai-tool-cms/ai";
 import { emitWebhookEvent } from "@ai-tool-cms/api-platform";
 import { enqueueToolLogoCollect } from "@ai-tool-cms/automation";
@@ -293,6 +302,10 @@ export class ToolsService {
 
   async executeImport(dto: ImportExecuteDto, actorId: string) {
     const records = this.parseImportContent(dto.format, dto.content);
+    await this.ensureImportCategoriesExist(
+      Array.from(new Set(records.flatMap((record) => record.categorySlugs))),
+      actorId,
+    );
     const diagnostics = await this.buildImportDiagnostics(records);
     const imported: Array<{ id: string; name: string; slug: string }> = [];
     const skipped: Array<{ name: string; slug: string; reason: string }> = [];
@@ -467,7 +480,9 @@ export class ToolsService {
     }
   }
 
-  private validateEditorPayload(dto: Pick<CreateToolDto, "status" | "summary" | "metaTitle" | "metaDescription">) {
+  private validateEditorPayload(
+    dto: Pick<CreateToolDto, "status" | "summary" | "metaTitle" | "metaDescription">,
+  ) {
     if (
       dto.status !== undefined &&
       dto.status !== ToolStatus.DRAFT &&
@@ -516,8 +531,12 @@ export class ToolsService {
 
   private parseImportContent(format: "csv" | "json", content: string) {
     if (format === "json") {
-      const parsed = JSON.parse(content) as Array<Record<string, unknown>>;
-      return parsed.map((item) => this.normalizeImportRecord(item));
+      const parsed = JSON.parse(content) as unknown;
+      const records = this.extractImportJsonRecords(parsed);
+      if (!records) {
+        throw new BadRequestException("Unsupported JSON import shape.");
+      }
+      return records.map((item) => this.normalizeImportRecord(item));
     }
 
     const [headerLine, ...lines] = content.split(/\r?\n/).filter(Boolean);
@@ -533,21 +552,41 @@ export class ToolsService {
   }
 
   private normalizeImportRecord(record: Record<string, unknown>) {
+    const metadata =
+      record.metadata && typeof record.metadata === "object"
+        ? (record.metadata as Record<string, unknown>)
+        : undefined;
+    const metadataSourceCategories = Array.isArray(metadata?.sourceCategories)
+      ? metadata.sourceCategories
+      : undefined;
+    const metadataCategorySlugs = metadataSourceCategories
+      ?.map((item) => {
+        if (!item || typeof item !== "object") return undefined;
+        const slug = (item as Record<string, unknown>).slug;
+        return typeof slug === "string" ? slug.trim() : undefined;
+      })
+      .filter((item): item is string => Boolean(item));
+
     return {
       name: String(record.name ?? "").trim(),
       slug: String(record.slug ?? "").trim() || undefined,
       website: String(record.website ?? record.websiteUrl ?? "").trim(),
-      summary:
-        String(record.summary ?? record.shortDescription ?? "").trim() || undefined,
-      description: String(record.description ?? "").trim() || undefined,
+      summary: String(record.summary ?? record.shortDescription ?? "").trim() || undefined,
+      description: String(record.description ?? record.longDescription ?? "").trim() || undefined,
       logoUrl: String(record.logoUrl ?? record.logo ?? "").trim() || undefined,
-      pricingModel: this.normalizePricingModel(record.pricingModel ?? record.pricing),
+      pricingModel: this.normalizePricingModel(
+        record.pricingModel ?? record.pricing ?? metadata?.sourcePricingModel,
+      ),
       rawStatus: String(record.status ?? "").trim() || undefined,
       status: this.normalizeImportStatus(record.status),
-      categorySlugs: this.normalizeStringArray(
-        record.categorySlugs ?? record.categorySlug ?? record.categories ?? record.category,
+      categorySlugs: this.normalizeCategorySlugs(
+        record.categorySlugs ??
+          record.categorySlug ??
+          record.categories ??
+          record.category ??
+          metadataCategorySlugs,
       ),
-      tagSlugs: this.normalizeStringArray(record.tagSlugs ?? record.tags),
+      tagSlugs: this.normalizeStringArray(record.tagSlugs ?? record.tags ?? metadata?.tags),
       features: this.normalizeStringArray(record.features),
       useCases: this.normalizeStringArray(record.useCases),
       alternatives: this.normalizeStringArray(record.alternatives),
@@ -557,6 +596,26 @@ export class ToolsService {
       languages: this.normalizeStringArray(record.languages ?? record.language),
       platforms: this.normalizeStringArray(record.platforms ?? record.platform),
     };
+  }
+
+  private extractImportJsonRecords(value: unknown): Array<Record<string, unknown>> | null {
+    if (Array.isArray(value)) {
+      return value as Array<Record<string, unknown>>;
+    }
+
+    if (!value || typeof value !== "object") {
+      return null;
+    }
+
+    const record = value as Record<string, unknown>;
+    const candidates = [record.items, record.data, record.records, record.tools];
+    for (const candidate of candidates) {
+      if (Array.isArray(candidate)) {
+        return candidate as Array<Record<string, unknown>>;
+      }
+    }
+
+    return null;
   }
 
   private normalizePricingModel(value: unknown) {
@@ -578,7 +637,10 @@ export class ToolsService {
 
   private normalizeImportStatus(value: unknown) {
     if (typeof value !== "string" || !value.trim()) return undefined;
-    const normalized = value.trim().toUpperCase().replace(/[\s-]+/g, "_");
+    const normalized = value
+      .trim()
+      .toUpperCase()
+      .replace(/[\s-]+/g, "_");
     if (normalized === "DRAFT") return ToolStatus.DRAFT;
     if (normalized === "PUBLISHED" || normalized === "PUBLISH") return ToolStatus.PUBLISHED;
     return undefined;
@@ -597,6 +659,24 @@ export class ToolsService {
     return [];
   }
 
+  private normalizeCategorySlugs(value: unknown) {
+    const seen = new Set<string>();
+    const normalized: string[] = [];
+
+    for (const raw of this.normalizeStringArray(value)) {
+      const canonical = resolveCanonicalCategorySlugs(raw);
+      const candidates = canonical.length > 0 ? canonical : [raw];
+      for (const candidate of candidates) {
+        if (!seen.has(candidate)) {
+          seen.add(candidate);
+          normalized.push(candidate);
+        }
+      }
+    }
+
+    return normalized;
+  }
+
   private async resolveCategoryIds(categorySlugs: string[]) {
     if (!categorySlugs.length) return [];
     const categories = await this.prisma.client.category.findMany({
@@ -604,6 +684,42 @@ export class ToolsService {
       select: { id: true },
     });
     return categories.map((item) => item.id);
+  }
+
+  private async ensureImportCategoriesExist(categorySlugs: string[], actorId: string) {
+    if (!categorySlugs.length) return;
+
+    const existing = await this.prisma.client.category.findMany({
+      where: { slug: { in: categorySlugs }, ...activeOnly },
+      select: { slug: true },
+    });
+    const existingSet = new Set(existing.map((item) => item.slug.toLowerCase()));
+
+    const missingStandardCategories = categorySlugs
+      .filter((slug) => !existingSet.has(slug.toLowerCase()))
+      .map((slug) => getStandardAiCategoryBySlug(slug.toLowerCase()))
+      .filter((category): category is NonNullable<typeof category> => Boolean(category));
+
+    for (const category of missingStandardCategories) {
+      const alreadyExists = await this.prisma.client.category.findFirst({
+        where: { slug: category.slug, ...activeOnly },
+        select: { id: true },
+      });
+      if (alreadyExists) continue;
+
+      await this.prisma.client.category.create({
+        data: {
+          slug: category.slug,
+          name: category.name,
+          description: category.description,
+          sortOrder: category.sortOrder,
+          metaTitle: category.seoTitle,
+          metaDescription: category.seoDescription,
+          createdById: actorId,
+          updatedById: actorId,
+        },
+      });
+    }
   }
 
   private async resolveTagIds(tagSlugs: string[]) {
@@ -626,8 +742,13 @@ export class ToolsService {
     });
 
     const existingBySlug = new Map(existingTools.map((tool) => [tool.slug.toLowerCase(), tool]));
-    const existingByName = new Map(existingTools.map((tool) => [tool.name.trim().toLowerCase(), tool]));
-    const existingByDomain = new Map<string, { id: string; slug: string; website: string; name: string }>();
+    const existingByName = new Map(
+      existingTools.map((tool) => [tool.name.trim().toLowerCase(), tool]),
+    );
+    const existingByDomain = new Map<
+      string,
+      { id: string; slug: string; website: string; name: string }
+    >();
     for (const tool of existingTools) {
       const domain = this.extractDomain(tool.website);
       if (domain && !existingByDomain.has(domain)) {
@@ -651,8 +772,7 @@ export class ToolsService {
       const existingBySlugMatch = slug ? existingBySlug.get(slug.toLowerCase()) : undefined;
       const existingByNameMatch = nameKey ? existingByName.get(nameKey) : undefined;
       const existingByDomainMatch = websiteDomain ? existingByDomain.get(websiteDomain) : undefined;
-      const existing =
-        existingBySlugMatch ?? existingByNameMatch ?? existingByDomainMatch ?? null;
+      const existing = existingBySlugMatch ?? existingByNameMatch ?? existingByDomainMatch ?? null;
 
       if (!record.name) errors.push("Missing required field: name");
       if (!slug) errors.push("Missing required field: slug");
@@ -666,7 +786,9 @@ export class ToolsService {
       }
 
       const invalidCategories = record.categorySlugs.filter(
-        (categorySlug) => !categorySet.has(categorySlug.toLowerCase()),
+        (categorySlug) =>
+          !categorySet.has(categorySlug.toLowerCase()) &&
+          !getStandardAiCategoryBySlug(categorySlug.toLowerCase()),
       );
       if (invalidCategories.length > 0) {
         errors.push(`Unknown categorySlug: ${invalidCategories.join(", ")}`);
@@ -680,9 +802,6 @@ export class ToolsService {
 
       if (!record.description) errors.push("description is required");
       if (!record.pricingModel) errors.push("pricing is missing or invalid");
-      if (record.tagSlugs.length < 2) errors.push("tags must include at least 2 items");
-      if (record.features.length < 3) errors.push("features must include at least 3 items");
-      if (record.alternatives.length < 2) errors.push("alternatives must include at least 2 items");
 
       if (record.rawStatus && record.status === undefined) {
         errors.push("status must be Draft or Published");
@@ -701,7 +820,14 @@ export class ToolsService {
         warnings.push("seoDescription should be between 140 and 170 characters");
       }
       if (!record.logoUrl) warnings.push("Missing logoUrl");
+      if (record.tagSlugs.length < 2) warnings.push("tags should include at least 2 items");
+      if (record.features.length > 0 && record.features.length < 3) {
+        warnings.push("features should include at least 3 items");
+      }
       if (record.useCases.length === 0) warnings.push("Missing useCases");
+      if (record.alternatives.length > 0 && record.alternatives.length < 2) {
+        warnings.push("alternatives should include at least 2 items");
+      }
 
       if (existingBySlugMatch) duplicateReasons.push("Existing slug");
       if (existingByNameMatch && existingByNameMatch.id !== existingBySlugMatch?.id) {
@@ -716,16 +842,20 @@ export class ToolsService {
       }
 
       if (slug) {
-        if (seenSlugs.has(slug)) duplicateReasons.push(`Duplicate slug in file (row ${seenSlugs.get(slug)! + 1})`);
+        if (seenSlugs.has(slug))
+          duplicateReasons.push(`Duplicate slug in file (row ${seenSlugs.get(slug)! + 1})`);
         else seenSlugs.set(slug, index);
       }
       if (nameKey) {
-        if (seenNames.has(nameKey)) duplicateReasons.push(`Duplicate name in file (row ${seenNames.get(nameKey)! + 1})`);
+        if (seenNames.has(nameKey))
+          duplicateReasons.push(`Duplicate name in file (row ${seenNames.get(nameKey)! + 1})`);
         else seenNames.set(nameKey, index);
       }
       if (websiteDomain) {
         if (seenDomains.has(websiteDomain)) {
-          duplicateReasons.push(`Duplicate website domain in file (row ${seenDomains.get(websiteDomain)! + 1})`);
+          duplicateReasons.push(
+            `Duplicate website domain in file (row ${seenDomains.get(websiteDomain)! + 1})`,
+          );
         } else {
           seenDomains.set(websiteDomain, index);
         }

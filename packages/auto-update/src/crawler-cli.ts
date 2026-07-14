@@ -3,7 +3,7 @@ import * as configPkg from "@ai-tool-cms/config";
 import type { Prisma } from "@ai-tool-cms/database";
 import { ToolStatus } from "@ai-tool-cms/database";
 import * as searchPkg from "@ai-tool-cms/search";
-import { PrismaClient } from "../../database/generated/client/index.js";
+import { PrismaClient } from "../../database/generated/crawler-client/index.js";
 import {
   buildRunArtifactId,
   buildRunArtifactPaths,

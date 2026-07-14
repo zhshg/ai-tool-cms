@@ -2,6 +2,7 @@ import { RequestMethod, ValidationPipe } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import compression from "compression";
+import { json, urlencoded } from "express";
 import { env } from "@ai-tool-cms/config";
 import { initObservability } from "@ai-tool-cms/monitoring";
 import { AppModule } from "./app.module";
@@ -22,6 +23,9 @@ async function bootstrap() {
     allowedHeaders: ["Content-Type", "Authorization", "X-Api-Key"],
   });
 
+  // 导入中心会直接上传完整 JSON 内容，默认限制会导致大文件预览返回 413。
+  app.use(json({ limit: "25mb" }));
+  app.use(urlencoded({ extended: true, limit: "25mb" }));
   app.use(compression());
   applySecurityHeaders(app);
 

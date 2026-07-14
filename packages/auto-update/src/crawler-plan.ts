@@ -198,7 +198,9 @@ function buildNormalizedTool(input: {
     categoryName: category.name,
     tags,
     metadata: {
+      ...(input.candidate.metadata ?? {}),
       crawler: {
+        ...((input.candidate.metadata?.crawler as Record<string, unknown> | undefined) ?? {}),
         sourceId: input.candidate.sourceId,
         sourceName: input.candidate.sourceName,
         sourceUrl: input.candidate.sourceUrl,

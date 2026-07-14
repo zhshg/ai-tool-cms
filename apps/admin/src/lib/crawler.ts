@@ -33,7 +33,7 @@ export function getCrawlerRunActionState(
   if (options.activeSourceId === source.id) {
     return {
       disabled: true,
-      label: "Queueing...",
+      label: "Running...",
     };
   }
 

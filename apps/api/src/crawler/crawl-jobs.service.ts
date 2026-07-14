@@ -33,6 +33,42 @@ export class CrawlJobsService {
     return { items, total, page: query.page, pageSize: query.pageSize };
   }
 
+  async listRecent(limit = 10) {
+    const items = await this.prisma.client.crawlJob.findMany({
+      where: activeOnly,
+      include: { source: true },
+      orderBy: { createdAt: "desc" },
+      take: limit,
+    });
+
+    return { items, total: items.length };
+  }
+
+  async listDraftTools(limit = 50) {
+    const items = await this.prisma.client.tool.findMany({
+      where: {
+        ...activeOnly,
+        status: "DRAFT",
+      },
+      orderBy: { createdAt: "desc" },
+      take: limit,
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        website: true,
+        summary: true,
+        status: true,
+        pricingModel: true,
+        createdAt: true,
+        updatedAt: true,
+        metadata: true,
+      },
+    });
+
+    return { items, total: items.length };
+  }
+
   async triggerManual(
     sourceId: string,
     actorId: string,
