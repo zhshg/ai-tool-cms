@@ -1,0 +1,217 @@
+{
+  "source": {
+    "name": "Futurepedia",
+    "slug": "futurepedia",
+    "baseUrl": "https://www.futurepedia.io",
+    "adapterType": "futurepedia10",
+    "status": "ENABLED",
+    "schedule": "MANUAL",
+    "crawlIntervalMinutes": 1440,
+    "priority": 100
+  },
+  "rules": [
+    {
+      "name": "Futurepedia Category Discovery",
+      "code": "futurepedia-category-list",
+      "ruleType": "LIST",
+      "isEnabled": true,
+      "priority": 100,
+      "requestConfig": {
+        "method": "GET",
+        "url": "https://www.futurepedia.io/"
+      },
+      "listConfig": {
+        "itemSelector": "a[href^=\"https://www.futurepedia.io/ai-tools/\"]",
+        "dedupeBy": "href",
+        "extract": {
+          "categoryUrl": "@href"
+        },
+        "limit": 21
+      },
+      "detailConfig": {},
+      "parseConfig": {
+        "mode": "category-url-list"
+      },
+      "metadata": {
+        "purpose": "先抓分类入口，作为后续工具列表采集的输入。"
+      }
+    },
+    {
+      "name": "Futurepedia Tool List",
+      "code": "futurepedia-tool-list",
+      "ruleType": "LIST",
+      "isEnabled": true,
+      "priority": 200,
+      "requestConfig": {
+        "method": "GET",
+        "urlFromField": "categoryUrl"
+      },
+      "listConfig": {
+        "itemSelector": "a[href^=\"https://www.futurepedia.io/tool/\"]",
+        "dedupeBy": "href",
+        "extract": {
+          "detailUrl": "@href",
+          "externalId": {
+            "from": "@href",
+            "pattern": "/tool/([^?#/]+)"
+          }
+        }
+      },
+      "detailConfig": {},
+      "parseConfig": {
+        "mode": "tool-url-list"
+      },
+      "metadata": {
+        "purpose": "从首页和分类页继续收集工具详情页链接。"
+      }
+    },
+    {
+      "name": "Futurepedia Tool Detail",
+      "code": "futurepedia-tool-detail",
+      "ruleType": "DETAIL",
+      "isEnabled": true,
+      "priority": 300,
+      "requestConfig": {
+        "method": "GET",
+        "urlFromField": "detailUrl"
+      },
+      "listConfig": {},
+      "detailConfig": {
+        "extract": {
+          "name": [
+            "h1:text",
+            "meta[property='og:title']@content",
+            "meta[name='twitter:title']@content",
+            "title:text"
+          ],
+          "summary": [
+            "meta[property='og:description']@content",
+            "meta[name='description']@content"
+          ],
+          "logoUrl": [
+            "img[alt$=' Logo']@src",
+            "meta[property='og:image']@content",
+            "meta[name='twitter:image']@content"
+          ],
+          "websiteUrl": {
+            "patternCandidates": [
+              "href=\"(https://[^\"]+)\"[^>]*>\\s*<button[^>]*>Visit Site",
+              "href=\"(https://[^\"]+)\"[^>]*data-tool-name=",
+              "\"href\":\"(https:\\\\/\\\\/[^\\\"]+)\""
+            ],
+            "rejectHosts": ["futurepedia.io"]
+          },
+          "categoryLinks": {
+            "pattern": "href=\"https://www.futurepedia.io/ai-tools/([^\\\"#?]+)\"",
+            "multiple": true
+          },
+          "relatedApiUrl": {
+            "pattern": "https://www\\.futurepedia\\.io/api/tool/[^\\\"']+/related"
+          }
+        }
+      },
+      "parseConfig": {
+        "cleanup": {
+          "name": [
+            {
+              "type": "replace",
+              "pattern": "\\s*\\|\\s*Futurepedia\\s*$",
+              "replacement": ""
+            },
+            {
+              "type": "replace",
+              "pattern": "\\s+AI Reviews:\\s+Use Cases,\\s+Pricing\\s*&\\s*Alternatives\\s*$",
+              "replacement": ""
+            }
+          ],
+          "websiteUrl": [
+            {
+              "type": "stripQueryParams",
+              "params": [
+                "utm_source",
+                "utm_medium",
+                "utm_campaign",
+                "ref",
+                "source",
+                "campaign",
+                "medium",
+                "via",
+                "fpr"
+              ]
+            }
+          ],
+          "categoryLinks": [
+            {
+              "type": "slugToWords"
+            }
+          ]
+        }
+      },
+      "metadata": {
+        "purpose": "从工具详情页提取真实官网、标题、摘要、Logo、分类和相关接口地址。"
+      }
+    }
+  ],
+  "fieldDefines": [
+    {
+      "fieldKey": "externalId",
+      "label": "外部ID",
+      "fieldType": "TEXT",
+      "sourcePath": "externalId"
+    },
+    {
+      "fieldKey": "categoryUrl",
+      "label": "分类页地址",
+      "fieldType": "URL",
+      "sourcePath": "categoryUrl"
+    },
+    {
+      "fieldKey": "detailUrl",
+      "label": "详情页地址",
+      "fieldType": "URL",
+      "sourcePath": "detailUrl"
+    },
+    {
+      "fieldKey": "name",
+      "label": "工具名称",
+      "fieldType": "TEXT",
+      "sourcePath": "name"
+    },
+    {
+      "fieldKey": "websiteUrl",
+      "label": "官网地址",
+      "fieldType": "URL",
+      "sourcePath": "websiteUrl"
+    },
+    {
+      "fieldKey": "logoUrl",
+      "label": "Logo地址",
+      "fieldType": "URL",
+      "sourcePath": "logoUrl"
+    },
+    {
+      "fieldKey": "summary",
+      "label": "摘要",
+      "fieldType": "TEXT",
+      "sourcePath": "summary"
+    },
+    {
+      "fieldKey": "category",
+      "label": "分类",
+      "fieldType": "TEXT",
+      "sourcePath": "categoryLinks[0]"
+    },
+    {
+      "fieldKey": "categoryLinks",
+      "label": "全部分类",
+      "fieldType": "JSON",
+      "sourcePath": "categoryLinks"
+    },
+    {
+      "fieldKey": "relatedApiUrl",
+      "label": "相关接口地址",
+      "fieldType": "URL",
+      "sourcePath": "relatedApiUrl"
+    }
+  ]
+}

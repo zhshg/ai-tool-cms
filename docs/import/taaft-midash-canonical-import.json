@@ -1,0 +1,28 @@
+{
+  "name": "MiDash AI",
+  "slug": "midash",
+  "website": "https://free.theresanaiforthat.com/ai/midash/?fid=4345",
+  "logo": "https://media.theresanaiforthat.com/icons/midash.svg?width=100",
+  "summary": "MiDash AI is an AI tool listing captured from There's An AI For That for import workflow testing and field mapping validation.",
+  "description": "MiDash AI is a canonical import sample prepared from a There's An AI For That detail page. This record is intended for import workflow testing, field mapping verification, and later editorial enrichment. The current sample already includes the real source detail URL, logo URL, screenshot URL, and DOM locations used during extraction. Overview and Releases body paragraphs are not yet populated because the detail page content still needs a follow-up browser-based capture or manual copy from the source page.",
+  "primary_category": "ai-productivity",
+  "secondary_categories": [],
+  "tags": ["taaft", "directory", "import-sample"],
+  "pricing": "Freemium",
+  "features": [
+    "Validate import field mapping",
+    "Verify crawler detail extraction",
+    "Preserve source evidence for review"
+  ],
+  "use_cases": [
+    "Test the crawler to import workflow",
+    "Review manual enrichment fields",
+    "Verify logo and screenshot extraction"
+  ],
+  "screenshots": ["https://media.theresanaiforthat.com/midash.png?height=768"],
+  "source_urls": ["https://free.theresanaiforthat.com/ai/midash/?fid=4345"],
+  "last_verified_at": "2026-07-12T00:00:00.000Z",
+  "notes": "This is a canonical import sample generated from a manually confirmed source snippet. Replace website with the official product URL after source verification, and append Overview/Releases paragraphs once captured.",
+  "seo_title": "MiDash AI - Import Sample Tool Record",
+  "seo_description": "MiDash AI is a canonical import sample used to verify crawler field mapping, screenshot extraction, and editorial enrichment workflow."
+}

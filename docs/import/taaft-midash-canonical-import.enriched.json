@@ -1,0 +1,59 @@
+{
+  "name": "MiDash AI v2.1",
+  "slug": "midash",
+  "website": "https://www.midash.ai/",
+  "logo": "https://media.theresanaiforthat.com/icons/midash.svg?width=100",
+  "summary": "MiDash is an AI-based investment platform that helps users trade in financial markets using natural language. It allows users to convert their investment ideas into reality through simple, plain, conversational language inputs in English or Arabic. Beyond typical trading platforms, it includes uniqu...",
+  "description": "MiDash AI is a canonical import sample prepared from a There's An AI For That detail page. This record is intended for import workflow testing, field mapping verification, and later editorial enrichment. The current sample already includes the real source detail URL, logo URL, screenshot URL, and DOM locations used during extraction. Overview and Releases body paragraphs are not yet populated because the detail page content still needs a follow-up browser-based capture or manual copy from the source page.\n\nOverview: MiDash 2.1 is live, and we rebuilt it around three things traders actually asked for. First, a new Bring Your Own AI plan that lets you plug your existing OpenAI or Anthropic subscription into MiDash for unlimited usage and unlimited backtesting, with no token markups and no throttling, your subscription and your rules. Second, a major upgrade to our Scanner Agents, point them at any US-listed ticker and they pull 1-minute candle patterns, scan 2+years of history for similar setups, and rank them by outcome, so you can describe a pattern in plain English and find every time it has printed since 2024. Third, a full-time support agent on-call 24/7 that answers in seconds, and escalates to a human when it should. TAAFT-exclusive, use code TAAFT for 15% off, recurring every cycle, with a 7-day free trial and no card required. midash.ai/taaft\n\nReleases: MiDash 2.1 is live, and we rebuilt it around three things traders actually asked for. First, a new Bring Your Own AI plan that lets you plug your existing OpenAI or Anthropic subscription into MiDash for unlimited usage and unlimited backtesting, with no token markups and no throttling, your subscription and your rules. Second, a major upgrade to our Scanner Agents, point them at any US-listed ticker and they pull 1-minute candle patterns, scan 2+years of history for similar setups, and rank them by outcome, so you can describe a pattern in plain English and find every time it has printed since 2024. Third, a full-time support agent on-call 24/7 that answers in seconds, and escalates to a human when it should. TAAFT-exclusive, use code TAAFT for 15% off, recurring every cycle, with a 7-day free trial and no card required. midash.ai/taaft New Features: Smart Alerts — Describe any market condition in plain English. MiDash monitors 24/7 and notifies you instantly. Commodities & Forex — Gold, silver, oil, and major forex pairs now supported with real-time data and trading. SEC Filings — Research any company's annual filings directly in chat. Earnings Calendar — See upcoming earnings on your charts with anchored VWAP analysis. Enhanced Watchlist — Context tags showing why symbols are moving, real-time market pulse, and curated discovery lists. Enhanced Mobile Web App — Full-featured trading experience on mobile with guided onboarding. Improvements: Major stability and reliability improvements across all broker connections Availability: Now open to everyone. Free tier included Initial release of MiDash AI.",
+  "primary_category": "ai-productivity",
+  "secondary_categories": [],
+  "tags": ["taaft", "directory", "import-sample"],
+  "pricing": "Freemium",
+  "features": [
+    "Validate import field mapping",
+    "Verify crawler detail extraction",
+    "Preserve source evidence for review"
+  ],
+  "use_cases": [
+    "Test the crawler to import workflow",
+    "Review manual enrichment fields",
+    "Verify logo and screenshot extraction"
+  ],
+  "screenshots": ["https://media.theresanaiforthat.com/midash.png?height=768"],
+  "source_urls": ["https://free.theresanaiforthat.com/ai/midash/?fid=4345"],
+  "last_verified_at": "2026-07-12T00:00:00.000Z",
+  "notes": "This is a canonical import sample generated from a manually confirmed source snippet. Replace website with the official product URL after source verification, and append Overview/Releases paragraphs once captured. Official website corrected from user-confirmed #ai_top_link target to canonical root URL https://www.midash.ai/.",
+  "seo_title": "MiDash AI - Import Sample Tool Record",
+  "seo_description": "MiDash AI is a canonical import sample used to verify crawler field mapping, screenshot extraction, and editorial enrichment workflow.",
+  "metadata": {
+    "crawler": {
+      "sourceName": "There's An AI For That",
+      "sourceUrl": "https://free.theresanaiforthat.com/ai/midash/?fid=4345",
+      "fetchMode": "browser",
+      "fetchedAt": "2026-07-11T20:22:47.050Z",
+      "pacing": {
+        "delayMs": 12000,
+        "timeoutMs": 45000,
+        "retry": 2,
+        "browserWaitMs": 45000
+      },
+      "extraction": {
+        "logoXPath": "//*[@id=\"overview\"]/div[2]/div[1]/div[1]/div/img",
+        "screenshotXPath": "//*[@id=\"image_ai_link\"]/img",
+        "overviewParagraphCount": 4,
+        "releasesParagraphCount": 3
+      }
+    },
+    "overviewParagraphs": [
+      "MiDash 2.1 is live, and we rebuilt it around three things traders actually asked for. First, a new Bring Your Own AI plan that lets you plug your existing OpenAI or Anthropic subscription into MiDash for unlimited usage and unlimited backtesting, with no token markups and no throttling, your subscription and your rules.",
+      "Second, a major upgrade to our Scanner Agents, point them at any US-listed ticker and they pull 1-minute candle patterns, scan 2+years of history for similar setups, and rank them by outcome, so you can describe a pattern in plain English and find every time it has printed since 2024.",
+      "Third, a full-time support agent on-call 24/7 that answers in seconds, and escalates to a human when it should.",
+      "TAAFT-exclusive, use code TAAFT for 15% off, recurring every cycle, with a 7-day free trial and no card required. midash.ai/taaft"
+    ],
+    "releasesParagraphs": [
+      "MiDash 2.1 is live, and we rebuilt it around three things traders actually asked for. First, a new Bring Your Own AI plan that lets you plug your existing OpenAI or Anthropic subscription into MiDash for unlimited usage and unlimited backtesting, with no token markups and no throttling, your subscription and your rules. Second, a major upgrade to our Scanner Agents, point them at any US-listed ticker and they pull 1-minute candle patterns, scan 2+years of history for similar setups, and rank them by outcome, so you can describe a pattern in plain English and find every time it has printed since 2024. Third, a full-time support agent on-call 24/7 that answers in seconds, and escalates to a human when it should. TAAFT-exclusive, use code TAAFT for 15% off, recurring every cycle, with a 7-day free trial and no card required. midash.ai/taaft",
+      "New Features: Smart Alerts — Describe any market condition in plain English. MiDash monitors 24/7 and notifies you instantly. Commodities & Forex — Gold, silver, oil, and major forex pairs now supported with real-time data and trading. SEC Filings — Research any company's annual filings directly in chat. Earnings Calendar — See upcoming earnings on your charts with anchored VWAP analysis. Enhanced Watchlist — Context tags showing why symbols are moving, real-time market pulse, and curated discovery lists. Enhanced Mobile Web App — Full-featured trading experience on mobile with guided onboarding. Improvements: Major stability and reliability improvements across all broker connections Availability: Now open to everyone. Free tier included",
+      "Initial release of MiDash AI."
+    ]
+  }
+}

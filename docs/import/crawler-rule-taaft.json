@@ -1,0 +1,202 @@
+{
+  "source": {
+    "name": "TAAFT",
+    "slug": "taaft",
+    "baseUrl": "https://theresanaiforthat.com",
+    "adapterType": "taaft",
+    "status": "ENABLED",
+    "schedule": "MANUAL",
+    "crawlIntervalMinutes": 1440,
+    "priority": 110
+  },
+  "rules": [
+    {
+      "name": "TAAFT Homepage Tool List",
+      "code": "taaft-home-list",
+      "ruleType": "LIST",
+      "isEnabled": true,
+      "priority": 100,
+      "requestConfig": {
+        "method": "GET",
+        "url": "https://theresanaiforthat.com/"
+      },
+      "listConfig": {
+        "itemSelector": "div.home-listing-row.tools-table-row",
+        "dedupeBy": "data-tools-href",
+        "extract": {
+          "detailUrl": "@data-tools-href",
+          "logoUrl": "img@src",
+          "name": "img@alt",
+          "summary": "div.tools-name-tagline:text",
+          "websiteUrl": "a.external_ai_link@href",
+          "category": "a.task_label:text",
+          "pricingType": "span.tools-price-popover-value:text",
+          "externalId": {
+            "from": "@data-tools-href",
+            "pattern": "/([^/?#]+)/?$"
+          }
+        },
+        "limit": 50
+      },
+      "detailConfig": {},
+      "parseConfig": {
+        "cleanup": {
+          "websiteUrl": [
+            {
+              "type": "stripQueryParams",
+              "params": [
+                "utm_source",
+                "utm_medium",
+                "utm_campaign",
+                "ref",
+                "source",
+                "campaign",
+                "medium",
+                "via",
+                "fpr"
+              ]
+            }
+          ]
+        }
+      },
+      "metadata": {
+        "purpose": "先从首页列表抓工具卡片，拿到详情页、官网、分类、价格和 logo。"
+      }
+    },
+    {
+      "name": "TAAFT Tool Detail",
+      "code": "taaft-tool-detail",
+      "ruleType": "DETAIL",
+      "isEnabled": true,
+      "priority": 200,
+      "requestConfig": {
+        "method": "GET",
+        "urlFromField": "detailUrl"
+      },
+      "listConfig": {},
+      "detailConfig": {
+        "extract": {
+          "name": ["meta[property='og:title']@content", "title:text", "h1:text"],
+          "summary": [
+            "meta[property='og:description']@content",
+            "meta[name='description']@content"
+          ],
+          "websiteUrl": ["#ai_top_link@href", "a.external_ai_link@href"],
+          "logoUrl": [
+            "#overview img@src",
+            ".taaft_icon@src",
+            "meta[property='og:image']@content",
+            "img@src"
+          ],
+          "screenshotUrl": ["#image_ai_link img@src", ".ai_image@src"],
+          "overviewParagraphs": {
+            "selector": "#overview p:text",
+            "multiple": true
+          },
+          "releasesParagraphs": {
+            "selector": "#releases p:text, div[id^='release-'] div:nth-child(2) div:text",
+            "multiple": true
+          }
+        }
+      },
+      "parseConfig": {
+        "mode": "optional-enrichment",
+        "cleanup": {
+          "logoUrl": [
+            {
+              "type": "stripQueryParams",
+              "params": ["width"]
+            }
+          ],
+          "websiteUrl": [
+            {
+              "type": "stripQueryParams",
+              "params": ["*"]
+            },
+            {
+              "type": "collapseReferralLandingPath",
+              "match": ["/taaft"]
+            }
+          ],
+          "screenshotUrl": [
+            {
+              "type": "stripQueryParams",
+              "params": ["height"]
+            }
+          ]
+        }
+      },
+      "metadata": {
+        "purpose": "补抓详情页字段，提取真实 logo、截图、Overview 段落和 Releases 段落。"
+      }
+    }
+  ],
+  "fieldDefines": [
+    {
+      "fieldKey": "externalId",
+      "label": "外部ID",
+      "fieldType": "TEXT",
+      "sourcePath": "externalId"
+    },
+    {
+      "fieldKey": "detailUrl",
+      "label": "详情页地址",
+      "fieldType": "URL",
+      "sourcePath": "detailUrl"
+    },
+    {
+      "fieldKey": "name",
+      "label": "工具名称",
+      "fieldType": "TEXT",
+      "sourcePath": "name"
+    },
+    {
+      "fieldKey": "websiteUrl",
+      "label": "官网地址",
+      "fieldType": "URL",
+      "sourcePath": "websiteUrl"
+    },
+    {
+      "fieldKey": "logoUrl",
+      "label": "Logo地址",
+      "fieldType": "URL",
+      "sourcePath": "logoUrl"
+    },
+    {
+      "fieldKey": "screenshotUrl",
+      "label": "截图地址",
+      "fieldType": "URL",
+      "sourcePath": "screenshotUrl"
+    },
+    {
+      "fieldKey": "summary",
+      "label": "摘要",
+      "fieldType": "TEXT",
+      "sourcePath": "summary"
+    },
+    {
+      "fieldKey": "category",
+      "label": "分类",
+      "fieldType": "TEXT",
+      "sourcePath": "category"
+    },
+    {
+      "fieldKey": "pricingType",
+      "label": "价格类型",
+      "fieldType": "TEXT",
+      "sourcePath": "pricingType"
+    },
+    {
+      "fieldKey": "overviewParagraphs",
+      "label": "Overview 段落",
+      "fieldType": "JSON",
+      "sourcePath": "overviewParagraphs"
+    },
+    {
+      "fieldKey": "releasesParagraphs",
+      "label": "Releases 段落",
+      "fieldType": "JSON",
+      "sourcePath": "releasesParagraphs"
+    }
+  ]
+}
