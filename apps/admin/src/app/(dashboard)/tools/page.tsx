@@ -247,13 +247,26 @@ function PaginationBar({
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const start = total === 0 ? 0 : (page - 1) * pageSize + 1;
   const end = Math.min(total, page * pageSize);
+  const [pageInput, setPageInput] = useState(String(page));
+
+  useEffect(() => {
+    setPageInput(String(page));
+  }, [page]);
+
+  function handleJumpToPage() {
+    const nextPage = Number.parseInt(pageInput, 10);
+    if (!Number.isFinite(nextPage)) return;
+    const clampedPage = Math.min(Math.max(1, nextPage), totalPages);
+    if (clampedPage === page) return;
+    onPageChange(clampedPage);
+  }
 
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 border-t px-4 py-3 text-sm">
       <p className="text-muted-foreground">
         Showing {start}-{end} of {total}
       </p>
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <button
           type="button"
           className="rounded-md border px-3 py-2 hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
@@ -265,6 +278,31 @@ function PaginationBar({
         <span className="text-muted-foreground">
           Page {page} / {totalPages}
         </span>
+        <div className="flex items-center gap-2">
+          <input
+            type="number"
+            min={1}
+            max={totalPages}
+            value={pageInput}
+            onChange={(event) => setPageInput(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                handleJumpToPage();
+              }
+            }}
+            className="w-24 rounded-md border bg-background px-3 py-2 text-sm outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            aria-label="Jump to page"
+          />
+          <button
+            type="button"
+            className="rounded-md border px-3 py-2 hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
+            onClick={handleJumpToPage}
+            disabled={totalPages <= 1}
+          >
+            Jump
+          </button>
+        </div>
         <button
           type="button"
           className="rounded-md border px-3 py-2 hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
