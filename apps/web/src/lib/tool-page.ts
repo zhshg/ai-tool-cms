@@ -7,6 +7,7 @@ import {
   getSiteConfig,
   joinUrl,
   normalizePlainText,
+  stripHtml,
   type BuiltMetadata,
 } from "@ai-tool-cms/seo";
 import { resolveToolFallbackLogoUrl, resolveToolLogoUrl } from "./tool-logo";
@@ -314,16 +315,17 @@ export async function getToolPage(
           )
         : (localizedTranslation?.longDescription ?? tool.description),
     ) || null;
-  const longDescription =
-    normalizePlainText(
-      isEN
-        ? pickENWithParagraphFallback(
-            localizedTranslation?.longDescription ?? tool.longDescription ?? tool.description,
-            tool.description,
-            tool.summary,
-          )
-        : (localizedTranslation?.longDescription ?? tool.longDescription ?? tool.description),
-    ) || null;
+  const longDescription = isEN
+    ? stripHtml(
+        pickENWithParagraphFallback(
+          localizedTranslation?.longDescription ?? tool.longDescription ?? tool.description,
+          tool.description,
+          tool.summary,
+        ),
+      ).trim() || null
+    : normalizePlainText(
+        localizedTranslation?.longDescription ?? tool.longDescription ?? tool.description,
+      ) || null;
   const summary =
     normalizePlainText(
       isEN

@@ -16,7 +16,6 @@ import type { ReactNode } from "react";
 import { ToolLogo } from "@/components/tool/tool-logo";
 import { Button } from "@/components/ui/button";
 import { serializeJsonLd } from "@/lib/seo";
-import { splitRichText } from "@ai-tool-cms/seo";
 import type { ToolPageData } from "@/lib/tool-page";
 
 type ToolDetailPageProps = {
@@ -539,15 +538,37 @@ function Pill({
 /* ── 辅助函数 ── */
 
 function buildOverviewBlocks(data: ToolPageData): string[] {
-  const blocks = splitRichText(
-    [data.description, data.longDescription].filter(Boolean).join("\n\n"),
-  );
-  return dedupeStrings(
-    blocks
-      .map((block) => block.replace(/\s+/g, " ").trim())
-      .map((block) => block.replace(/^#+\s*/, ""))
-      .filter(Boolean),
-  ).slice(0, 4);
+  // 直接按双换行分割，保留段落结构（避免 normalizePlainText 压缩换行）
+  const rawText = [data.description, data.longDescription].filter(Boolean).join("\n\n");
+  if (!rawText) {
+    return data.aiSummary ? [data.aiSummary] : [];
+  }
+
+  const paragraphs = rawText
+    .split(/\n{2,}/)
+    .map((p) => p.replace(/\s+/g, " ").trim())
+    .filter(Boolean);
+
+  // 过滤掉标题行（如 "About X"、"Key Features"）和列表项（如 "1. xxx"），
+  // 只保留实质性的段落内容（长度 > 60 字符的完整句子）
+  const substantive = paragraphs.filter((p) => {
+    const stripped = p.replace(/^#+\s*/, "");
+    // 排除列表项
+    if (/^\d+\.\s/.test(stripped)) return false;
+    // 排除短标题（少于 5 个词且无句号）
+    const wordCount = stripped.split(/\s+/).length;
+    if (wordCount < 8 && !/[.!?,;:]/.test(stripped)) return false;
+    return true;
+  });
+
+  const blocks = dedupeStrings(substantive).slice(0, 4);
+
+  // 当内容不足时，用 aiSummary 补充
+  if (blocks.length < 2 && data.aiSummary && !blocks.includes(data.aiSummary)) {
+    blocks.unshift(data.aiSummary);
+  }
+
+  return blocks.slice(0, 4);
 }
 
 function buildHighlights(data: ToolPageData): string[] {
