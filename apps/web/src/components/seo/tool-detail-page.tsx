@@ -262,69 +262,31 @@ export function ToolDetailPage({ data, locale }: ToolDetailPageProps) {
               </div>
             ) : null}
 
-            {/* FAQ & Reviews - 双栏 */}
-            <div>
-              <SectionEyebrow>FAQ & Reviews</SectionEyebrow>
-              <div className="mt-4 grid gap-8 lg:grid-cols-2">
-                {/* FAQ */}
-                <div className="space-y-3">
-                  <p className="text-sm font-semibold text-slate-900">Common questions</p>
-                  {data.faqs.length ? (
-                    data.faqs.slice(0, 5).map((faq) => (
-                      <details
-                        key={faq.question}
-                        className="group rounded-xl border border-slate-200/80 bg-white shadow-soft-sm"
-                      >
-                        <summary className="flex cursor-pointer items-center justify-between px-5 py-4 text-sm font-medium text-slate-900 transition-colors hover:text-emerald-700">
-                          {faq.question}
-                          <ChevronRight className="size-4 shrink-0 text-slate-400 transition-transform group-open:rotate-90" />
-                        </summary>
-                        <div className="border-t border-slate-100 px-5 py-4 text-sm leading-6 text-slate-600">
-                          {faq.answer}
-                        </div>
-                      </details>
-                    ))
-                  ) : (
-                    <p className="rounded-xl border border-dashed border-slate-200 p-5 text-sm text-slate-400">
-                      FAQ content has not been added yet.
-                    </p>
-                  )}
-                </div>
-
-                {/* Reviews */}
-                <div className="space-y-3">
-                  <p className="text-sm font-semibold text-slate-900">User reviews</p>
-                  {reviews.length ? (
-                    reviews.map((review) => (
-                      <article
-                        key={`${review.authorName}-${review.createdAt}`}
-                        className="rounded-xl border border-slate-200/80 bg-white p-5 shadow-soft-sm"
-                      >
-                        <div className="flex items-center gap-2">
-                          <div className="flex items-center gap-0.5 text-amber-400">
-                            {Array.from({ length: 5 }).map((_, i) => (
-                              <Star
-                                key={i}
-                                className={`size-3.5 ${i < Math.round(review.rating) ? "fill-current" : "text-slate-200"}`}
-                              />
-                            ))}
-                          </div>
-                          <span className="text-xs text-slate-400">{review.rating}/5</span>
-                        </div>
-                        {review.title ? (
-                          <h3 className="mt-2 text-sm font-semibold text-slate-900">
-                            {review.title}
-                          </h3>
-                        ) : null}
-                        <p className="mt-1.5 text-sm leading-6 text-slate-600">{review.content}</p>
-                      </article>
-                    ))
-                  ) : (
-                    <p className="rounded-xl border border-dashed border-slate-200 p-5 text-sm text-slate-400">
-                      No approved reviews yet.
-                    </p>
-                  )}
-                </div>
+            {/* FAQ */}
+            <div className="max-w-2xl">
+              <SectionEyebrow>FAQ</SectionEyebrow>
+              <div className="mt-4 space-y-3">
+                <p className="text-sm font-semibold text-slate-900">Common questions</p>
+                {data.faqs.length ? (
+                  data.faqs.slice(0, 5).map((faq) => (
+                    <details
+                      key={faq.question}
+                      className="group rounded-xl border border-slate-200/80 bg-white shadow-soft-sm"
+                    >
+                      <summary className="flex cursor-pointer items-center justify-between px-5 py-4 text-sm font-medium text-slate-900 transition-colors hover:text-emerald-700">
+                        {faq.question}
+                        <ChevronRight className="size-4 shrink-0 text-slate-400 transition-transform group-open:rotate-90" />
+                      </summary>
+                      <div className="border-t border-slate-100 px-5 py-4 text-sm leading-6 text-slate-600">
+                        {faq.answer}
+                      </div>
+                    </details>
+                  ))
+                ) : (
+                  <p className="rounded-xl border border-dashed border-slate-200 p-5 text-sm text-slate-400">
+                    FAQ content has not been added yet.
+                  </p>
+                )}
               </div>
             </div>
 
@@ -424,6 +386,44 @@ export function ToolDetailPage({ data, locale }: ToolDetailPageProps) {
                     <p className="text-sm text-slate-400">No platform details available.</p>
                   )}
                 </div>
+              </div>
+            </div>
+
+            {/* User Reviews */}
+            <div className="max-w-2xl">
+              <SectionEyebrow>User Reviews</SectionEyebrow>
+              <div className="mt-4 space-y-3">
+                <p className="text-sm font-semibold text-slate-900">What users say</p>
+                {reviews.length ? (
+                  reviews.map((review) => (
+                    <article
+                      key={`${review.authorName}-${review.createdAt}`}
+                      className="rounded-xl border border-slate-200/80 bg-white p-5 shadow-soft-sm"
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-0.5 text-amber-400">
+                          {Array.from({ length: 5 }).map((_, i) => (
+                            <Star
+                              key={i}
+                              className={`size-3.5 ${i < Math.round(review.rating) ? "fill-current" : "text-slate-200"}`}
+                            />
+                          ))}
+                        </div>
+                        <span className="text-xs text-slate-400">{review.rating}/5</span>
+                      </div>
+                      {review.title ? (
+                        <h3 className="mt-2 text-sm font-semibold text-slate-900">
+                          {review.title}
+                        </h3>
+                      ) : null}
+                      <p className="mt-1.5 text-sm leading-6 text-slate-600">{review.content}</p>
+                    </article>
+                  ))
+                ) : (
+                  <p className="rounded-xl border border-dashed border-slate-200 p-5 text-sm text-slate-400">
+                    No approved reviews yet.
+                  </p>
+                )}
               </div>
             </div>
 
