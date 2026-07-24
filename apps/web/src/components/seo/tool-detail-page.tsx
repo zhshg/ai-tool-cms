@@ -183,6 +183,65 @@ export function ToolDetailPage({ data, locale }: ToolDetailPageProps) {
         {/* ═══ 主内容 - 单栏居中 ═══ */}
         <section className="mx-auto max-w-5xl px-6 py-12 lg:py-16">
           <div className="space-y-14">
+            {/* Tags & Platforms & Languages 信息条 */}
+            {data.tags.length || data.platforms.length || data.languages.length ? (
+              <div className="grid gap-5 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-soft-sm sm:grid-cols-3">
+                {data.tags.length ? (
+                  <div>
+                    <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-slate-400">
+                      Tags
+                    </p>
+                    <div className="mt-2.5 flex flex-wrap gap-1.5">
+                      {data.tags.slice(0, 6).map((tag) => (
+                        <Link
+                          key={tag.slug}
+                          href={`/${locale}/tag/${tag.slug}`}
+                          className="inline-flex items-center gap-1 rounded-md bg-slate-50 px-2 py-1 text-xs text-slate-600 transition hover:bg-emerald-50 hover:text-emerald-700"
+                        >
+                          <Tag className="size-3" />
+                          {tag.name}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+                {data.platforms.length ? (
+                  <div>
+                    <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-slate-400">
+                      Platforms
+                    </p>
+                    <div className="mt-2.5 flex flex-wrap gap-1.5">
+                      {data.platforms.map((item) => (
+                        <span
+                          key={item}
+                          className="inline-flex items-center rounded-md bg-slate-900 px-2 py-1 text-xs font-medium text-white"
+                        >
+                          {item}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+                {data.languages.length ? (
+                  <div>
+                    <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-slate-400">
+                      Languages
+                    </p>
+                    <div className="mt-2.5 flex flex-wrap gap-1.5">
+                      {data.languages.map((item) => (
+                        <span
+                          key={item}
+                          className="inline-flex items-center rounded-md bg-slate-100 px-2 py-1 text-xs font-medium text-slate-700"
+                        >
+                          {item}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+
             {/* Highlights 横条 */}
             {highlights.length ? (
               <div>
@@ -290,43 +349,6 @@ export function ToolDetailPage({ data, locale }: ToolDetailPageProps) {
               </div>
             </div>
 
-            {/* 标签 & 分类 - 横排 */}
-            <div className="grid gap-6 sm:grid-cols-2">
-              {data.categories.length ? (
-                <div>
-                  <SectionEyebrow>Categories</SectionEyebrow>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {data.categories.map((cat) => (
-                      <Link
-                        key={cat.slug}
-                        href={`/${locale}/category/${cat.slug}`}
-                        className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-600 transition hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700"
-                      >
-                        {cat.name}
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
-              {data.tags.length ? (
-                <div>
-                  <SectionEyebrow>Tags</SectionEyebrow>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {data.tags.map((tag) => (
-                      <Link
-                        key={tag.slug}
-                        href={`/${locale}/tag/${tag.slug}`}
-                        className="inline-flex items-center gap-1 rounded-lg bg-slate-50 px-3 py-1.5 text-sm text-slate-600 transition hover:bg-emerald-50 hover:text-emerald-700"
-                      >
-                        <Tag className="size-3" />
-                        {tag.name}
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
-            </div>
-
             {/* Pricing Plans */}
             {data.pricingPlans.length ? (
               <div>
@@ -355,39 +377,20 @@ export function ToolDetailPage({ data, locale }: ToolDetailPageProps) {
               </div>
             ) : null}
 
-            {/* Use Cases & Platforms - 双栏 */}
-            <div className="grid gap-6 sm:grid-cols-2">
-              {data.useCases.length ? (
-                <div>
-                  <SectionEyebrow>Use Cases</SectionEyebrow>
-                  <ul className="mt-3 space-y-2">
-                    {data.useCases.slice(0, 5).map((item) => (
-                      <li key={item} className="flex gap-2.5 text-sm leading-6 text-slate-600">
-                        <Sparkles className="mt-0.5 size-4 shrink-0 text-emerald-500" />
-                        <span>{item}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ) : null}
-              <div>
-                <SectionEyebrow>Platforms & Languages</SectionEyebrow>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {dedupeStrings([...data.platforms, ...data.languages]).length ? (
-                    dedupeStrings([...data.platforms, ...data.languages]).map((item) => (
-                      <span
-                        key={item}
-                        className="rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-medium text-white"
-                      >
-                        {item}
-                      </span>
-                    ))
-                  ) : (
-                    <p className="text-sm text-slate-400">No platform details available.</p>
-                  )}
-                </div>
+            {/* Use Cases */}
+            {data.useCases.length ? (
+              <div className="max-w-2xl">
+                <SectionEyebrow>Use Cases</SectionEyebrow>
+                <ul className="mt-4 space-y-3">
+                  {data.useCases.slice(0, 5).map((item) => (
+                    <li key={item} className="flex gap-3 text-sm leading-6 text-slate-600">
+                      <Sparkles className="mt-0.5 size-4 shrink-0 text-emerald-500" />
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
-            </div>
+            ) : null}
 
             {/* User Reviews */}
             <div className="max-w-2xl">
