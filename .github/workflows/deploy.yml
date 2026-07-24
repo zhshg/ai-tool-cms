@@ -67,7 +67,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @ai-tool-cms/config build
       - run: pnpm db:generate
-      - run: pnpm --filter @ai-tool-cms/${{ matrix.app }} build
+      - run: pnpm turbo run build --filter=@ai-tool-cms/${{ matrix.app }}
 
       - name: Resolve image tag
         id: vars
