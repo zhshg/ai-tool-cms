@@ -142,6 +142,26 @@ services:
       meilisearch:
         condition: service_healthy
 
+  seed:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.node
+      args:
+        APP_NAME: api
+        PNPM_REGISTRY: ${PNPM_REGISTRY:-https://registry.npmmirror.com}
+    image: ai-tool-cms-api:${IMAGE_TAG:-local}
+    pull_policy: never
+    restart: "no"
+    command: pnpm db:seed
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+    depends_on:
+      search-bootstrap:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+
   api:
     build:
       context: .
@@ -203,7 +223,7 @@ services:
       SENTRY_DSN: ${SENTRY_DSN}
       CACHE_DEFAULT_TTL_SECONDS: ${CACHE_DEFAULT_TTL_SECONDS}
     depends_on:
-      search-bootstrap:
+      seed:
         condition: service_completed_successfully
       postgres:
         condition: service_healthy

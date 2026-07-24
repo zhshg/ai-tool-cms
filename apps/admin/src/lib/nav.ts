@@ -187,10 +187,9 @@ export const breadcrumbLabels: Record<string, string> = {
   global: "Global",
   localization: "Localization",
   automation: "Automation Center",
+  "automation/logs": "运行日志",
   platform: "Platform",
   partners: "Partners",
   users: "Users",
   settings: "Settings",
 };
-
-

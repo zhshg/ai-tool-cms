@@ -1297,6 +1297,12 @@ export function fetchTools(page = 1, pageSize = 50) {
   return apiFetch<PaginatedResponse<AdminTool>>(`/tools?page=${page}&pageSize=${pageSize}`);
 }
 
+export function searchTools(query: string, pageSize = 8) {
+  return apiFetch<PaginatedResponse<AdminTool>>(
+    `/tools?page=1&pageSize=${pageSize}&search=${encodeURIComponent(query.trim())}`,
+  );
+}
+
 export function fetchToolById(id: string) {
   return apiFetch<AdminTool & Record<string, unknown>>(`/tools/${id}`);
 }
@@ -1963,4 +1969,140 @@ export function testCrawlerStep(
     method: "POST",
     body: JSON.stringify(payload),
   });
+}
+
+// ============ Automation Center API ============
+
+export type AutomationQueueStats = {
+  waiting: number;
+  active: number;
+  completed: number;
+  failed: number;
+  delayed: number;
+  total: number;
+};
+
+export type AutomationCenterResponse = {
+  discovery: {
+    sourcesTotal: number;
+    sourcesEnabled: number;
+    tasksPending: number;
+    tasksCompleted: number;
+    resultsNew: number;
+    resultsDismissed: number;
+    recentResults?: Array<{ id: string; name: string; status: string; createdAt: string }>;
+  };
+  queues: {
+    automation: Record<string, AutomationQueueStats>;
+    crawl: number;
+    ai: Record<string, AutomationQueueStats>;
+    growth: Record<string, AutomationQueueStats>;
+    search: Record<string, AutomationQueueStats>;
+    platform: Record<string, AutomationQueueStats>;
+    i18n: number;
+  };
+  monitors: {
+    websiteActive: number;
+    priceActive: number;
+    brokenLinksOpen: number;
+    aiRefreshDue: number;
+    socialScheduled: number;
+    indexPending: number;
+  };
+  recentRuns: Array<{
+    id: string;
+    kind: string;
+    status: string;
+    createdAt: string;
+    errorMessage: string | null;
+  }>;
+};
+
+export function fetchAutomationCenter() {
+  return apiFetch<AutomationCenterResponse>("/automation/center");
+}
+
+export function triggerAutomationBootstrap() {
+  return apiFetch<Record<string, number>>("/automation/bootstrap", { method: "POST" });
+}
+
+export function triggerAutomationDaily() {
+  return apiFetch<Record<string, number>>("/automation/daily", { method: "POST" });
+}
+
+export function triggerAutomationWeekly() {
+  return apiFetch<{ newsletters: number }>("/automation/weekly", { method: "POST" });
+}
+
+export function triggerAutomationSocial(
+  template: "NEW_AI" | "TRENDING_AI" | "WEEKLY_AI" | "TOP_AI" = "WEEKLY_AI",
+) {
+  return apiFetch<{ postIds: string[]; jobIds: string[] }>("/automation/social", {
+    method: "POST",
+    body: JSON.stringify({ template }),
+  });
+}
+
+export function triggerAutomationIndex() {
+  return apiFetch<{ submissionIds: string[]; jobIds: string[] }>("/automation/index", {
+    method: "POST",
+  });
+}
+
+export function triggerAutomationDiscovery() {
+  return apiFetch<{ taskIds: string[]; jobIds: string[] }>("/automation/discovery/run", {
+    method: "POST",
+  });
+}
+
+export type AutomationRunItem = {
+  id: string;
+  kind: string;
+  status: string;
+  referenceId: string | null;
+  startedAt: string | null;
+  finishedAt: string | null;
+  errorMessage: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type AutomationRunDetail = {
+  id: string;
+  kind: string;
+  status: string;
+  referenceId: string | null;
+  startedAt: string | null;
+  finishedAt: string | null;
+  errorMessage: string | null;
+  result: Record<string, unknown>;
+  metadata: Record<string, unknown>;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type AutomationRunsResponse = {
+  items: AutomationRunItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+};
+
+export function fetchAutomationRuns(params?: {
+  page?: number;
+  pageSize?: number;
+  kind?: string;
+  status?: string;
+}) {
+  const searchParams = new URLSearchParams();
+  if (params?.page) searchParams.set("page", String(params.page));
+  if (params?.pageSize) searchParams.set("pageSize", String(params.pageSize));
+  if (params?.kind) searchParams.set("kind", params.kind);
+  if (params?.status) searchParams.set("status", params.status);
+  const query = searchParams.toString();
+  return apiFetch<AutomationRunsResponse>(`/automation/runs${query ? `?${query}` : ""}`);
+}
+
+export function fetchAutomationRun(id: string) {
+  return apiFetch<AutomationRunDetail>(`/automation/runs/${id}`);
 }

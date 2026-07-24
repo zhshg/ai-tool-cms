@@ -95,4 +95,28 @@ export class AutomationController {
   mcp() {
     return this.automationService.mcpInfo();
   }
+
+  @Get("runs")
+  @RequirePermission(PermissionCode.AutomationRead)
+  @ApiOperation({ summary: "List automation run logs" })
+  listRuns(
+    @Query("page") page?: string,
+    @Query("pageSize") pageSize?: string,
+    @Query("kind") kind?: string,
+    @Query("status") status?: string,
+  ) {
+    return this.automationService.listRuns({
+      page: page ? Number(page) : undefined,
+      pageSize: pageSize ? Number(pageSize) : undefined,
+      kind,
+      status,
+    });
+  }
+
+  @Get("runs/:id")
+  @RequirePermission(PermissionCode.AutomationRead)
+  @ApiOperation({ summary: "Get automation run detail" })
+  getRun(@Param("id") id: string) {
+    return this.automationService.getRun(id);
+  }
 }
