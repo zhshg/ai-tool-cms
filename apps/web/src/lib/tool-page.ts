@@ -29,6 +29,44 @@ function pickEN<T extends string | null | undefined>(...candidates: T[]): T {
   return candidates[candidates.length - 1] ?? (null as T);
 }
 
+/**
+ * 段落级中文过滤：将文本按段落分割，移除含中文的段落，保留英文段落。
+ * 当文本混合中英文时（如 long_description 开头是中文，后面是英文），
+ * 只丢弃中文段落，保留有价值的英文内容。
+ */
+function stripCJKParagraphs(text: string | null | undefined): string | null {
+  if (!text) return null;
+  const paragraphs = text.split(/\n+/).filter((p) => p.trim().length > 0);
+  const enParagraphs = paragraphs.filter((p) => !hasCJK(p));
+  if (enParagraphs.length === 0) return null;
+  return enParagraphs.join("\n\n");
+}
+
+/**
+ * 从含中文的混合文本中提取英文内容：
+ * 1. 先尝试段落级过滤（保留英文段落）
+ * 2. 如果段落级过滤后仍有内容，使用过滤后的结果
+ * 3. 否则回退到候选字段
+ */
+function pickENWithParagraphFallback(
+  primary: string | null | undefined,
+  ...fallbacks: Array<string | null | undefined>
+): string | null {
+  if (primary) {
+    const stripped = stripCJKParagraphs(primary);
+    if (stripped) return stripped;
+  }
+  for (const fallback of fallbacks) {
+    if (fallback && !hasCJK(fallback)) return fallback;
+  }
+  // 最后尝试对 fallback 也做段落过滤
+  for (const fallback of fallbacks) {
+    const stripped = stripCJKParagraphs(fallback);
+    if (stripped) return stripped;
+  }
+  return null;
+}
+
 /** 过滤数组中包含中文的条目（当 locale 为英文时使用） */
 function filterCJKList(items: string[]): string[] {
   return items.filter((item) => !hasCJK(item));
@@ -270,13 +308,16 @@ export async function getToolPage(
   const description =
     normalizePlainText(
       isEN
-        ? pickEN(localizedTranslation?.longDescription ?? tool.description, tool.summary)
+        ? pickENWithParagraphFallback(
+            localizedTranslation?.longDescription ?? tool.description,
+            tool.summary,
+          )
         : (localizedTranslation?.longDescription ?? tool.description),
     ) || null;
   const longDescription =
     normalizePlainText(
       isEN
-        ? pickEN(
+        ? pickENWithParagraphFallback(
             localizedTranslation?.longDescription ?? tool.longDescription ?? tool.description,
             tool.description,
             tool.summary,
