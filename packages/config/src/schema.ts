@@ -52,7 +52,7 @@ export const envSchema = z.object({
   AI_DEFAULT_MODEL: z.string().default("gpt-4o-mini"),
   NEXT_PUBLIC_APP_URL: z.string().url().default("http://localhost:3000"),
   NEXT_PUBLIC_SITE_URL: optionalUrl,
-  NEXT_PUBLIC_ADMIN_MOCK_ROLE: z.string().default("admin"),
+  NEXT_PUBLIC_ADMIN_MOCK_ROLE: optionalString,
   SITE_URL: optionalUrl,
   SITE_NAME: z.string().default("AI Tool CMS"),
   SITE_DESCRIPTION: optionalString,
