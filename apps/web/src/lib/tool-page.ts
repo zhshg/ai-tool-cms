@@ -14,6 +14,38 @@ import { resolveToolFallbackLogoUrl, resolveToolLogoUrl } from "./tool-logo";
 const activeOnly = { deletedAt: null } as const;
 const DEFAULT_LOCALE = "en";
 
+const CJK_REGEX =
+  /[\u4e00-\u9fff\u3400-\u4dbf\u{20000}-\u{2a6df}\u{2a700}-\u{2b73f}\u{2b740}-\u{2b81f}\u{2b820}-\u{2ceaf}\u{2ceb0}-\u{2ebef}\u{30000}-\u{3134f}\u3000-\u303f\uff00-\uffef]/u;
+
+function hasCJK(text: string | null | undefined): boolean {
+  if (!text) return false;
+  return CJK_REGEX.test(text);
+}
+
+function pickEN<T extends string | null | undefined>(...candidates: T[]): T {
+  for (const candidate of candidates) {
+    if (candidate && !hasCJK(candidate)) return candidate;
+  }
+  return candidates[candidates.length - 1] ?? (null as T);
+}
+
+/** 过滤数组中包含中文的条目（当 locale 为英文时使用） */
+function filterCJKList(items: string[]): string[] {
+  return items.filter((item) => !hasCJK(item));
+}
+
+/** 过滤推荐工具卡片中 summary 含中文的条目，并将 reason 中的中文替换 */
+function filterCJKFromRecommendedCards<T extends { summary: string | null; reason: string | null }>(
+  cards: T[],
+): T[] {
+  return cards
+    .filter((card) => !hasCJK(card.summary))
+    .map((card) => ({
+      ...card,
+      reason: pickEN(card.reason, card.reason),
+    }));
+}
+
 export type ToolPageLink = {
   anchor: string;
   href: string;
@@ -203,13 +235,27 @@ export async function getToolPage(
   const geoDocument = metadata.geoDocument as GeoPageDocument | undefined;
   const geoBlocks = geoDocument ? buildGeoContentBlocks(geoDocument) : [];
 
-  const pros = normalizeStringList(metadata.aiPros);
-  const cons = normalizeStringList(metadata.aiCons);
-  const baseUseCases = normalizeStringList(metadata.aiUseCases ?? metadata.useCases);
-  const baseFeatures = buildFeatureList(metadata);
-  const apiAccess = buildApiAccess(metadata);
-  const platforms = normalizeStringList(metadata.aiPlatforms ?? metadata.platforms);
-  const languages = normalizeStringList(metadata.aiLanguages ?? metadata.languages);
+  const isEN = locale === DEFAULT_LOCALE || locale.startsWith("en");
+
+  const pros = isEN
+    ? filterCJKList(normalizeStringList(metadata.aiPros))
+    : normalizeStringList(metadata.aiPros);
+  const cons = isEN
+    ? filterCJKList(normalizeStringList(metadata.aiCons))
+    : normalizeStringList(metadata.aiCons);
+  const baseUseCases = isEN
+    ? filterCJKList(normalizeStringList(metadata.aiUseCases ?? metadata.useCases))
+    : normalizeStringList(metadata.aiUseCases ?? metadata.useCases);
+  const baseFeatures = isEN
+    ? filterCJKList(buildFeatureList(metadata))
+    : buildFeatureList(metadata);
+  const apiAccess = isEN ? filterCJKList(buildApiAccess(metadata)) : buildApiAccess(metadata);
+  const platforms = isEN
+    ? filterCJKList(normalizeStringList(metadata.aiPlatforms ?? metadata.platforms))
+    : normalizeStringList(metadata.aiPlatforms ?? metadata.platforms);
+  const languages = isEN
+    ? filterCJKList(normalizeStringList(metadata.aiLanguages ?? metadata.languages))
+    : normalizeStringList(metadata.aiLanguages ?? metadata.languages);
   const videos = buildVideos(metadata);
   const resolvedLogoUrl = resolveToolLogoUrl(tool.logoUrl, metadata, tool.website);
   const collectedLogoUrl = resolveToolFallbackLogoUrl(tool.logoUrl, metadata, tool.website);
@@ -217,17 +263,32 @@ export async function getToolPage(
   const aiSummary =
     normalizePlainText(geoDocument?.llmSummary) ||
     normalizePlainText(localizedTranslation?.summary) ||
-    normalizePlainText(tool.summary) ||
+    normalizePlainText(isEN ? pickEN(tool.summary, tool.description) : tool.summary) ||
     normalizePlainText(localizedTranslation?.longDescription) ||
-    normalizePlainText(tool.description) ||
+    normalizePlainText(isEN ? pickEN(tool.description, tool.summary) : tool.description) ||
     `${tool.name} is an AI tool listed in our directory.`;
   const description =
-    normalizePlainText(localizedTranslation?.longDescription ?? tool.description) || null;
+    normalizePlainText(
+      isEN
+        ? pickEN(localizedTranslation?.longDescription ?? tool.description, tool.summary)
+        : (localizedTranslation?.longDescription ?? tool.description),
+    ) || null;
   const longDescription =
     normalizePlainText(
-      localizedTranslation?.longDescription ?? tool.longDescription ?? tool.description,
+      isEN
+        ? pickEN(
+            localizedTranslation?.longDescription ?? tool.longDescription ?? tool.description,
+            tool.description,
+            tool.summary,
+          )
+        : (localizedTranslation?.longDescription ?? tool.longDescription ?? tool.description),
     ) || null;
-  const summary = normalizePlainText(localizedTranslation?.summary ?? tool.summary) || null;
+  const summary =
+    normalizePlainText(
+      isEN
+        ? pickEN(localizedTranslation?.summary ?? tool.summary, tool.description)
+        : (localizedTranslation?.summary ?? tool.summary),
+    ) || null;
 
   const config = getSiteConfig();
   const primaryCategory = tool.categories[0]?.category;
@@ -251,7 +312,7 @@ export async function getToolPage(
     tool.pricingModel,
   );
   const translatedFaqs = normalizeFaqList(localizedTranslation?.faqJson);
-  const faqs = (
+  const rawFaqs = (
     translatedFaqs.length
       ? translatedFaqs
       : tool.faqs.map((f: ToolFaqRow) => ({ question: f.question, answer: f.answer }))
@@ -259,6 +320,7 @@ export async function getToolPage(
     question: string;
     answer: string;
   }>;
+  const faqs = isEN ? rawFaqs.filter((f) => !hasCJK(f.question) && !hasCJK(f.answer)) : rawFaqs;
   const screenshots = buildToolScreenshots(tool.toolScreenshots, metadata, tool.website);
   const recommendations = await buildToolRecommendations(prisma, tool.id, 6);
   const [recommendedAlternatives, similarTools, moreLikeThis, trendingTools] = await Promise.all([
@@ -360,28 +422,48 @@ export async function getToolPage(
         pricingModel: plan.pricingModel,
         price: plan.amount?.toString() ?? null,
         billingPeriod: plan.billingPeriod,
-        description: plan.description,
+        description: isEN ? pickEN(plan.description, null) : plan.description,
         isFeatured: plan.isFeatured,
       })),
       screenshots,
-      alternatives,
-      similarTools,
-      moreLikeThis,
-      trendingTools,
-      relatedCategories,
+      alternatives: isEN ? filterCJKFromRecommendedCards(alternatives) : alternatives,
+      similarTools: isEN ? filterCJKFromRecommendedCards(similarTools) : similarTools,
+      moreLikeThis: isEN ? filterCJKFromRecommendedCards(moreLikeThis) : moreLikeThis,
+      trendingTools: isEN ? filterCJKFromRecommendedCards(trendingTools) : trendingTools,
+      relatedCategories: isEN
+        ? relatedCategories.map((cat) => ({ ...cat, reason: pickEN(cat.reason, cat.reason) }))
+        : relatedCategories,
       faqs: enrichedFaqs,
-      reviews: tool.reviews.map((review) => ({
-        title: review.title,
-        content: review.content,
-        rating: review.rating,
-        authorName: review.authorName,
-        createdAt: review.createdAt.toISOString(),
-      })),
-      internalLinks: tool.internalLinks.map((link: ToolInternalLinkRow) => ({
-        anchor: link.anchorText,
-        href: link.href,
-        type: link.linkType,
-      })),
+      reviews: isEN
+        ? tool.reviews
+            .filter((review) => !hasCJK(review.title) && !hasCJK(review.content))
+            .map((review) => ({
+              title: review.title,
+              content: review.content,
+              rating: review.rating,
+              authorName: review.authorName,
+              createdAt: review.createdAt.toISOString(),
+            }))
+        : tool.reviews.map((review) => ({
+            title: review.title,
+            content: review.content,
+            rating: review.rating,
+            authorName: review.authorName,
+            createdAt: review.createdAt.toISOString(),
+          })),
+      internalLinks: isEN
+        ? tool.internalLinks
+            .filter((link: ToolInternalLinkRow) => !hasCJK(link.anchorText))
+            .map((link: ToolInternalLinkRow) => ({
+              anchor: link.anchorText,
+              href: link.href,
+              type: link.linkType,
+            }))
+        : tool.internalLinks.map((link: ToolInternalLinkRow) => ({
+            anchor: link.anchorText,
+            href: link.href,
+            type: link.linkType,
+          })),
       geoBlocks,
       jsonLd,
     },
