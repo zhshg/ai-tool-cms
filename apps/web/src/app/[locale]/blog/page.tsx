@@ -1,6 +1,7 @@
-import Link from "next/link";
 import type { Metadata } from "next";
+import Link from "next/link";
 import { setRequestLocale } from "next-intl/server";
+
 import { ToolStatus, prisma } from "@ai-tool-cms/database";
 import {
   buildBreadcrumbJsonLd,
@@ -19,7 +20,7 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const { locale } = await params;
-  const isZh = locale === "zh";
+  const isZh = locale.startsWith("zh");
   const config = getSiteConfig();
   return buildMetadata(
     {
@@ -37,13 +38,14 @@ export async function generateMetadata({
 
 export default async function BlogPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
+  const isZh = locale.startsWith("zh");
   setRequestLocale(locale);
   const config = getSiteConfig();
   const posts = await fetchPublishedPosts();
   const path = `/${locale}/blog`;
   const jsonLd = [
     buildItemListJsonLd({
-      name: "AI Tool Directory Blog",
+      name: isZh ? "AI 工具目录博客" : "AI Tool Directory Blog",
       url: joinUrl(config.siteUrl, path),
       items: posts.map((post, index) => ({
         name: post.title,
@@ -53,8 +55,8 @@ export default async function BlogPage({ params }: { params: Promise<{ locale: s
     }),
     buildBreadcrumbJsonLd(
       [
-        { name: "Home", path: `/${locale}` },
-        { name: "Blog", path },
+        { name: isZh ? "首页" : "Home", path: `/${locale}` },
+        { name: isZh ? "博客" : "Blog", path },
       ],
       config.siteUrl,
     ),
@@ -68,18 +70,22 @@ export default async function BlogPage({ params }: { params: Promise<{ locale: s
       />
       <section className="border-b bg-white">
         <div className="mx-auto max-w-6xl px-6 py-12 lg:px-8">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">Blog</p>
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
+            {isZh ? "博客" : "Blog"}
+          </p>
           <h1 className="mt-3 text-4xl font-bold tracking-tight md:text-6xl">
-            AI Tool Directory Blog
+            {isZh ? "AI 工具目录博客" : "AI Tool Directory Blog"}
           </h1>
           <p className="mt-5 max-w-3xl text-lg leading-8 text-slate-600">
-            Guides, launch notes, comparisons, and operating lessons for choosing AI tools.
+            {isZh
+              ? "用于选择 AI 工具的指南、发布记录、对比文章和运营经验。"
+              : "Guides, launch notes, comparisons, and operating lessons for choosing AI tools."}
           </p>
           <Link
             href="/feed/rss"
             className="mt-6 inline-flex rounded-full border px-4 py-2 text-sm font-semibold hover:bg-slate-50"
           >
-            RSS Feed
+            {isZh ? "RSS 订阅" : "RSS Feed"}
           </Link>
         </div>
       </section>
@@ -101,10 +107,16 @@ export default async function BlogPage({ params }: { params: Promise<{ locale: s
                 <div className="flex flex-wrap gap-2 text-xs text-slate-500">
                   <span>
                     {post.publishedAt
-                      ? new Date(post.publishedAt).toLocaleDateString(locale)
-                      : "Published"}
+                      ? new Date(post.publishedAt).toLocaleDateString(isZh ? "zh-CN" : locale)
+                      : isZh
+                        ? "已发布"
+                        : "Published"}
                   </span>
-                  {post.category ? <span>· {post.category.name}</span> : null}
+                  {post.category ? (
+                    <span>
+                      {isZh ? "类别" : "Category"}: {post.category.name}
+                    </span>
+                  ) : null}
                 </div>
                 <h2 className="mt-3 text-2xl font-semibold">
                   <Link href={`/${locale}/blog/${post.slug}`} className="hover:text-blue-700">
@@ -129,7 +141,7 @@ export default async function BlogPage({ params }: { params: Promise<{ locale: s
           </div>
         ) : (
           <div className="rounded-3xl border bg-white p-8 text-sm text-slate-600">
-            No published blog articles yet.
+            {isZh ? "暂无已发布的博客文章。" : "No published blog articles yet."}
           </div>
         )}
       </section>

@@ -1,4 +1,4 @@
-import { AlertTriangle, Search } from "lucide-react";
+import { AlertTriangle, ExternalLink, Search } from "lucide-react";
 import Link from "next/link";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
@@ -297,8 +297,11 @@ export default async function SearchPage({ params, searchParams }: SearchPagePro
         <section className="mt-6 space-y-4">
           {result.hits.length ? (
             result.hits.map(({ document }) => (
-              <article key={document.id} className="rounded-lg border bg-card p-5">
-                <div className="flex flex-wrap items-start justify-between gap-3">
+              <article
+                key={document.id}
+                className="rounded-2xl border bg-card p-5 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
+              >
+                <div className="flex flex-wrap items-start justify-between gap-4">
                   <div className="flex min-w-0 flex-1 items-start gap-3">
                     <ToolLogo
                       name={document.name}
@@ -306,46 +309,60 @@ export default async function SearchPage({ params, searchParams }: SearchPagePro
                       fallbackLogoUrl={document.collectedLogoUrl}
                       size="md"
                     />
-                    <div className="min-w-0">
-                      <h2 className="text-lg font-semibold">
-                        <Link href={`/${locale}/tools/${document.slug}`} className="hover:underline">
-                          {document.name}
-                        </Link>
-                      </h2>
+                    <div className="min-w-0 space-y-2">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h2 className="text-lg font-semibold leading-6">
+                          <Link
+                            href={`/${locale}/tools/${document.slug}`}
+                            className="hover:underline"
+                          >
+                            {document.name}
+                          </Link>
+                        </h2>
+                        {document.reviewScore ? (
+                          <span className="rounded-full border bg-amber-50 px-2 py-1 text-[11px] font-semibold text-amber-700">
+                            {document.reviewScore.toFixed(1)} rating
+                          </span>
+                        ) : null}
+                      </div>
+                      <div className="flex flex-wrap gap-2 text-xs">
+                        {document.pricingModel ? (
+                          <Badge>{formatPricing(document.pricingModel)}</Badge>
+                        ) : null}
+                        {document.hasApi ? <Badge>API</Badge> : null}
+                        {document.isOpenSource ? <Badge>Open Source</Badge> : null}
+                      </div>
                       {document.summary ? (
-                        <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                        <p className="rounded-xl border bg-muted/20 px-3 py-2 text-sm leading-6 text-muted-foreground">
                           {document.summary}
                         </p>
-                      ) : null}
+                      ) : (
+                        <p className="rounded-xl border border-dashed px-3 py-2 text-sm leading-6 text-muted-foreground">
+                          No short description is available yet.
+                        </p>
+                      )}
                     </div>
                   </div>
+
                   <div className="flex flex-wrap gap-2">
-                    {document.pricingModel ? (
-                      <Badge>{formatPricing(document.pricingModel)}</Badge>
-                    ) : null}
-                    {document.hasApi ? <Badge>API</Badge> : null}
-                    {document.isOpenSource ? <Badge>Open Source</Badge> : null}
-                    {document.reviewScore ? (
-                      <Badge>{document.reviewScore.toFixed(1)} rating</Badge>
-                    ) : null}
+                    {document.categoryNames.slice(0, 2).map((name, index) => (
+                      <Link
+                        key={`${document.id}-${name}`}
+                        href={`/${locale}/category/${document.categorySlugs[index]}`}
+                        className="rounded-full bg-muted px-2.5 py-1 text-xs text-muted-foreground hover:text-foreground"
+                      >
+                        {name}
+                      </Link>
+                    ))}
                   </div>
                 </div>
 
                 <div className="mt-4 flex flex-wrap gap-2">
-                  {document.categoryNames.slice(0, 2).map((name, index) => (
-                    <Link
-                      key={`${document.id}-${name}`}
-                      href={`/${locale}/category/${document.categorySlugs[index]}`}
-                      className="rounded-md bg-muted px-2 py-1 text-xs text-muted-foreground hover:text-foreground"
-                    >
-                      {name}
-                    </Link>
-                  ))}
                   {document.tagNames.slice(0, 3).map((name, index) => (
                     <Link
                       key={`${document.id}-tag-${name}`}
                       href={`/${locale}/tag/${document.tagSlugs[index]}`}
-                      className="rounded-md bg-muted px-2 py-1 text-xs text-muted-foreground hover:text-foreground"
+                      className="rounded-full border px-2.5 py-1 text-xs text-muted-foreground hover:text-foreground"
                     >
                       {name}
                     </Link>
@@ -353,7 +370,7 @@ export default async function SearchPage({ params, searchParams }: SearchPagePro
                   {document.platforms.slice(0, 2).map((item) => (
                     <span
                       key={`${document.id}-platform-${item}`}
-                      className="rounded-md border px-2 py-1 text-xs text-muted-foreground"
+                      className="rounded-full border bg-background px-2.5 py-1 text-xs text-muted-foreground"
                     >
                       {item}
                     </span>
@@ -361,16 +378,28 @@ export default async function SearchPage({ params, searchParams }: SearchPagePro
                   {document.languages.slice(0, 2).map((item) => (
                     <span
                       key={`${document.id}-language-${item}`}
-                      className="rounded-md border px-2 py-1 text-xs text-muted-foreground"
+                      className="rounded-full border bg-background px-2.5 py-1 text-xs text-muted-foreground"
                     >
                       {item}
                     </span>
                   ))}
                 </div>
+
+                <div className="mt-5 flex gap-2 border-t pt-4">
+                  <Button asChild variant="outline" className="flex-1">
+                    <Link href={`/${locale}/tools/${document.slug}`}>Details</Link>
+                  </Button>
+                  <Button asChild className="flex-1">
+                    <a href={document.website} target="_blank" rel="noreferrer">
+                      Website
+                      <ExternalLink />
+                    </a>
+                  </Button>
+                </div>
               </article>
             ))
           ) : (
-            <div className="rounded-lg border border-dashed p-8 text-center">
+            <div className="rounded-2xl border border-dashed p-8 text-center">
               <h2 className="text-xl font-semibold">No matching tools</h2>
               <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-muted-foreground">
                 Try a broader keyword or remove one of the filters to see more AI tools.

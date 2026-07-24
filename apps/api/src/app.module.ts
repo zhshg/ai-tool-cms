@@ -33,6 +33,7 @@ import { OperationsModule } from "./operations/operations.module";
 import { CollectionsModule } from "./collections/collections.module";
 import { BlogModule } from "./blog/blog.module";
 import { ContentModule } from "./content/content.module";
+import { RedisThrottlerStorage } from "./common/throttler/redis-throttler.storage";
 
 @Module({
   imports: [
@@ -45,12 +46,15 @@ import { ContentModule } from "./content/content.module";
         ".env",
       ],
     }),
-    ThrottlerModule.forRoot([
-      {
-        ttl: 60_000,
-        limit: 300,
-      },
-    ]),
+    ThrottlerModule.forRoot({
+      throttlers: [
+        {
+          ttl: 60_000,
+          limit: 300,
+        },
+      ],
+      storage: new RedisThrottlerStorage(),
+    }),
     LoggerModule,
     PrismaModule,
     RbacModule,
@@ -86,5 +90,3 @@ import { ContentModule } from "./content/content.module";
   ],
 })
 export class AppModule {}
-
-

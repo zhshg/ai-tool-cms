@@ -23,6 +23,15 @@ type SearchBootstrapResult = {
   };
 };
 
+const SEARCH_BOOTSTRAP_TASK_TIMEOUT_MS = Number.parseInt(
+  process.env.SEARCH_BOOTSTRAP_TASK_TIMEOUT_MS ?? "60000",
+  10,
+);
+const SEARCH_BOOTSTRAP_TASK_INTERVAL_MS = Number.parseInt(
+  process.env.SEARCH_BOOTSTRAP_TASK_INTERVAL_MS ?? "1000",
+  10,
+);
+
 export async function bootstrapSearch(
   client: PrismaClient = prisma,
 ): Promise<SearchBootstrapResult> {
@@ -51,7 +60,10 @@ export async function bootstrapSearch(
 
   if (tools.length > 0) {
     const task = await meili.index(TOOLS_INDEX).addDocuments(tools);
-    await meili.waitForTask(task.taskUid);
+    await meili.waitForTask(task.taskUid, {
+      timeOutMs: SEARCH_BOOTSTRAP_TASK_TIMEOUT_MS,
+      intervalMs: SEARCH_BOOTSTRAP_TASK_INTERVAL_MS,
+    });
   }
 
   if (categories.length > 0) {
@@ -69,7 +81,10 @@ export async function bootstrapSearch(
           .join(" "),
       })),
     );
-    await meili.waitForTask(task.taskUid);
+    await meili.waitForTask(task.taskUid, {
+      timeOutMs: SEARCH_BOOTSTRAP_TASK_TIMEOUT_MS,
+      intervalMs: SEARCH_BOOTSTRAP_TASK_INTERVAL_MS,
+    });
   }
 
   if (tags.length > 0) {
@@ -83,7 +98,10 @@ export async function bootstrapSearch(
         searchableText: [tag.name, tag.slug, tag.description].filter(Boolean).join(" "),
       })),
     );
-    await meili.waitForTask(task.taskUid);
+    await meili.waitForTask(task.taskUid, {
+      timeOutMs: SEARCH_BOOTSTRAP_TASK_TIMEOUT_MS,
+      intervalMs: SEARCH_BOOTSTRAP_TASK_INTERVAL_MS,
+    });
   }
 
   return {

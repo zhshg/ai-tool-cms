@@ -81,7 +81,17 @@ export const envSchema = z.object({
   CRAWLER_ENABLE_PRODUCTION_ADAPTERS: z
     .string()
     .optional()
-    .transform((v) => v === "true" || v === "1"),
+    .transform((v) => {
+      if (v === "true" || v === "1") {
+        return true;
+      }
+
+      if (v === "false" || v === "0") {
+        return false;
+      }
+
+      return process.env.NODE_ENV === "production";
+    }),
   CRAWLER_CONCURRENCY: z.coerce.number().int().positive().default(5),
   CRAWLER_TIMEOUT_MS: z.coerce.number().int().positive().default(30_000),
   /** Sprint 4: auto-apply AI output and publish tool without human review (default: true). */

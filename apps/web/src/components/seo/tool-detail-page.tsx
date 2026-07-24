@@ -1,10 +1,22 @@
-import { Check, ExternalLink, Minus, Star } from "lucide-react";
+import {
+  ArrowLeft,
+  Check,
+  ChevronRight,
+  ExternalLink,
+  Globe,
+  Monitor,
+  Sparkles,
+  Star,
+  Tag,
+  Zap,
+} from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { ToolLogo } from "@/components/tool/tool-logo";
 import { Button } from "@/components/ui/button";
 import { serializeJsonLd } from "@/lib/seo";
+import { splitRichText } from "@ai-tool-cms/seo";
 import type { ToolPageData } from "@/lib/tool-page";
 
 type ToolDetailPageProps = {
@@ -12,56 +24,42 @@ type ToolDetailPageProps = {
   locale: string;
 };
 
-type TocItem = {
-  id: string;
-  label: string;
-  visible: boolean;
-};
-
 export function ToolDetailPage({ data, locale }: ToolDetailPageProps) {
   const primaryCategory =
-    data.categories.find((category) => category.isPrimary) ?? data.categories[0];
-  const featureItems = data.features.length ? data.features : data.useCases;
-  const hasAlternatives = data.alternatives.length > 0;
-  const hasSimilarTools = data.similarTools.length > 0;
-  const hasMoreLikeThis = data.moreLikeThis.length > 0;
-  const hasTrendingTools = data.trendingTools.length > 0;
-  const hasRelatedCategories = data.relatedCategories.length > 0;
-
-  const toc: TocItem[] = [
+    data.categories.find((category) => category.isPrimary) ?? data.categories[0] ?? null;
+  const overviewBlocks = buildOverviewBlocks(data);
+  const highlights = buildHighlights(data);
+  const featureItems = dedupeStrings(data.features.length ? data.features : data.useCases).slice(
+    0,
+    6,
+  );
+  const keyFacts = [
+    { icon: <Zap className="size-4" />, label: "Pricing", value: formatPricing(data.pricingModel) },
     {
-      id: "overview",
-      label: "Overview",
-      visible: Boolean(data.aiSummary || data.description || data.longDescription),
+      icon: <Sparkles className="size-4" />,
+      label: "Category",
+      value: primaryCategory?.name ?? "AI Tool",
     },
-    { id: "features", label: "Features", visible: featureItems.length > 0 },
     {
-      id: "pros-cons",
-      label: "Pros & Cons",
-      visible: data.pros.length > 0 || data.cons.length > 0,
-    },
-    { id: "use-cases", label: "Use Cases", visible: data.useCases.length > 0 },
-    { id: "pricing", label: "Pricing", visible: true },
-    { id: "api", label: "API", visible: data.apiAccess.length > 0 },
-    {
-      id: "platforms",
+      icon: <Monitor className="size-4" />,
       label: "Platforms",
-      visible: data.platforms.length > 0 || data.languages.length > 0,
+      value: data.platforms.join(", ") || "Web",
     },
     {
-      id: "gallery",
-      label: "Gallery",
-      visible: data.screenshots.length > 0 || data.videos.length > 0,
+      icon: <Globe className="size-4" />,
+      label: "Languages",
+      value: data.languages.join(", ") || "EN, CN",
     },
-    { id: "faq", label: "FAQ", visible: data.faqs.length > 0 },
-    { id: "similar", label: "Similar Tools", visible: hasSimilarTools },
-    { id: "alternatives", label: "Alternatives", visible: hasAlternatives },
-    { id: "more-like-this", label: "More Like This", visible: hasMoreLikeThis },
-    { id: "trending", label: "Trending", visible: hasTrendingTools },
-    { id: "related-categories", label: "Related Categories", visible: hasRelatedCategories },
-    { id: "reviews", label: "Reviews", visible: data.reviews.length > 0 },
-    { id: "structured-data", label: "Structured Data", visible: data.jsonLd.length > 0 },
-  ].filter((item) => item.visible);
+  ];
+  const relatedTools = dedupeCards([
+    ...data.alternatives,
+    ...data.similarTools,
+    ...data.moreLikeThis,
+    ...data.trendingTools,
+  ]).slice(0, 6);
+  const screenshots = data.screenshots.slice(0, 4);
+  const reviews = data.reviews.slice(0, 3);
+  const averageReview = data.reviews.length ? averageRating(data.reviews) : null;
 
   return (
     <>
@@ -69,350 +67,466 @@ export function ToolDetailPage({ data, locale }: ToolDetailPageProps) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(data.jsonLd) }}
       />
-      <main className="flex-1 bg-background">
-        <section className="border-b bg-gradient-to-br from-muted/50 via-background to-background">
-          <div className="mx-auto grid w-full max-w-7xl gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[1fr_340px] lg:px-8">
-            <div className="space-y-6">
-              <nav className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-                <Link href={`/${locale}`} className="hover:text-foreground">
-                  Home
+      <main className="flex-1">
+        {/* ═══ 顶部导航条 ═══ */}
+        <nav className="border-b border-slate-200/60 bg-white">
+          <div className="mx-auto flex max-w-5xl items-center gap-2 px-6 py-3 text-sm">
+            <Link
+              href={`/${locale}`}
+              className="text-slate-400 transition-colors hover:text-emerald-600"
+            >
+              Home
+            </Link>
+            <ChevronRight className="size-3.5 text-slate-300" />
+            <Link
+              href={`/${locale}/tools`}
+              className="text-slate-400 transition-colors hover:text-emerald-600"
+            >
+              Tools
+            </Link>
+            {primaryCategory ? (
+              <>
+                <ChevronRight className="size-3.5 text-slate-300" />
+                <Link
+                  href={`/${locale}/category/${primaryCategory.slug}`}
+                  className="text-slate-400 transition-colors hover:text-emerald-600"
+                >
+                  {primaryCategory.name}
                 </Link>
-                <span>/</span>
-                <Link href={`/${locale}/tools`} className="hover:text-foreground">
-                  Tools
-                </Link>
-                {primaryCategory ? (
-                  <>
-                    <span>/</span>
-                    <Link
-                      href={`/${locale}/category/${primaryCategory.slug}`}
-                      className="hover:text-foreground"
-                    >
-                      {primaryCategory.name}
-                    </Link>
-                  </>
-                ) : null}
-              </nav>
+              </>
+            ) : null}
+            <ChevronRight className="size-3.5 text-slate-300" />
+            <span className="font-medium text-slate-700">{data.name}</span>
+          </div>
+        </nav>
 
-              <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
-                <ToolLogo
-                  name={data.name}
-                  logoUrl={data.logoUrl}
-                  fallbackLogoUrl={data.collectedLogoUrl}
-                  categoryIconUrl={primaryCategory?.iconUrl ?? null}
-                  size="lg"
-                />
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    {primaryCategory ? (
-                      <Badge href={`/${locale}/category/${primaryCategory.slug}`}>
-                        {primaryCategory.name}
-                      </Badge>
-                    ) : null}
-                    <Badge>{formatPricing(data.pricingModel)}</Badge>
-                    {data.reviews.length ? (
-                      <Badge>{averageRating(data.reviews)} rating</Badge>
-                    ) : null}
+        {/* ═══ Hero 区域 - 居中编辑风 ═══ */}
+        <section className="relative overflow-hidden bg-gradient-detail">
+          <div className="relative mx-auto max-w-5xl px-6 pb-9 pt-8 lg:pt-10">
+            <div className="flex flex-col items-center text-center">
+              {/* Logo 大号 */}
+              <ToolLogo
+                name={data.name}
+                logoUrl={data.logoUrl}
+                fallbackLogoUrl={data.collectedLogoUrl}
+                categoryIconUrl={primaryCategory?.iconUrl ?? null}
+                size="lg"
+              />
+
+              {/* 标签行 */}
+              <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+                {primaryCategory ? (
+                  <Pill href={`/${locale}/category/${primaryCategory.slug}`}>
+                    {primaryCategory.name}
+                  </Pill>
+                ) : null}
+                <Pill accent>{formatPricing(data.pricingModel)}</Pill>
+                {averageReview ? (
+                  <Pill>
+                    <Star className="size-3 fill-amber-400 text-amber-400" />
+                    {averageReview}
+                  </Pill>
+                ) : null}
+              </div>
+
+              {/* 标题 */}
+              <h1 className="mt-4 max-w-3xl text-3xl font-bold leading-[1.15] tracking-tight text-slate-950 sm:text-4xl">
+                {data.name}
+              </h1>
+
+              {/* 描述 */}
+              <p className="mt-4 max-w-2xl text-base leading-7 text-slate-500">
+                {data.summary ?? data.aiSummary}
+              </p>
+
+              {/* 操作按钮 */}
+              <div className="mt-6 flex flex-wrap justify-center gap-3">
+                <Button asChild size="lg" className="shadow-sm shadow-emerald-500/20">
+                  <a href={data.website} target="_blank" rel="noopener noreferrer">
+                    Visit Website
+                    <ExternalLink className="size-4" />
+                  </a>
+                </Button>
+                <Button asChild size="lg" variant="outline">
+                  <Link href={`/${locale}/tools`}>
+                    <ArrowLeft className="size-4" />
+                    Back to tools
+                  </Link>
+                </Button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ═══ 横向信息条 - 关键数据 ═══ */}
+        <section className="border-b border-slate-200/60 bg-white">
+          <div className="mx-auto max-w-5xl px-6">
+            <div className="grid grid-cols-2 divide-x divide-slate-100 sm:grid-cols-4">
+              {keyFacts.map((fact) => (
+                <div key={fact.label} className="flex items-center gap-3 py-5 px-4 sm:px-6">
+                  <span className="flex size-9 items-center justify-center rounded-xl bg-slate-50 text-slate-400">
+                    {fact.icon}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-slate-400">
+                      {fact.label}
+                    </p>
+                    <p className="mt-0.5 truncate text-sm font-semibold text-slate-900">
+                      {fact.value}
+                    </p>
                   </div>
-                  <h1 className="mt-4 text-3xl font-semibold tracking-tight sm:text-5xl">
-                    {data.name}
-                  </h1>
-                  <p className="mt-4 max-w-3xl text-base leading-7 text-muted-foreground">
-                    {data.summary ?? data.aiSummary}
-                  </p>
-                  <div className="mt-6 flex flex-wrap gap-3">
-                    <Button asChild size="lg">
-                      <a href={data.website} target="_blank" rel="noopener noreferrer">
-                        Open Tool
-                        <ExternalLink />
-                      </a>
-                    </Button>
-                    {primaryCategory ? (
-                      <Button asChild size="lg" variant="outline">
-                        <Link href={`/${locale}/category/${primaryCategory.slug}`}>
-                          Explore {primaryCategory.name}
-                        </Link>
-                      </Button>
-                    ) : null}
-                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ═══ 主内容 - 单栏居中 ═══ */}
+        <section className="mx-auto max-w-5xl px-6 py-12 lg:py-16">
+          <div className="space-y-14">
+            {/* Highlights 横条 */}
+            {highlights.length ? (
+              <div>
+                <SectionEyebrow>Highlights</SectionEyebrow>
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  {highlights.map((item) => (
+                    <div
+                      key={item}
+                      className="flex gap-3 rounded-xl border border-slate-200/80 bg-white p-4 shadow-soft-sm"
+                    >
+                      <span className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
+                        <Check className="size-3.5" />
+                      </span>
+                      <p className="text-sm leading-6 text-slate-700">{item}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
+            {/* Overview */}
+            <div>
+              <SectionEyebrow>Overview</SectionEyebrow>
+              <div className="mt-4 space-y-4 text-base leading-[1.85] text-slate-600">
+                {overviewBlocks.length ? (
+                  overviewBlocks.map((block) => <p key={block}>{block}</p>)
+                ) : (
+                  <p>{data.aiSummary}</p>
+                )}
+              </div>
+            </div>
+
+            {/* Key Features */}
+            {featureItems.length ? (
+              <div>
+                <SectionEyebrow>Key Features</SectionEyebrow>
+                <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {featureItems.map((item, index) => (
+                    <article
+                      key={item}
+                      className="group rounded-2xl border border-slate-200/80 bg-white p-5 shadow-soft-sm transition-all duration-200 hover:border-emerald-200 hover:shadow-soft"
+                    >
+                      <span className="inline-flex size-7 items-center justify-center rounded-lg bg-emerald-50 text-xs font-bold text-emerald-600">
+                        {String(index + 1).padStart(2, "0")}
+                      </span>
+                      <p className="mt-3 text-sm leading-6 text-slate-700">{item}</p>
+                    </article>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
+            {/* Screenshots */}
+            {screenshots.length ? (
+              <div>
+                <SectionEyebrow>Screenshots</SectionEyebrow>
+                <div className="mt-4 grid gap-4 md:grid-cols-2">
+                  {screenshots.map((screenshot) => (
+                    <a
+                      key={`${screenshot.variant}-${screenshot.imageUrl}`}
+                      href={screenshot.targetUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-2 shadow-soft-sm transition-all duration-200 hover:shadow-soft"
+                    >
+                      <Image
+                        src={screenshot.imageUrl}
+                        alt={`${data.name} screenshot`}
+                        width={screenshot.width}
+                        height={screenshot.height}
+                        className="aspect-video w-full rounded-xl object-cover"
+                        unoptimized
+                      />
+                    </a>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
+            {/* FAQ & Reviews - 双栏 */}
+            <div>
+              <SectionEyebrow>FAQ & Reviews</SectionEyebrow>
+              <div className="mt-4 grid gap-8 lg:grid-cols-2">
+                {/* FAQ */}
+                <div className="space-y-3">
+                  <p className="text-sm font-semibold text-slate-900">Common questions</p>
+                  {data.faqs.length ? (
+                    data.faqs.slice(0, 5).map((faq) => (
+                      <details
+                        key={faq.question}
+                        className="group rounded-xl border border-slate-200/80 bg-white shadow-soft-sm"
+                      >
+                        <summary className="flex cursor-pointer items-center justify-between px-5 py-4 text-sm font-medium text-slate-900 transition-colors hover:text-emerald-700">
+                          {faq.question}
+                          <ChevronRight className="size-4 shrink-0 text-slate-400 transition-transform group-open:rotate-90" />
+                        </summary>
+                        <div className="border-t border-slate-100 px-5 py-4 text-sm leading-6 text-slate-600">
+                          {faq.answer}
+                        </div>
+                      </details>
+                    ))
+                  ) : (
+                    <p className="rounded-xl border border-dashed border-slate-200 p-5 text-sm text-slate-400">
+                      FAQ content has not been added yet.
+                    </p>
+                  )}
+                </div>
+
+                {/* Reviews */}
+                <div className="space-y-3">
+                  <p className="text-sm font-semibold text-slate-900">User reviews</p>
+                  {reviews.length ? (
+                    reviews.map((review) => (
+                      <article
+                        key={`${review.authorName}-${review.createdAt}`}
+                        className="rounded-xl border border-slate-200/80 bg-white p-5 shadow-soft-sm"
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-0.5 text-amber-400">
+                            {Array.from({ length: 5 }).map((_, i) => (
+                              <Star
+                                key={i}
+                                className={`size-3.5 ${i < Math.round(review.rating) ? "fill-current" : "text-slate-200"}`}
+                              />
+                            ))}
+                          </div>
+                          <span className="text-xs text-slate-400">{review.rating}/5</span>
+                        </div>
+                        {review.title ? (
+                          <h3 className="mt-2 text-sm font-semibold text-slate-900">
+                            {review.title}
+                          </h3>
+                        ) : null}
+                        <p className="mt-1.5 text-sm leading-6 text-slate-600">{review.content}</p>
+                      </article>
+                    ))
+                  ) : (
+                    <p className="rounded-xl border border-dashed border-slate-200 p-5 text-sm text-slate-400">
+                      No approved reviews yet.
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
 
-            <aside className="rounded-2xl border bg-card p-5 shadow-sm">
-              <p className="text-sm font-semibold">Quick facts</p>
-              <dl className="mt-4 space-y-3 text-sm">
-                <Fact label="Pricing" value={formatPricing(data.pricingModel)} />
-                <Fact label="Platforms" value={data.platforms.join(", ") || "Web"} />
-                <Fact label="Languages" value={data.languages.join(", ") || "Not specified"} />
-                <Fact label="Category" value={primaryCategory?.name ?? "AI Tool"} />
-              </dl>
-              <Button asChild className="mt-5 w-full">
-                <a href={data.website} target="_blank" rel="noopener noreferrer">
-                  Visit official website
-                </a>
-              </Button>
-            </aside>
-          </div>
-        </section>
-
-        <div className="mx-auto grid w-full max-w-7xl gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[220px_minmax(0,1fr)_300px] lg:px-8">
-          <aside className="hidden lg:block">
-            <nav className="sticky top-20 rounded-2xl border bg-card p-4 text-sm shadow-sm">
-              <p className="mb-3 font-semibold">On this page</p>
-              <div className="space-y-1">
-                {toc.map((item) => (
-                  <a
-                    key={item.id}
-                    href={`#${item.id}`}
-                    className="block rounded-md px-2 py-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
-                  >
-                    {item.label}
-                  </a>
-                ))}
-              </div>
-            </nav>
-          </aside>
-
-          <div className="space-y-10">
-            <Section id="overview" title="Overview">
-              <div className="space-y-4 leading-7 text-muted-foreground">
-                <p>{data.aiSummary}</p>
-                {data.description && data.description !== data.longDescription ? (
-                  <p className="whitespace-pre-wrap">{data.description}</p>
-                ) : null}
-                {data.longDescription ? (
-                  <p className="whitespace-pre-wrap">{data.longDescription}</p>
-                ) : null}
-              </div>
-            </Section>
-
-            {featureItems.length ? (
-              <Section id="features" title="Features">
-                <CardGrid items={featureItems} />
-              </Section>
-            ) : null}
-
-            {data.pros.length || data.cons.length ? (
-              <Section id="pros-cons" title="Pros & Cons">
-                <div className="grid gap-4 md:grid-cols-2">
-                  <ListCard title="Pros" items={data.pros} tone="positive" />
-                  <ListCard title="Cons" items={data.cons} tone="critical" />
+            {/* 标签 & 分类 - 横排 */}
+            <div className="grid gap-6 sm:grid-cols-2">
+              {data.categories.length ? (
+                <div>
+                  <SectionEyebrow>Categories</SectionEyebrow>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {data.categories.map((cat) => (
+                      <Link
+                        key={cat.slug}
+                        href={`/${locale}/category/${cat.slug}`}
+                        className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-600 transition hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700"
+                      >
+                        {cat.name}
+                      </Link>
+                    ))}
+                  </div>
                 </div>
-              </Section>
-            ) : null}
+              ) : null}
+              {data.tags.length ? (
+                <div>
+                  <SectionEyebrow>Tags</SectionEyebrow>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {data.tags.map((tag) => (
+                      <Link
+                        key={tag.slug}
+                        href={`/${locale}/tag/${tag.slug}`}
+                        className="inline-flex items-center gap-1 rounded-lg bg-slate-50 px-3 py-1.5 text-sm text-slate-600 transition hover:bg-emerald-50 hover:text-emerald-700"
+                      >
+                        <Tag className="size-3" />
+                        {tag.name}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+            </div>
 
-            {data.useCases.length ? (
-              <Section id="use-cases" title="Use Cases">
-                <CardGrid items={data.useCases} />
-              </Section>
-            ) : null}
-
-            <Section id="pricing" title="Pricing">
-              {data.pricingPlans.length ? (
-                <div className="grid gap-4 sm:grid-cols-2">
-                  {data.pricingPlans.map((plan) => (
-                    <article key={plan.name} className="rounded-2xl border bg-card p-5 shadow-sm">
+            {/* Pricing Plans */}
+            {data.pricingPlans.length ? (
+              <div>
+                <SectionEyebrow>Pricing Plans</SectionEyebrow>
+                <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {data.pricingPlans.slice(0, 3).map((plan) => (
+                    <div
+                      key={plan.name}
+                      className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-soft-sm"
+                    >
                       <div className="flex items-start justify-between gap-3">
-                        <h3 className="font-semibold">{plan.name}</h3>
-                        {plan.isFeatured ? (
-                          <span className="rounded-md bg-primary px-2 py-1 text-xs text-primary-foreground">
-                            Featured
-                          </span>
-                        ) : null}
+                        <p className="text-base font-semibold text-slate-900">{plan.name}</p>
+                        <span className="rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700">
+                          {formatPlanPrice(plan.price, plan.billingPeriod)}
+                        </span>
                       </div>
-                      <p className="mt-3 text-2xl font-semibold">
-                        {formatPlanPrice(plan.price, plan.billingPeriod)}
-                      </p>
-                      <p className="mt-1 text-sm text-muted-foreground">
+                      <p className="mt-1 text-xs text-slate-400">
                         {formatPricing(plan.pricingModel)}
                       </p>
                       {plan.description ? (
-                        <p className="mt-3 text-sm leading-6 text-muted-foreground">
-                          {plan.description}
-                        </p>
+                        <p className="mt-3 text-sm leading-6 text-slate-600">{plan.description}</p>
                       ) : null}
-                    </article>
-                  ))}
-                </div>
-              ) : (
-                <EmptyNote
-                  text={`No detailed pricing plans are available. Listed model: ${formatPricing(data.pricingModel)}.`}
-                />
-              )}
-            </Section>
-
-            {data.apiAccess.length ? (
-              <Section id="api" title="API">
-                <CardGrid items={data.apiAccess} />
-              </Section>
-            ) : null}
-
-            {data.platforms.length || data.languages.length ? (
-              <Section id="platforms" title="Platforms & Languages">
-                <div className="grid gap-4 md:grid-cols-2">
-                  <PillPanel
-                    title="Platforms"
-                    items={data.platforms}
-                    empty="No platform data available."
-                  />
-                  <PillPanel
-                    title="Languages"
-                    items={data.languages}
-                    empty="No language data available."
-                  />
-                </div>
-              </Section>
-            ) : null}
-
-            {data.screenshots.length || data.videos.length ? (
-              <Section id="gallery" title="Gallery">
-                {data.screenshots.length ? <ScreenshotGallery data={data} /> : null}
-                {data.videos.length ? <VideoGallery videos={data.videos} /> : null}
-              </Section>
-            ) : null}
-
-            {data.faqs.length ? (
-              <Section id="faq" title="FAQ">
-                <dl className="space-y-4">
-                  {data.faqs.map((faq) => (
-                    <div key={faq.question} className="rounded-2xl border bg-card p-5 shadow-sm">
-                      <dt className="font-medium">{faq.question}</dt>
-                      <dd className="mt-2 text-sm leading-6 text-muted-foreground">{faq.answer}</dd>
                     </div>
                   ))}
-                </dl>
-              </Section>
+                </div>
+              </div>
             ) : null}
 
-            {hasSimilarTools ? (
-              <ToolGrid
-                id="similar"
-                title="Similar Tools"
-                tools={data.similarTools}
-                locale={locale}
-              />
-            ) : null}
-            {hasAlternatives ? (
-              <ToolGrid
-                id="alternatives"
-                title="Alternatives"
-                tools={data.alternatives}
-                locale={locale}
-              />
-            ) : null}
-            {hasMoreLikeThis ? (
-              <ToolGrid
-                id="more-like-this"
-                title="More Like This"
-                tools={data.moreLikeThis}
-                locale={locale}
-              />
-            ) : null}
-            {hasTrendingTools ? (
-              <ToolGrid
-                id="trending"
-                title="Trending"
-                tools={data.trendingTools}
-                locale={locale}
-              />
-            ) : null}
-            {hasRelatedCategories ? (
-              <RelatedCategories
-                categories={data.relatedCategories}
-                locale={locale}
-              />
-            ) : null}
+            {/* Use Cases & Platforms - 双栏 */}
+            <div className="grid gap-6 sm:grid-cols-2">
+              {data.useCases.length ? (
+                <div>
+                  <SectionEyebrow>Use Cases</SectionEyebrow>
+                  <ul className="mt-3 space-y-2">
+                    {data.useCases.slice(0, 5).map((item) => (
+                      <li key={item} className="flex gap-2.5 text-sm leading-6 text-slate-600">
+                        <Sparkles className="mt-0.5 size-4 shrink-0 text-emerald-500" />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+              <div>
+                <SectionEyebrow>Platforms & Languages</SectionEyebrow>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {dedupeStrings([...data.platforms, ...data.languages]).length ? (
+                    dedupeStrings([...data.platforms, ...data.languages]).map((item) => (
+                      <span
+                        key={item}
+                        className="rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-medium text-white"
+                      >
+                        {item}
+                      </span>
+                    ))
+                  ) : (
+                    <p className="text-sm text-slate-400">No platform details available.</p>
+                  )}
+                </div>
+              </div>
+            </div>
 
-            {data.reviews.length ? (
-              <Section id="reviews" title="Reviews">
-                <div className="space-y-4">
-                  {data.reviews.map((review) => (
-                    <article
-                      key={`${review.authorName}-${review.createdAt}`}
-                      className="rounded-2xl border bg-card p-5 shadow-sm"
+            {/* Related Tools - 横向滚动 */}
+            {relatedTools.length ? (
+              <div>
+                <div className="flex items-end justify-between">
+                  <SectionEyebrow>Alternatives to {data.name}</SectionEyebrow>
+                  <Link
+                    href={`/${locale}/tools`}
+                    className="text-sm font-medium text-emerald-600 hover:text-emerald-700"
+                  >
+                    View all
+                  </Link>
+                </div>
+                <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {relatedTools.map((tool) => (
+                    <Link
+                      key={tool.slug}
+                      href={`/${locale}/tools/${tool.slug}`}
+                      className="group rounded-2xl border border-slate-200/80 bg-white p-5 shadow-soft-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-soft"
                     >
-                      <div className="flex items-center gap-2 text-sm text-amber-600">
-                        <Star className="size-4 fill-current" />
-                        {review.rating}/5
+                      <div className="flex items-start gap-3">
+                        <ToolLogo
+                          name={tool.name}
+                          logoUrl={tool.logoUrl}
+                          fallbackLogoUrl={tool.collectedLogoUrl}
+                          categoryIconUrl={tool.categoryIconUrl}
+                          size="sm"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-semibold text-slate-950 group-hover:text-emerald-700 transition-colors">
+                            {tool.name}
+                          </p>
+                          <p className="mt-0.5 text-xs text-slate-400">
+                            {formatPricing(tool.pricingModel)}
+                          </p>
+                        </div>
                       </div>
-                      {review.title ? <h3 className="mt-2 font-semibold">{review.title}</h3> : null}
-                      <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                        {review.content}
+                      <p className="mt-3 line-clamp-2 text-sm leading-6 text-slate-500">
+                        {tool.summary ?? "Explore this related tool for a nearby workflow."}
                       </p>
-                      <p className="mt-3 text-xs text-muted-foreground">
-                        {review.authorName ?? "Editorial review"}
-                      </p>
-                    </article>
+                    </Link>
                   ))}
                 </div>
-              </Section>
+              </div>
             ) : null}
-
-            <Section id="structured-data" title="Structured Data">
-              <p className="text-sm leading-6 text-muted-foreground">
-                This page includes SoftwareApplication, Breadcrumb, and FAQ structured data when
-                available.
-              </p>
-            </Section>
           </div>
+        </section>
 
-          <aside className="space-y-6 lg:sticky lg:top-20 lg:self-start">
-            <Panel title="Categories">
-              <Pills
-                items={data.categories.map((category) => ({
-                  label: category.name,
-                  href: `/${locale}/category/${category.slug}`,
-                }))}
-              />
-            </Panel>
-            <Panel title="Tags">
-              <Pills
-                items={data.tags.map((tag) => ({
-                  label: tag.name,
-                  href: `/${locale}/tag/${tag.slug}`,
-                }))}
-              />
-            </Panel>
-            <Panel title="CTA">
-              <p className="text-sm text-muted-foreground">Ready to evaluate {data.name}?</p>
-              <Button asChild className="mt-4 w-full">
+        {/* ═══ 底部 CTA ═══ */}
+        <section className="border-t border-slate-200/60 bg-gradient-emerald-soft">
+          <div className="mx-auto max-w-5xl px-6 py-12 text-center">
+            <p className="text-sm font-medium text-emerald-600">Ready to try {data.name}?</p>
+            <h2 className="mt-2 text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">
+              Visit the official website
+            </h2>
+            <p className="mx-auto mt-3 max-w-md text-sm text-slate-500">
+              Open the official {data.name} website to verify latest features, plans, and product
+              updates.
+            </p>
+            <div className="mt-6 flex justify-center gap-3">
+              <Button asChild size="lg" className="shadow-sm shadow-emerald-500/20">
                 <a href={data.website} target="_blank" rel="noopener noreferrer">
-                  Open Tool
+                  Open official site
+                  <ExternalLink className="size-4" />
                 </a>
               </Button>
-            </Panel>
-          </aside>
-        </div>
+              <Button asChild size="lg" variant="outline">
+                <Link href={`/${locale}/tools`}>Browse more tools</Link>
+              </Button>
+            </div>
+          </div>
+        </section>
       </main>
     </>
   );
 }
 
-function Section({ id, title, children }: { id: string; title: string; children: ReactNode }) {
+/* ── 区块标题 ── */
+function SectionEyebrow({ children }: { children: ReactNode }) {
   return (
-    <section id={id} aria-labelledby={`${id}-heading`} className="scroll-mt-24">
-      <h2 id={`${id}-heading`} className="text-2xl font-semibold tracking-tight">
-        {title}
-      </h2>
-      <div className="mt-4">{children}</div>
-    </section>
+    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-600">{children}</p>
   );
 }
 
-function Panel({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <section className="rounded-2xl border bg-card p-5 shadow-sm">
-      <h2 className="text-sm font-semibold">{title}</h2>
-      <div className="mt-3">{children}</div>
-    </section>
-  );
-}
-
-function Badge({ href, children }: { href?: string; children: ReactNode }) {
-  const className =
-    "rounded-md border bg-background px-2 py-1 text-xs font-medium text-muted-foreground hover:text-foreground";
-
+/* ── 标签 ── */
+function Pill({
+  href,
+  accent,
+  children,
+}: {
+  href?: string;
+  accent?: boolean;
+  children: ReactNode;
+}) {
+  const base =
+    "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition";
+  const styles = accent
+    ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200/60"
+    : "border border-slate-200 bg-white text-slate-600 hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700";
+  const className = `${base} ${styles}`;
   return href ? (
     <Link href={href} className={className}>
       {children}
@@ -422,238 +536,52 @@ function Badge({ href, children }: { href?: string; children: ReactNode }) {
   );
 }
 
-function Fact({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex justify-between gap-4">
-      <dt className="text-muted-foreground">{label}</dt>
-      <dd className="text-right font-medium">{value}</dd>
-    </div>
+/* ── 辅助函数 ── */
+
+function buildOverviewBlocks(data: ToolPageData): string[] {
+  const blocks = splitRichText(
+    [data.description, data.longDescription].filter(Boolean).join("\n\n"),
   );
+  return dedupeStrings(
+    blocks
+      .map((block) => block.replace(/\s+/g, " ").trim())
+      .map((block) => block.replace(/^#+\s*/, ""))
+      .filter(Boolean),
+  ).slice(0, 4);
 }
 
-function CardGrid({ items }: { items: string[] }) {
-  return (
-    <ul className="grid gap-3 sm:grid-cols-2">
-      {items.map((item) => (
-        <li key={item} className="rounded-2xl border bg-card p-4 text-sm shadow-sm">
-          {item}
-        </li>
-      ))}
-    </ul>
-  );
+function buildHighlights(data: ToolPageData): string[] {
+  return dedupeStrings(
+    [data.summary, ...data.features, ...data.useCases]
+      .map((item) => item?.trim() ?? "")
+      .filter(Boolean)
+      .map((item) => item.replace(/[.!?]+$/, "")),
+  ).slice(0, 4);
 }
 
-function ListCard({
-  title,
-  items,
-  tone,
-}: {
-  title: string;
-  items: string[];
-  tone: "positive" | "critical";
-}) {
-  const Icon = tone === "positive" ? Check : Minus;
-  const iconClass = tone === "positive" ? "text-emerald-600" : "text-amber-600";
-
-  return (
-    <article className="rounded-2xl border bg-card p-5 shadow-sm">
-      <h3 className="font-semibold">{title}</h3>
-      {items.length ? (
-        <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
-          {items.map((item) => (
-            <li key={item} className="flex gap-2">
-              <Icon className={`mt-0.5 size-4 shrink-0 ${iconClass}`} />
-              <span>{item}</span>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <EmptyNote text={`No ${title.toLowerCase()} listed yet.`} />
-      )}
-    </article>
-  );
+function dedupeStrings(items: string[]): string[] {
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const item of items) {
+    const normalized = item.trim();
+    if (!normalized) continue;
+    const key = normalized.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(normalized);
+  }
+  return result;
 }
 
-function PillPanel({ title, items, empty }: { title: string; items: string[]; empty: string }) {
-  return (
-    <article className="rounded-2xl border bg-card p-5 shadow-sm">
-      <h3 className="font-semibold">{title}</h3>
-      {items.length ? (
-        <div className="mt-3 flex flex-wrap gap-2">
-          {items.map((item) => (
-            <span
-              key={item}
-              className="rounded-md bg-muted px-2 py-1 text-xs text-muted-foreground"
-            >
-              {item}
-            </span>
-          ))}
-        </div>
-      ) : (
-        <p className="mt-3 text-sm text-muted-foreground">{empty}</p>
-      )}
-    </article>
-  );
-}
-
-function ScreenshotGallery({ data }: { data: ToolPageData }) {
-  return (
-    <div className="grid gap-4 md:grid-cols-2">
-      {data.screenshots.map((screenshot) => (
-        <figure
-          key={`${screenshot.variant}-${screenshot.imageUrl}`}
-          className="rounded-2xl border bg-card p-3 shadow-sm"
-        >
-          <Image
-            src={screenshot.imageUrl}
-            alt={`${data.name} ${screenshot.variant.toLowerCase()} screenshot`}
-            className="aspect-video w-full rounded-xl object-cover"
-            width={screenshot.width}
-            height={screenshot.height}
-            unoptimized
-          />
-          <figcaption className="mt-2 text-xs text-muted-foreground">
-            {screenshot.variant.toLowerCase()} capture
-          </figcaption>
-        </figure>
-      ))}
-    </div>
-  );
-}
-
-function VideoGallery({ videos }: { videos: ToolPageData["videos"] }) {
-  return (
-    <div className="mt-4 grid gap-4 md:grid-cols-2">
-      {videos.map((video) => (
-        <a
-          key={video.url}
-          href={video.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="rounded-2xl border bg-card p-4 shadow-sm transition hover:border-primary/40"
-        >
-          <p className="font-medium">{video.title}</p>
-          <p className="mt-2 text-sm text-muted-foreground">Watch demo video</p>
-        </a>
-      ))}
-    </div>
-  );
-}
-
-function RelatedCategories({
-  categories,
-  locale,
-}: {
-  categories: ToolPageData["relatedCategories"];
-  locale: string;
-}) {
-  return (
-    <Section id="related-categories" title="Related Categories">
-      <div className="grid gap-3 sm:grid-cols-2">
-        {categories.map((category) => (
-          <Link
-            key={category.slug}
-            href={`/${locale}/category/${category.slug}`}
-            className="flex items-center justify-between gap-4 rounded-2xl border bg-card p-4 shadow-sm transition hover:border-primary/40"
-          >
-            <span className="min-w-0">
-              <span className="block truncate text-sm font-medium">{category.name}</span>
-              <span className="mt-1 block text-xs text-muted-foreground">
-                {category.toolCount} tools · {formatAlternativeReason(category.reason)}
-              </span>
-            </span>
-            {category.iconUrl ? (
-              <Image
-                src={category.iconUrl}
-                alt=""
-                width={32}
-                height={32}
-                className="size-8 rounded-lg object-contain"
-                unoptimized
-              />
-            ) : null}
-          </Link>
-        ))}
-      </div>
-    </Section>
-  );
-}
-function ToolGrid({
-  id,
-  title,
-  tools,
-  locale,
-}: {
-  id: string;
-  title: string;
-  tools: Array<{
-    slug: string;
-    name: string;
-    summary: string | null;
-    logoUrl: string | null;
-    collectedLogoUrl: string | null;
-    categoryIconUrl: string | null;
-    pricingModel: string;
-    reason?: string | null;
-  }>;
-  locale: string;
-}) {
-  return (
-    <Section id={id} title={title}>
-      <div className="grid gap-3 sm:grid-cols-2">
-        {tools.map((tool) => (
-          <Link
-            key={tool.slug}
-            href={`/${locale}/tools/${tool.slug}`}
-            className="flex gap-3 rounded-2xl border bg-card p-4 shadow-sm transition hover:border-primary/40"
-          >
-            <ToolLogo
-              name={tool.name}
-              logoUrl={tool.logoUrl}
-              fallbackLogoUrl={tool.collectedLogoUrl}
-              categoryIconUrl={tool.categoryIconUrl}
-              size="sm"
-            />
-            <span className="min-w-0">
-              <span className="block truncate text-sm font-medium">{tool.name}</span>
-              <span className="mt-1 line-clamp-2 block text-xs text-muted-foreground">
-                {tool.summary ?? formatPricing(tool.pricingModel)}
-              </span>
-              {tool.reason ? (
-                <span className="mt-2 inline-flex rounded-full bg-muted px-2 py-1 text-[11px] text-muted-foreground">
-                  {formatAlternativeReason(tool.reason)}
-                </span>
-              ) : null}
-            </span>
-          </Link>
-        ))}
-      </div>
-    </Section>
-  );
-}
-
-function Pills({ items }: { items: Array<{ label: string; href: string }> }) {
-  return items.length ? (
-    <div className="flex flex-wrap gap-2">
-      {items.map((item) => (
-        <Link
-          key={item.href}
-          href={item.href}
-          className="rounded-md bg-muted px-2 py-1 text-xs text-muted-foreground hover:text-foreground"
-        >
-          {item.label}
-        </Link>
-      ))}
-    </div>
-  ) : (
-    <EmptyNote text="No items available." />
-  );
-}
-
-function EmptyNote({ text }: { text: string }) {
-  return (
-    <div className="rounded-2xl border border-dashed p-5 text-sm text-muted-foreground">{text}</div>
-  );
+function dedupeCards<T extends { slug: string }>(items: T[]): T[] {
+  const seen = new Set<string>();
+  const result: T[] = [];
+  for (const item of items) {
+    if (seen.has(item.slug)) continue;
+    seen.add(item.slug);
+    result.push(item);
+  }
+  return result;
 }
 
 function averageRating(reviews: ToolPageData["reviews"]) {
@@ -675,13 +603,4 @@ function formatPlanPrice(price: string | null, billingPeriod: string | null) {
   if (!price) return "Custom";
   const suffix = billingPeriod ? ` / ${billingPeriod.toLowerCase()}` : "";
   return `$${price}${suffix}`;
-}
-
-function formatAlternativeReason(reason: string) {
-  return reason
-    .split(",")
-    .map((item) => item.trim())
-    .filter(Boolean)
-    .map((item) => item.charAt(0).toUpperCase() + item.slice(1))
-    .join(" / ");
 }

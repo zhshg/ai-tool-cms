@@ -3,7 +3,6 @@ import type { ComparePageSpec } from "@ai-tool-cms/seo";
 import {
   buildMetadata,
   buildBreadcrumbJsonLd,
-  buildCategoryLandingMetadata,
   buildCollectionPageJsonLd,
   buildComparePageJsonLd,
   buildComparePageMetadata,
@@ -16,6 +15,7 @@ import {
 import { resolveToolFallbackLogoUrl, resolveToolLogoUrl } from "./tool-logo";
 
 const activeOnly = { deletedAt: null } as const;
+const DEFAULT_LOCALE = "en";
 const STANDARD_CATEGORY_SLUGS = [
   "ai-writing",
   "ai-chatbots",
@@ -24,7 +24,7 @@ const STANDARD_CATEGORY_SLUGS = [
   "ai-audio",
   "ai-coding",
   "ai-seo",
-  "ai-marketing",
+  "marketing",
   "ai-productivity",
   "ai-design",
   "ai-business",
@@ -33,9 +33,9 @@ const STANDARD_CATEGORY_SLUGS = [
   "ai-agents",
   "ai-data",
   "ai-presentation",
-  "ai-social-media",
+  "social-media",
   "ai-customer-support",
-  "ai-developer-tools",
+  "customer-support",
   "ai-automation",
 ] satisfies string[];
 const publishedToolCountWhere = {
@@ -170,6 +170,7 @@ export type PublicShellData = {
 export type CategoriesPageData = {
   categories: CategoriesPageCategory[];
   featuredTools: HomePageTool[];
+  variant: "all" | "featured";
   stats: {
     categoryCount: number;
     toolCount: number;
@@ -292,7 +293,8 @@ const COLLECTION_PAGE_DEFS: Array<{
   {
     slug: "best-ai-video-generators",
     label: "Best AI Video Generators",
-    description: "Discover AI video tools for generation, editing, clips, and multimedia production.",
+    description:
+      "Discover AI video tools for generation, editing, clips, and multimedia production.",
   },
   {
     slug: "best-ai-coding-tools",
@@ -302,7 +304,8 @@ const COLLECTION_PAGE_DEFS: Array<{
   {
     slug: "best-ai-seo-tools",
     label: "Best AI SEO Tools",
-    description: "Review AI SEO tools for keyword research, content optimization, and growth workflows.",
+    description:
+      "Review AI SEO tools for keyword research, content optimization, and growth workflows.",
   },
   {
     slug: "free-ai-tools",
@@ -322,7 +325,8 @@ const COLLECTION_PAGE_DEFS: Array<{
   {
     slug: "ai-tools-for-productivity",
     label: "AI Tools for Productivity",
-    description: "Browse AI productivity tools for notes, planning, meetings, and day-to-day execution.",
+    description:
+      "Browse AI productivity tools for notes, planning, meetings, and day-to-day execution.",
   },
 ];
 
@@ -423,15 +427,13 @@ async function fetchPopularHomePageTools(limit = 8): Promise<HomePageTool[]> {
   }));
 }
 
-async function fetchCategoryDirectoryData(limit = 16): Promise<HomePageCategory[]> {
+async function fetchAllCategoriesForMenu(): Promise<HomePageCategory[]> {
   const categories = await prisma.category.findMany({
     where: {
       ...activeOnly,
-      slug: { in: STANDARD_CATEGORY_SLUGS },
       tools: { some: publishedToolCountWhere },
     },
     orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-    take: limit,
     include: {
       _count: {
         select: {
@@ -451,11 +453,14 @@ async function fetchCategoryDirectoryData(limit = 16): Promise<HomePageCategory[
     .sort((left, right) => right.toolCount - left.toolCount || left.name.localeCompare(right.name));
 }
 
-async function fetchRichCategoryDirectoryData(limit = 24): Promise<CategoriesPageCategory[]> {
+async function fetchRichCategoryDirectoryData(
+  limit = 24,
+  variant: "all" | "featured" = "featured",
+): Promise<CategoriesPageCategory[]> {
   const categories = await prisma.category.findMany({
     where: {
       ...activeOnly,
-      slug: { in: STANDARD_CATEGORY_SLUGS },
+      ...(variant === "featured" ? { slug: { in: STANDARD_CATEGORY_SLUGS } } : {}),
       tools: { some: publishedToolCountWhere },
     },
     orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
@@ -517,7 +522,7 @@ function formatPricingLabel(pricingModel: PricingModel): string {
 }
 
 function formatDateLabel(date: Date, locale: string): string {
-  return new Intl.DateTimeFormat(locale === "zh" ? "zh-CN" : "en-US", {
+  return new Intl.DateTimeFormat(locale.startsWith("zh") ? "zh-CN" : "en-US", {
     year: "numeric",
     month: "short",
     day: "numeric",
@@ -613,6 +618,27 @@ function buildCollectionLinks(locale: string): CategorySidebarLink[] {
 }
 
 function buildBlogGuideLinks(locale: string): CategorySidebarLink[] {
+  if (locale.startsWith("zh")) {
+    const description = "博客指南";
+    return [
+      {
+        href: `/${locale}/blog`,
+        label: "AI 工具目录博客",
+        description,
+      },
+      {
+        href: `/${locale}/blog`,
+        label: "目录搭建与发布复盘",
+        description,
+      },
+      {
+        href: `/${locale}/blog`,
+        label: "对比页面与导航指南",
+        description,
+      },
+    ];
+  }
+
   const dateLabel = locale === "zh" ? "���͵���" : "Blog guide";
   return [
     {
@@ -1037,9 +1063,7 @@ export async function searchCatalogTools(input: {
           ...hit.document,
           website: hit.document.website,
           logoUrl:
-            hit.document.logoUrl ??
-            resolveToolLogoUrl(null, {}, hit.document.website) ??
-            null,
+            hit.document.logoUrl ?? resolveToolLogoUrl(null, {}, hit.document.website) ?? null,
           collectedLogoUrl:
             hit.document.collectedLogoUrl ??
             resolveToolFallbackLogoUrl(hit.document.logoUrl, {}, hit.document.website),
@@ -1191,16 +1215,19 @@ function slugifyFilterValue(value: string): string {
 }
 export async function getPublicShellData(): Promise<PublicShellData> {
   const [categories, popularTools] = await Promise.all([
-    fetchCategoryDirectoryData(8),
+    fetchAllCategoriesForMenu(),
     fetchPopularTools(6),
   ]);
 
   return { categories, popularTools };
 }
 
-export async function getCategoriesPageData(locale: string): Promise<CategoriesPageData> {
+export async function getCategoriesPageData(
+  locale: string,
+  variant: "all" | "featured" = "all",
+): Promise<CategoriesPageData> {
   const [categories, featuredTools, categoryCount, toolCount] = await Promise.all([
-    fetchRichCategoryDirectoryData(24),
+    fetchRichCategoryDirectoryData(variant === "featured" ? 24 : 200, variant),
     fetchPopularHomePageTools(6),
     prisma.category.count({ where: activeOnly }),
     prisma.tool.count({ where: { status: ToolStatus.PUBLISHED, ...activeOnly } }),
@@ -1211,6 +1238,7 @@ export async function getCategoriesPageData(locale: string): Promise<CategoriesP
   return {
     categories,
     featuredTools,
+    variant,
     stats: {
       categoryCount,
       toolCount,
@@ -1669,17 +1697,50 @@ export async function getCategoryLanding(
   slug: string,
   locale: string,
 ): Promise<{
-  metadata: ReturnType<typeof buildCategoryLandingMetadata>;
+  metadata: ReturnType<typeof buildMetadata>;
   data: CategoryLandingData;
 } | null> {
   const category = await prisma.category.findFirst({
     where: {
       ...activeOnly,
-      slug: { equals: slug, in: STANDARD_CATEGORY_SLUGS },
+      slug,
       tools: { some: publishedToolCountWhere },
     },
   });
   if (!category) return null;
+
+  const categoryTranslation =
+    locale === DEFAULT_LOCALE
+      ? null
+      : await prisma.categoryTranslation.findFirst({
+          where: {
+            categoryId: category.id,
+            locale,
+            status: "PUBLISHED",
+            ...activeOnly,
+          },
+        });
+  const publishedCategoryTranslations = await prisma.categoryTranslation.findMany({
+    where: {
+      categoryId: category.id,
+      status: "PUBLISHED",
+      ...activeOnly,
+    },
+    select: {
+      locale: true,
+    },
+  });
+  const canonicalLocale =
+    categoryTranslation || locale === DEFAULT_LOCALE ? locale : DEFAULT_LOCALE;
+  const shouldNoIndex = canonicalLocale !== locale;
+  const hreflang = [
+    { locale: "x-default", path: `/${DEFAULT_LOCALE}/category/${category.slug}` },
+    { locale: DEFAULT_LOCALE, path: `/${DEFAULT_LOCALE}/category/${category.slug}` },
+    ...publishedCategoryTranslations
+      .map((item) => item.locale)
+      .filter((item) => item !== DEFAULT_LOCALE)
+      .map((item) => ({ locale: item, path: `/${item}/category/${category.slug}` })),
+  ];
 
   const [allTools, trendingTools, popularCategories, newestTools, categoryCount] =
     await Promise.all([
@@ -1701,23 +1762,25 @@ export async function getCategoryLanding(
   const config = getSiteConfig();
   const path = `/${locale}/category/${slug}`;
   const url = joinUrl(config.siteUrl, path);
+  const categoryName = categoryTranslation?.name ?? category.name;
+  const categoryLabel = buildCategoryToolsLabel(categoryName);
 
   const aiSummary =
+    categoryTranslation?.description ??
     category.description ??
-    `Discover the best ${buildCategoryToolsLabel(category.name).toLowerCase()}. Compare features, pricing, alternatives, and related tools in one place.`;
+    `Discover the best ${categoryLabel.toLowerCase()}. Compare features, pricing, alternatives, and related tools in one place.`;
 
   const simpleTools = allTools.map((tool) => ({
     slug: tool.slug,
     name: tool.name,
     summary: tool.summary,
   }));
-  const faqs = buildCategoryFaqs(category.name, simpleTools);
+  const faqs = buildCategoryFaqs(categoryName, simpleTools);
   const relatedTools = simpleTools.slice(0, 8).map((t: CatalogTool) => ({
     slug: t.slug,
     name: t.name,
     summary: t.summary,
   }));
-  const categoryLabel = buildCategoryToolsLabel(category.name);
   const relatedCategories = popularCategories
     .filter((item) => item.slug !== category.slug)
     .slice(0, 6);
@@ -1746,14 +1809,23 @@ export async function getCategoryLanding(
       [
         { name: "Home", path: `/${locale}` },
         { name: "Categories", path: `/${locale}/categories` },
-        { name: category.name, path },
+        { name: categoryName, path },
       ],
       config.siteUrl,
     ),
   ];
 
   return {
-    metadata: buildCategoryLandingMetadata(category, locale),
+    metadata: buildMetadata({
+      title: categoryTranslation?.metaTitle ?? `Best ${categoryLabel}`,
+      description:
+        categoryTranslation?.metaDescription ??
+        `Discover top ${categoryLabel.toLowerCase()}, reviews, pricing, and comparisons.`,
+      path: `/${locale}/category/${category.slug}`,
+      canonical: joinUrl(config.siteUrl, `/${canonicalLocale}/category/${category.slug}`),
+      noIndex: shouldNoIndex,
+      hreflang,
+    }),
     data: {
       title: `Best ${categoryLabel}`,
       aiSummary,
@@ -1786,7 +1858,7 @@ export async function getCategoryLanding(
       jsonLd,
       category: {
         slug: category.slug,
-        name: category.name,
+        name: categoryName,
         title: `Best ${categoryLabel}`,
         description: aiSummary,
         toolCount: categoryCount,

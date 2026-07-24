@@ -23,6 +23,7 @@ import {
   type ApiError,
   type ContentDatasetResponse,
   type ContentIssueReport,
+  type ContentIssueTool,
   type ContentQualityItem,
   type ContentQualityResponse,
 } from "@/lib/api";
@@ -45,6 +46,31 @@ const missingSections: Array<{ key: string; title: string; description: string }
     description: "Tools without structured feature lists.",
   },
   { key: "missingFaq", title: "Missing FAQ", description: "Tools without FAQ content." },
+  {
+    key: "missingCategories",
+    title: "Missing Categories",
+    description: "Tools without a primary category or any category coverage.",
+  },
+  {
+    key: "missingTags",
+    title: "Missing Tags",
+    description: "Tools without tag coverage for search and discovery.",
+  },
+  {
+    key: "missingPricing",
+    title: "Missing Pricing",
+    description: "Tools without pricing model or pricing plan details.",
+  },
+  {
+    key: "missingUseCases",
+    title: "Missing Use Cases",
+    description: "Tools without use-case examples or scenario coverage.",
+  },
+  {
+    key: "missingAlternatives",
+    title: "Missing Alternatives",
+    description: "Tools without alternative suggestions or comparison context.",
+  },
 ];
 
 export default function ContentDatasetPage() {
@@ -80,6 +106,15 @@ export default function ContentDatasetPage() {
   const summaryCards = useMemo(() => {
     const summary = data?.summary;
     const issues = data?.issues;
+    const relatedGaps = data?.missing
+      ? [
+          data.missing.missingCategories?.total ?? 0,
+          data.missing.missingTags?.total ?? 0,
+          data.missing.missingPricing?.total ?? 0,
+          data.missing.missingUseCases?.total ?? 0,
+          data.missing.missingAlternatives?.total ?? 0,
+        ].reduce((sum, value) => sum + value, 0)
+      : 0;
     return [
       { label: "Total Tools", value: summary?.totalTools ?? 0, icon: Database },
       { label: "Published", value: summary?.publishedTools ?? 0, icon: CheckCircle2 },
@@ -88,6 +123,7 @@ export default function ContentDatasetPage() {
         value: `${summary?.averageContentScore ?? 0}%`,
         icon: CheckCircle2,
       },
+      { label: "Related Gaps", value: relatedGaps, icon: Activity },
       { label: "Duplicate Groups", value: issues?.duplicateGroups ?? 0, icon: GitMerge },
       { label: "Missing Logos", value: issues?.missingLogo ?? 0, icon: ImageOff },
       { label: "Broken Links", value: issues?.brokenWebsites ?? 0, icon: Link2Off },
@@ -176,7 +212,7 @@ export default function ContentDatasetPage() {
           <p className="text-sm text-muted-foreground">Loading content dataset...</p>
         ) : null}
 
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-7">
           {summaryCards.map((card) => {
             const Icon = card.icon;
             return (
@@ -290,7 +326,10 @@ export default function ContentDatasetPage() {
                   key={section.key}
                   title={section.title}
                   description={section.description}
+                  suggestion={buildIssueSuggestion(section.key, data.missing[section.key])}
                   report={data.missing[section.key]}
+                  actionLabel="Review"
+                  onBulkOpen={openTopFiveInNewTabs}
                 />
               ))}
             </div>
@@ -298,8 +337,48 @@ export default function ContentDatasetPage() {
             <IssuePanel
               title="Broken Links"
               description={data.brokenWebsites.note}
+              suggestion={buildIssueSuggestion("brokenWebsites", data.brokenWebsites)}
               report={data.brokenWebsites}
+              actionLabel="Fix"
+              onBulkOpen={openTopFiveInNewTabs}
             />
+
+            {quality ? (
+              <section className="rounded-lg border bg-card p-5 shadow-sm">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <h2 className="font-semibold">Related Content Map</h2>
+                    <p className="text-sm text-muted-foreground">
+                      Use these lists to cross-fill descriptions, FAQs, tags, and positioning.
+                    </p>
+                  </div>
+                  <span className="rounded-md bg-muted px-2 py-1 text-sm font-medium">
+                    Cross补全
+                  </span>
+                </div>
+
+                <div className="mt-5 grid gap-6 xl:grid-cols-3">
+                  <ToolSuggestionPanel
+                    title="Related Tools"
+                    description="High-quality tools you can reference for structure and tone."
+                    items={quality.bestQuality.slice(0, 6)}
+                    emptyText="No related tools available."
+                  />
+                  <ToolSuggestionPanel
+                    title="Similar Tools"
+                    description="Tools with similar content gaps and improvement needs."
+                    items={quality.topMissingContent.slice(0, 6)}
+                    emptyText="No similar tools available."
+                  />
+                  <ToolSuggestionPanel
+                    title="Alternatives"
+                    description="Canonical tools from duplicate groups for comparison and dedupe."
+                    items={data.duplicates.groups.map((group) => group.tools[0]).slice(0, 6)}
+                    emptyText="No alternatives available."
+                  />
+                </div>
+              </section>
+            ) : null}
 
             <section className="rounded-lg border bg-card p-5 shadow-sm">
               <div className="flex items-center justify-between gap-3">
@@ -378,12 +457,26 @@ export default function ContentDatasetPage() {
 function IssuePanel({
   title,
   description,
+  suggestion,
   report,
+  actionLabel,
+  onBulkOpen,
 }: {
   title: string;
   description: string;
+  suggestion: string;
   report?: ContentIssueReport;
+  actionLabel?: string;
+  onBulkOpen?: (items: ContentIssueTool[]) => void;
 }) {
+  const handleCopySuggestion = async () => {
+    try {
+      await navigator.clipboard.writeText(suggestion);
+    } catch {
+      window.prompt("Copy suggestion", suggestion);
+    }
+  };
+
   return (
     <section className="rounded-lg border bg-card p-5 shadow-sm">
       <div className="flex items-start justify-between gap-3">
@@ -391,9 +484,35 @@ function IssuePanel({
           <h2 className="font-semibold">{title}</h2>
           <p className="text-sm text-muted-foreground">{description}</p>
         </div>
-        <span className="rounded-md bg-muted px-2 py-1 text-sm font-medium">
-          {report?.total ?? 0}
-        </span>
+        <div className="flex items-center gap-2">
+          {report?.items.length && onBulkOpen ? (
+            <button
+              type="button"
+              className="rounded-md border px-2 py-1 text-xs font-medium hover:bg-muted"
+              onClick={() => onBulkOpen(report.items.slice(0, 5))}
+            >
+              Open top 5
+            </button>
+          ) : null}
+          <span className="rounded-md bg-muted px-2 py-1 text-sm font-medium">
+            {report?.total ?? 0}
+          </span>
+        </div>
+      </div>
+      <div className="mt-4 rounded-md border bg-muted/20 p-3">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-xs font-medium text-muted-foreground">Auto suggestion</p>
+            <p className="mt-1 text-sm leading-6">{suggestion}</p>
+          </div>
+          <button
+            type="button"
+            className="shrink-0 rounded-md border px-2 py-1 text-xs font-medium hover:bg-muted"
+            onClick={() => void handleCopySuggestion()}
+          >
+            Copy
+          </button>
+        </div>
       </div>
       <div className="mt-4 space-y-3">
         {report?.items.length ? (
@@ -410,7 +529,7 @@ function IssuePanel({
                 href={`/tools/${tool.id}/edit`}
                 className="rounded-md border px-3 py-1.5 text-xs hover:bg-muted"
               >
-                Fix
+                {actionLabel ?? "Fix"}
               </Link>
             </div>
           ))
@@ -419,6 +538,116 @@ function IssuePanel({
         )}
       </div>
     </section>
+  );
+}
+
+function openTopFiveInNewTabs(items: ContentIssueTool[]) {
+  for (const tool of items) {
+    window.open(`/tools/${tool.id}/edit`, "_blank", "noopener,noreferrer");
+  }
+}
+
+function buildIssueSuggestion(key: string, report?: ContentIssueReport) {
+  const count = report?.total ?? 0;
+  const firstTool = report?.items[0]?.name ?? "this tool";
+  const sampleNames =
+    report?.items
+      .slice(0, 3)
+      .map((item) => item.name)
+      .filter(Boolean) ?? [];
+  const sampleText = sampleNames.length ? `例如 ${sampleNames.join("、")}。` : "";
+
+  switch (key) {
+    case "missingLogo":
+      return `优先为前 ${Math.min(count, 5)} 个缺 logo 工具补上品牌 logo、收藏图和 fallback logo。${sampleText}`;
+    case "missingDescription":
+      return `为前 ${Math.min(count, 5)} 个工具补充 1 句摘要 + 1 段 80-150 字的功能描述，突出核心场景和结果。${sampleText}`;
+    case "missingFeatures":
+      return `给前 ${Math.min(count, 5)} 个工具补 3-5 条结构化功能点，尽量用动词开头，覆盖功能、收益、限制。${sampleText}`;
+    case "missingFaq":
+      return `为前 ${Math.min(count, 5)} 个工具补 3-5 个 FAQ，优先回答价格、使用方式、适用人群和替代方案。${sampleText}`;
+    case "missingCategories":
+      return `先给前 ${Math.min(count, 5)} 个工具补主分类，再按内容补 1-2 个副分类，避免继续落到 Uncategorized。${sampleText}`;
+    case "missingTags":
+      return `为前 ${Math.min(count, 5)} 个工具补 3-5 个标签，优先覆盖行业、场景、功能和平台。${sampleText}`;
+    case "missingPricing":
+      return `为前 ${Math.min(count, 5)} 个工具补价格模型与计划信息，至少明确 Free / Freemium / Paid / Contact。${sampleText}`;
+    case "missingUseCases":
+      return `为前 ${Math.min(count, 5)} 个工具补真实使用场景，尽量写成“谁在什么情况下用它”。${sampleText}`;
+    case "missingAlternatives":
+      return `为前 ${Math.min(count, 5)} 个工具补 2-3 个替代项，最好同时覆盖同类工具和长尾工具。${sampleText}`;
+    case "brokenWebsites":
+      return `优先检查前 ${Math.min(count, 5)} 个失效链接，先确认 ${firstTool} 的网址是否跳转、404 或被重定向到错误站点。${sampleText}`;
+    default:
+      return `优先处理前 ${Math.min(count, 5)} 个工具，补齐缺失内容并重新检查相关字段。${sampleText}`;
+  }
+}
+
+function ToolSuggestionPanel({
+  title,
+  description,
+  items,
+  emptyText,
+}: {
+  title: string;
+  description: string;
+  items: Array<{
+    id: string;
+    name: string;
+    slug: string;
+    website: string;
+    updatedAt: string;
+    recommendedAction?: string;
+    contentScore?: number;
+    reason?: string;
+  }>;
+  emptyText: string;
+}) {
+  return (
+    <div className="rounded-md border p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h3 className="text-sm font-semibold">{title}</h3>
+          <p className="text-xs text-muted-foreground">{description}</p>
+        </div>
+        <span className="rounded-md bg-muted px-2 py-1 text-xs font-medium">{items.length}</span>
+      </div>
+      <div className="mt-4 space-y-3">
+        {items.length ? (
+          items.map((tool) => (
+            <div key={`${title}-${tool.id}`} className="rounded-md border p-3 text-sm">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="truncate font-medium">{tool.name}</p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {tool.reason ?? tool.recommendedAction ?? tool.slug}
+                  </p>
+                </div>
+                <Link
+                  href={`/tools/${tool.id}/edit`}
+                  className="rounded-md border px-3 py-1.5 text-xs hover:bg-muted"
+                >
+                  Open
+                </Link>
+              </div>
+              <div className="mt-2 flex flex-wrap gap-2 text-xs text-muted-foreground">
+                <span className="rounded-full bg-muted px-2 py-1">Slug: {tool.slug}</span>
+                {typeof tool.contentScore === "number" ? (
+                  <span className="rounded-full bg-muted px-2 py-1">
+                    Score: {tool.contentScore}%
+                  </span>
+                ) : null}
+                <span className="rounded-full bg-muted px-2 py-1">
+                  Updated: {new Date(tool.updatedAt).toLocaleDateString()}
+                </span>
+              </div>
+            </div>
+          ))
+        ) : (
+          <p className="text-sm text-muted-foreground">{emptyText}</p>
+        )}
+      </div>
+    </div>
   );
 }
 

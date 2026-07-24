@@ -34,6 +34,7 @@ async function bootstrap() {
       { path: "api/health", method: RequestMethod.GET },
       { path: "api/ready", method: RequestMethod.GET },
       { path: "api/live", method: RequestMethod.GET },
+      { path: "api/v1/(.*)", method: RequestMethod.ALL },
     ],
   });
 

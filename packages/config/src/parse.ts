@@ -179,8 +179,13 @@ function validateProductionEnv(env: Env): void {
     return typeof value !== "string" || isUnsafeProductionSecret(value, placeholders);
   });
 
-  const corsOrigins = env.CORS_ORIGINS
-    ?.split(",")
+  const forbiddenProductionValues: Array<keyof Env> = ["NEXT_PUBLIC_ADMIN_MOCK_ROLE"];
+  const forbiddenValues = forbiddenProductionValues.filter((key) => {
+    const value = env[key];
+    return typeof value === "string" && value.trim() !== "";
+  });
+
+  const corsOrigins = env.CORS_ORIGINS?.split(",")
     .map((origin) => origin.trim())
     .filter(Boolean);
 
@@ -195,11 +200,20 @@ function validateProductionEnv(env: Env): void {
         !isValidCorsOrigin(origin),
     );
 
-  if (missing.length > 0 || placeholderKeys.length > 0 || weakSecrets.length > 0 || invalidCors) {
+  if (
+    missing.length > 0 ||
+    placeholderKeys.length > 0 ||
+    weakSecrets.length > 0 ||
+    forbiddenValues.length > 0 ||
+    invalidCors
+  ) {
     const details = [
       missing.length > 0 ? `missing: ${missing.join(", ")}` : undefined,
       placeholderKeys.length > 0 ? `placeholder: ${placeholderKeys.join(", ")}` : undefined,
       weakSecrets.length > 0 ? `weak secret: ${weakSecrets.join(", ")}` : undefined,
+      forbiddenValues.length > 0
+        ? `forbidden production values: ${forbiddenValues.join(", ")}`
+        : undefined,
       invalidCors ? "invalid CORS_ORIGINS: explicit non-wildcard origins are required" : undefined,
     ]
       .filter(Boolean)
@@ -233,7 +247,9 @@ function isUnsafeProductionSecret(value: string, placeholders: string[]): boolea
 function isValidCorsOrigin(origin: string): boolean {
   try {
     const parsed = new URL(origin);
-    return parsed.origin === origin && (parsed.protocol === "https:" || parsed.hostname === "localhost");
+    return (
+      parsed.origin === origin && (parsed.protocol === "https:" || parsed.hostname === "localhost")
+    );
   } catch {
     return false;
   }

@@ -1,6 +1,7 @@
 import type { SeoPageInput } from "../types";
 import { getSiteConfig, type SiteConfig } from "../site-config";
 import { joinUrl, resolveAbsoluteUrl } from "../utils";
+import { normalizePlainText } from "../text";
 
 /** Next.js Metadata-compatible shape (plain object - no next import). */
 export type BuiltMetadata = {
@@ -76,7 +77,7 @@ export function buildMetadata(
   const canonicalUrl = input.canonical ?? joinUrl(config.siteUrl, path);
   const title = buildTitle(input.title, config.siteName);
   const description = sanitizePublicBranding(
-    input.description ?? config.siteDescription ?? undefined,
+    normalizePlainText(input.description ?? config.siteDescription ?? undefined) || undefined,
     config.siteName,
   );
   const ogImage = input.ogImage ?? config.ogImage;
@@ -138,7 +139,8 @@ export function buildToolMetadata(
   return buildMetadata(
     {
       title: tool.metaTitle ?? `${tool.name} Review, Pricing, Features & Alternatives`,
-      description: tool.metaDescription ?? tool.summary ?? undefined,
+      description:
+        normalizePlainText(tool.metaDescription ?? tool.summary ?? undefined) || undefined,
       path: `/${locale}/tools/${tool.slug}`,
       ogImage: tool.logoUrl ?? undefined,
       ogType: "article",

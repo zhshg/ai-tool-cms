@@ -4,7 +4,7 @@ import { buildMetadata as buildSeoMetadata, getSiteConfig } from "@ai-tool-cms/s
 /** All pages must use @ai-tool-cms/seo - do not hand-roll meta tags. */
 export function createRootMetadata(locale = "en"): Metadata {
   const config = getSiteConfig();
-  const isZh = locale === "zh";
+  const isZh = locale.startsWith("zh");
 
   return buildSeoMetadata(
     {

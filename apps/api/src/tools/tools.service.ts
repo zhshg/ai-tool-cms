@@ -92,15 +92,29 @@ export class ToolsService {
 
   async list(query: PaginationQueryDto) {
     const { skip, take } = paginate(query.page, query.pageSize);
+    const search = query.search?.trim();
+    const where: Prisma.ToolWhereInput = {
+      ...activeOnly,
+      ...(search
+        ? {
+            OR: [
+              { name: { contains: search, mode: "insensitive" } },
+              { slug: { contains: search, mode: "insensitive" } },
+              { summary: { contains: search, mode: "insensitive" } },
+              { description: { contains: search, mode: "insensitive" } },
+            ],
+          }
+        : {}),
+    };
     const [items, total] = await Promise.all([
       this.prisma.client.tool.findMany({
-        where: activeOnly,
+        where,
         include: toolInclude,
         orderBy: { createdAt: "desc" },
         skip,
         take,
       }),
-      this.prisma.client.tool.count({ where: activeOnly }),
+      this.prisma.client.tool.count({ where }),
     ]);
     return {
       items: items.map((item) => ({

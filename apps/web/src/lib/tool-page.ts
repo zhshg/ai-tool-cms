@@ -1,17 +1,18 @@
 import { prisma, PricingModel, ReviewStatus, ToolStatus } from "@ai-tool-cms/database";
-import { slugify } from "@ai-tool-cms/common";
 import { buildToolRecommendations } from "@ai-tool-cms/recommendation";
 import { buildGeoContentBlocks, type GeoPageDocument } from "@ai-tool-cms/geo";
 import {
-  buildToolMetadata,
+  buildMetadata,
   buildToolPageJsonLd,
   getSiteConfig,
   joinUrl,
+  normalizePlainText,
   type BuiltMetadata,
 } from "@ai-tool-cms/seo";
 import { resolveToolFallbackLogoUrl, resolveToolLogoUrl } from "./tool-logo";
 
 const activeOnly = { deletedAt: null } as const;
+const DEFAULT_LOCALE = "en";
 
 export type ToolPageLink = {
   anchor: string;
@@ -155,6 +156,49 @@ export async function getToolPage(
   });
   if (!tool) return null;
 
+  const translationChain = buildLocaleFallbackChain(locale);
+  const translations =
+    locale === DEFAULT_LOCALE
+      ? []
+      : await prisma.toolTranslation.findMany({
+          where: {
+            toolId: tool.id,
+            locale: { in: translationChain.filter((item: string) => item !== DEFAULT_LOCALE) },
+            status: "PUBLISHED",
+            ...activeOnly,
+          },
+        });
+  const publishedTranslations = await prisma.toolTranslation.findMany({
+    where: {
+      toolId: tool.id,
+      status: "PUBLISHED",
+      ...activeOnly,
+    },
+    select: {
+      locale: true,
+    },
+  });
+  const translationByLocale = new Map(translations.map((item) => [item.locale, item]));
+  const localizedTranslation =
+    locale === DEFAULT_LOCALE
+      ? null
+      : (translationChain
+          .filter((item: string) => item !== DEFAULT_LOCALE)
+          .map((item: string) => translationByLocale.get(item) ?? null)
+          .find((item): item is NonNullable<typeof item> => item !== null) ?? null);
+  const hasExactTranslation = Boolean(locale !== DEFAULT_LOCALE && translationByLocale.has(locale));
+  const canonicalLocale =
+    hasExactTranslation || locale === DEFAULT_LOCALE ? locale : DEFAULT_LOCALE;
+  const shouldNoIndex = canonicalLocale !== locale;
+  const hreflang = [
+    { locale: "x-default", path: `/${DEFAULT_LOCALE}/tools/${tool.slug}` },
+    { locale: DEFAULT_LOCALE, path: `/${DEFAULT_LOCALE}/tools/${tool.slug}` },
+    ...publishedTranslations
+      .map((item) => item.locale)
+      .filter((item) => item !== DEFAULT_LOCALE)
+      .map((item) => ({ locale: item, path: `/${item}/tools/${tool.slug}` })),
+  ];
+
   const metadata = (tool.metadata ?? {}) as Record<string, unknown>;
   const geoDocument = metadata.geoDocument as GeoPageDocument | undefined;
   const geoBlocks = geoDocument ? buildGeoContentBlocks(geoDocument) : [];
@@ -171,10 +215,19 @@ export async function getToolPage(
   const collectedLogoUrl = resolveToolFallbackLogoUrl(tool.logoUrl, metadata, tool.website);
 
   const aiSummary =
-    geoDocument?.llmSummary ??
-    tool.summary ??
-    tool.description ??
+    normalizePlainText(geoDocument?.llmSummary) ||
+    normalizePlainText(localizedTranslation?.summary) ||
+    normalizePlainText(tool.summary) ||
+    normalizePlainText(localizedTranslation?.longDescription) ||
+    normalizePlainText(tool.description) ||
     `${tool.name} is an AI tool listed in our directory.`;
+  const description =
+    normalizePlainText(localizedTranslation?.longDescription ?? tool.description) || null;
+  const longDescription =
+    normalizePlainText(
+      localizedTranslation?.longDescription ?? tool.longDescription ?? tool.description,
+    ) || null;
+  const summary = normalizePlainText(localizedTranslation?.summary ?? tool.summary) || null;
 
   const config = getSiteConfig();
   const primaryCategory = tool.categories[0]?.category;
@@ -189,15 +242,23 @@ export async function getToolPage(
     name: item.tag.name,
   }));
   const primaryCategoryName = primaryCategory?.name ?? "AI Tool";
-  const useCases = ensureMinimumUseCases(baseUseCases, tool.name, primaryCategoryName, tool.summary);
+  const useCases = ensureMinimumUseCases(baseUseCases, tool.name, primaryCategoryName, summary);
   const features = ensureMinimumFeatures(
     baseFeatures,
     tool.name,
     primaryCategoryName,
-    tool.summary,
+    summary,
     tool.pricingModel,
   );
-  const faqs = tool.faqs.map((f: ToolFaqRow) => ({ question: f.question, answer: f.answer }));
+  const translatedFaqs = normalizeFaqList(localizedTranslation?.faqJson);
+  const faqs = (
+    translatedFaqs.length
+      ? translatedFaqs
+      : tool.faqs.map((f: ToolFaqRow) => ({ question: f.question, answer: f.answer }))
+  ) as Array<{
+    question: string;
+    answer: string;
+  }>;
   const screenshots = buildToolScreenshots(tool.toolScreenshots, metadata, tool.website);
   const recommendations = await buildToolRecommendations(prisma, tool.id, 6);
   const [recommendedAlternatives, similarTools, moreLikeThis, trendingTools] = await Promise.all([
@@ -213,7 +274,13 @@ export async function getToolPage(
     metadata,
     tool.categories.map((item) => item.category.slug),
   );
-  const enrichedFaqs = ensureMinimumFaqs(faqs, tool.name, tool.summary, tool.pricingModel, alternatives);
+  const enrichedFaqs = ensureMinimumFaqs(
+    faqs,
+    tool.name,
+    tool.summary,
+    tool.pricingModel,
+    alternatives,
+  );
   const relatedCategories = recommendations.relatedCategories.map((category) => ({
     slug: category.slug,
     name: category.name,
@@ -229,7 +296,8 @@ export async function getToolPage(
     tool: {
       slug: tool.slug,
       name: tool.name,
-      description: tool.metaDescription ?? tool.summary ?? undefined,
+      description:
+        normalizePlainText(tool.metaDescription ?? tool.summary ?? undefined) || undefined,
       url: joinUrl(config.siteUrl, `/${locale}/tools/${tool.slug}`),
       applicationCategory: primaryCategory?.name ?? "BusinessApplication",
       operatingSystem: "Web",
@@ -253,7 +321,19 @@ export async function getToolPage(
   });
 
   return {
-    metadata: buildToolMetadata(tool, locale),
+    metadata: buildMetadata({
+      title:
+        localizedTranslation?.metaTitle ?? `${tool.name} Review, Pricing, Features & Alternatives`,
+      description:
+        normalizePlainText(localizedTranslation?.metaDescription ?? summary ?? undefined) ||
+        undefined,
+      path: `/${locale}/tools/${tool.slug}`,
+      canonical: joinUrl(config.siteUrl, `/${canonicalLocale}/tools/${tool.slug}`),
+      noIndex: shouldNoIndex,
+      hreflang,
+      ogImage: tool.logoUrl ?? undefined,
+      ogType: "article",
+    }),
     data: {
       slug: tool.slug,
       name: tool.name,
@@ -261,9 +341,9 @@ export async function getToolPage(
       logoUrl: resolvedLogoUrl,
       collectedLogoUrl,
       pricingModel: tool.pricingModel,
-      summary: tool.summary,
-      description: tool.description,
-      longDescription: tool.longDescription ?? tool.description,
+      summary,
+      description,
+      longDescription,
       aiSummary,
       features,
       pros,
@@ -308,10 +388,56 @@ export async function getToolPage(
   };
 }
 
+function normalizeFaqList(value: unknown): Array<{ question: string; answer: string }> {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .map((item) => {
+      if (!item || typeof item !== "object") return null;
+      const question =
+        typeof (item as { question?: unknown }).question === "string"
+          ? (item as { question: string }).question.trim()
+          : "";
+      const answer =
+        typeof (item as { answer?: unknown }).answer === "string"
+          ? (item as { answer: string }).answer.trim()
+          : "";
+      if (!question || !answer) return null;
+      return { question, answer };
+    })
+    .filter((item): item is { question: string; answer: string } => item !== null);
+}
+
+function buildLocaleFallbackChain(locale: string): string[] {
+  const chain: string[] = [locale];
+  if (locale !== DEFAULT_LOCALE) chain.push(DEFAULT_LOCALE);
+  if (locale.startsWith("zh") && locale !== "zh-CN") chain.push("zh-CN");
+  return [...new Set(chain)];
+}
+
+function slugifyLocal(value: string): string {
+  return value
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 function normalizeStringList(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
 
-  return value.map((item) => (typeof item === "string" ? item.trim() : "")).filter(Boolean);
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const item of value) {
+    const text = typeof item === "string" ? item.trim() : "";
+    if (!text) continue;
+    const key = text.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(text);
+  }
+  return result;
 }
 
 async function hydrateRecommendedToolCards(
@@ -396,7 +522,7 @@ async function ensureMinimumAlternatives(
     .map((slug) => ({ slug, reason: "seeded alternatives" }));
 
   for (const alternative of alternativeNames) {
-    const slug = slugify(alternative);
+    const slug = slugifyLocal(alternative);
     if (!slug || exclusion.has(slug)) continue;
     fallbackRecommendations.push({ slug, reason: "manual alternatives" });
     exclusion.add(slug);
@@ -462,7 +588,9 @@ function ensureMinimumFeatures(
   const next = dedupeStrings(features);
 
   const defaults = [
-    summary ? `Supports ${summary.toLowerCase().replace(/\.$/, "")}` : `${toolName} supports common ${categoryName.toLowerCase()} workflows`,
+    summary
+      ? `Supports ${summary.toLowerCase().replace(/\.$/, "")}`
+      : `${toolName} supports common ${categoryName.toLowerCase()} workflows`,
     `${toolName} can be evaluated for ${categoryName.toLowerCase()} use cases`,
     `${toolName} offers a ${pricingModel.toLowerCase()} pricing model`,
     `Teams can compare ${toolName} against alternatives by workflow fit and feature coverage`,
@@ -618,7 +746,10 @@ function ensureMinimumFaqs(
       question: `What are the best alternatives to ${toolName}?`,
       answer:
         alternatives.length > 0
-          ? `Popular alternatives include ${alternatives.slice(0, 3).map((tool) => tool.name).join(", ")}.`
+          ? `Popular alternatives include ${alternatives
+              .slice(0, 3)
+              .map((tool) => tool.name)
+              .join(", ")}.`
           : `${toolName} can be compared with other published tools in the same category for pricing, features, and workflow fit.`,
     });
   }

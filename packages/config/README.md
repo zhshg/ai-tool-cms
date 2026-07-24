@@ -40,7 +40,8 @@ import { clientEnv } from "@ai-tool-cms/config/client";
 | `PORT` | `PORT`, `API_PORT` |
 | `LOG_LEVEL` | `LOG_LEVEL` |
 | `NEXT_PUBLIC_APP_URL` | `NEXT_PUBLIC_APP_URL`, `APP_URL` |
-| `NEXT_PUBLIC_ADMIN_MOCK_ROLE` | `NEXT_PUBLIC_ADMIN_MOCK_ROLE` |
+| `NEXT_PUBLIC_ADMIN_MOCK_ROLE` | `NEXT_PUBLIC_ADMIN_MOCK_ROLE`（生产环境禁止） |
+| `CRAWLER_ENABLE_PRODUCTION_ADAPTERS` | `CRAWLER_ENABLE_PRODUCTION_ADAPTERS`（生产环境默认开启） |
 
 完整列表见根目录 `.env.example`。
 
@@ -69,7 +70,8 @@ packages/config/
 |---|---|
 | `apps/api` | `import { env } from "@ai-tool-cms/config"` |
 | `apps/web` | SEO、站点 URL 等 |
-| `apps/admin` | Mock RBAC 角色等 |
+| `apps/admin` | Mock RBAC 角色等（仅非生产环境） |
+| `apps/api` | 生产爬虫适配器默认启用 |
 | `packages/database` | `NODE_ENV` 判断开发态单例 |
 | `packages/logger` | 由调用方传入 `env.LOG_LEVEL` |
 

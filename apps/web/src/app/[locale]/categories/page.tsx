@@ -17,13 +17,13 @@ type CategoriesPageProps = {
 
 export async function generateMetadata({ params }: CategoriesPageProps): Promise<Metadata> {
   const { locale } = await params;
+  const isZh = locale.startsWith("zh");
   const config = getSiteConfig();
   const path = `/${locale}/categories`;
-  const title = locale === "zh" ? "AI 工具分类" : "AI Tool Categories";
-  const description =
-    locale === "zh"
-      ? "按分类浏览 AI 工具目录，快速进入写作、编程、设计、营销等常见工作流。"
-      : "Browse the AI tool directory by category and jump into writing, coding, design, marketing, and more.";
+  const title = isZh ? "AI 工具类别" : "AI Tool Categories";
+  const description = isZh
+    ? "按类别浏览 AI 工具目录，快速进入写作、编程、设计、营销等常见工作流。"
+    : "Browse the AI tool directory by category and jump into writing, coding, design, marketing, and more.";
 
   return {
     title,
@@ -45,6 +45,7 @@ export async function generateMetadata({ params }: CategoriesPageProps): Promise
 
 export default async function CategoriesPage({ params }: CategoriesPageProps) {
   const { locale } = await params;
+  const isZh = locale.startsWith("zh");
   setRequestLocale(locale);
 
   const data = await getCategoriesPageData(locale);
@@ -53,7 +54,7 @@ export default async function CategoriesPage({ params }: CategoriesPageProps) {
   const url = joinUrl(config.siteUrl, path);
   const jsonLd = [
     buildItemListJsonLd({
-      name: locale === "zh" ? "AI 工具分类" : "AI Tool Categories",
+      name: isZh ? "AI 工具类别" : "AI Tool Categories",
       url,
       items: data.categories.map((category, index) => ({
         name: category.name,
@@ -63,8 +64,8 @@ export default async function CategoriesPage({ params }: CategoriesPageProps) {
     }),
     buildBreadcrumbJsonLd(
       [
-        { name: "Home", path: `/${locale}` },
-        { name: "Categories", path },
+        { name: isZh ? "首页" : "Home", path: `/${locale}` },
+        { name: isZh ? "类别" : "Categories", path },
       ],
       config.siteUrl,
     ),

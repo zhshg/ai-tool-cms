@@ -33,66 +33,54 @@ export function CategoryIndexExperience({ locale, data }: CategoryIndexProps) {
   const labels = getLabels(locale);
 
   return (
-    <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6 lg:px-8">
-      <section className="grid gap-6 border-b border-slate-200 pb-10 lg:grid-cols-[minmax(0,1fr)_320px]">
-        <div className="space-y-5">
-          <div className="inline-flex w-fit items-center rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-emerald-700">
-            {labels.directoryBadge}
-          </div>
-          <div className="space-y-3">
-            <p className="text-sm font-medium uppercase tracking-[0.22em] text-slate-500">
-              {labels.categoriesLabel}
-            </p>
-            <h1 className="max-w-3xl text-4xl font-semibold tracking-tight text-slate-950 sm:text-5xl">
-              {labels.indexTitle}
-            </h1>
-            <p className="max-w-3xl text-base leading-8 text-slate-600 sm:text-lg">
-              {labels.indexDescription}
-            </p>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-3">
-            <StatCard label={labels.totalCategories} value={String(data.stats.categoryCount)} />
-            <StatCard label={labels.totalTools} value={String(data.stats.toolCount)} />
-            <StatCard label={labels.featuredCategories} value={String(data.stats.featuredCount)} />
+    <main className="flex-1">
+      <section className="border-b border-slate-200/60 bg-gradient-category">
+        <div className="mx-auto max-w-7xl px-6 py-8 lg:py-10">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+            <div className="max-w-3xl">
+              <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">
+                <FolderOpen className="size-3.5" />
+                {labels.allCategoriesBadge}
+              </span>
+              <h1 className="mt-4 text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">
+                {labels.allCategoriesTitle}
+              </h1>
+              <p className="mt-3 text-base leading-7 text-slate-600">
+                {labels.allCategoriesDescription}
+              </p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <StatCard
+                label={labels.totalCategories}
+                value={String(data.stats.categoryCount)}
+                icon={<Layers3 className="size-4 text-emerald-600" />}
+              />
+              <StatCard
+                label={labels.totalTools}
+                value={String(data.stats.toolCount)}
+                icon={<Star className="size-4 text-amber-500" />}
+              />
+              <StatCard
+                label={labels.featuredCategories}
+                value={String(data.stats.featuredCount)}
+                icon={<BadgeCheck className="size-4 text-blue-600" />}
+              />
+            </div>
           </div>
         </div>
-
-        <aside className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
-          <div className="flex items-center gap-2 text-sm font-semibold text-slate-900">
-            <Star className="size-4 text-amber-500" />
-            {labels.quickStart}
-          </div>
-          <div className="mt-4 space-y-3">
-            {data.featuredTools.slice(0, 4).map((tool) => (
-              <Link
-                key={tool.id}
-                href={`/${locale}/tools/${tool.slug}`}
-                className="group flex items-start justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-sm"
-              >
-                <div className="min-w-0">
-                  <div className="truncate text-sm font-semibold text-slate-900">{tool.name}</div>
-                  <div className="mt-1 text-xs text-slate-500">
-                    {tool.category?.name ?? labels.featuredTool}
-                  </div>
-                </div>
-                <ArrowRight className="mt-0.5 size-4 shrink-0 text-slate-400 transition group-hover:text-slate-700" />
-              </Link>
-            ))}
-          </div>
-        </aside>
       </section>
 
-      <section className="mt-8">
-        <div className="mb-5 flex items-center justify-between gap-4">
+      <section className="mx-auto max-w-7xl px-6 py-8 lg:py-10">
+        <div className="mb-6 flex items-center justify-between gap-4">
           <div>
-            <h2 className="text-2xl font-semibold tracking-tight text-slate-950">
+            <h2 className="text-xl font-bold tracking-tight text-slate-950">
               {labels.exploreCategories}
             </h2>
-            <p className="mt-2 text-sm leading-6 text-slate-600">{labels.exploreCategoriesText}</p>
+            <p className="mt-1.5 text-sm text-slate-500">{labels.exploreCategoriesText}</p>
           </div>
         </div>
 
-        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {data.categories.map((category) => (
             <CategoryIndexCard key={category.slug} category={category} locale={locale} />
           ))}
@@ -121,7 +109,7 @@ export function CategoryLandingExperience({ locale, data }: CategoryDetailProps)
             <span className="font-medium text-slate-900">{data.category.name}</span>
           </nav>
 
-          <section className="rounded-[28px] border border-slate-200 bg-gradient-to-br from-white via-slate-50 to-emerald-50/60 p-6 shadow-sm sm:p-8">
+          <section className="rounded-[28px] border border-slate-200 bg-gradient-category p-6 shadow-sm sm:p-8">
             <div className="flex flex-wrap items-center gap-2">
               <span className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-white/80 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">
                 <FolderOpen className="size-3.5" />
@@ -205,7 +193,6 @@ export function CategoryLandingExperience({ locale, data }: CategoryDetailProps)
               </div>
             </div>
           </section>
-
         </div>
 
         <aside className="space-y-5 lg:sticky lg:top-20 lg:self-start">
@@ -241,36 +228,42 @@ function CategoryIndexCard({
   const labels = getLabels(locale);
 
   return (
-    <article className="group flex h-full flex-col rounded-[26px] border border-slate-200 bg-white p-5 shadow-sm transition duration-200 hover:-translate-y-1 hover:border-slate-300 hover:shadow-lg">
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <CategoryAvatar name={category.name} iconUrl={category.iconUrl} size="sm" />
-          <div>
-            <h2 className="text-lg font-semibold text-slate-950">{category.name}</h2>
-            <p className="mt-1 text-xs font-medium uppercase tracking-[0.16em] text-slate-400">
-              {labels.toolCount}: {category.toolCount}
-            </p>
+    <article className="group flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-soft-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-emerald-200/60 hover:shadow-soft">
+      <div className="p-5">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <CategoryAvatar name={category.name} iconUrl={category.iconUrl} size="sm" />
+            <div>
+              <h2 className="text-base font-semibold text-slate-950">{category.name}</h2>
+              <div className="mt-1 flex items-center gap-2">
+                <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">
+                  {category.toolCount} {labels.toolsWord}
+                </span>
+                {category.isFeatured && (
+                  <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700">
+                    <Star className="size-3 fill-amber-400 text-amber-400" />
+                    {labels.featured}
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
         </div>
 
-        {category.isFeatured ? (
-          <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-700">
-            <BadgeCheck className="size-3.5" />
-            {labels.featured}
-          </span>
-        ) : null}
+        <p className="mt-4 text-sm leading-6 text-slate-600">{category.shortDescription}</p>
       </div>
 
-      <p className="mt-4 flex-1 text-sm leading-7 text-slate-600">{category.shortDescription}</p>
-
-      <div className="mt-5 flex items-center justify-between gap-3">
-        <span className="text-sm font-medium text-slate-500">{category.ctaHint}</span>
-        <Button asChild className="rounded-full px-4">
-          <Link href={`/${locale}/category/${category.slug}`}>
+      <div className="border-t border-slate-100 px-5 py-4">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-medium text-slate-500">{category.ctaHint}</span>
+          <Link
+            href={`/${locale}/category/${category.slug}`}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-700 transition hover:bg-emerald-100"
+          >
             {labels.openCategory}
-            <ArrowRight />
+            <ArrowRight className="size-3.5" />
           </Link>
-        </Button>
+        </div>
       </div>
     </article>
   );
@@ -460,13 +453,22 @@ function SectionHeading({ title, description }: { title: string; description: st
   );
 }
 
-function StatCard({ label, value }: { label: string; value: string }) {
+function StatCard({
+  label,
+  value,
+  icon,
+}: {
+  label: string;
+  value: string;
+  icon?: React.ReactNode;
+}) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-      <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+    <div className="rounded-2xl border border-slate-200/60 bg-white p-4 shadow-soft-sm">
+      <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+        {icon}
         {label}
       </div>
-      <div className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">{value}</div>
+      <div className="mt-2 text-2xl font-bold tracking-tight text-slate-950">{value}</div>
     </div>
   );
 }
@@ -500,7 +502,57 @@ function CategoryAvatar({
   );
 }
 
-function getLabels(locale: string) {
+function getLabels(locale: string): Record<string, string> {
+  if (locale.startsWith("zh")) {
+    return {
+      home: "首页",
+      categoriesLabel: "类别",
+      directoryBadge: "AI 工具目录",
+      allCategoriesBadge: "完整类别索引",
+      allCategoriesTitle: "全部 AI 工具类别",
+      allCategoriesDescription:
+        "浏览 ToolsDar 的完整类别地图，只展示当前已有工具的类别，覆盖热门工作流和长尾场景。",
+      categoryColumn: "类别",
+      toolsColumn: "工具",
+      actionColumn: "打开",
+      indexTitle: "按类别浏览 ToolsDar",
+      indexDescription: "从工作流切入，快速进入相关 AI 工具类别、详情页、集合页和内容指南。",
+      totalCategories: "类别数",
+      totalTools: "工具数",
+      featuredCategories: "精选类别",
+      quickStart: "快速开始",
+      featuredTool: "精选工具",
+      exploreCategories: "探索类别",
+      exploreCategoriesText: "每个类别都是目录入口，帮助用户继续浏览工具、集合页和相关内容。",
+      toolCount: "工具数量",
+      openCategory: "进入类别",
+      categoryLanding: "类别落地页",
+      featured: "精选",
+      updated: "最近更新",
+      toolsWord: "工具",
+      featuredTools: "精选工具",
+      featuredToolsText: "优先查看这个类别中更值得先评估的工具。",
+      allTools: "全部工具",
+      allToolsText: "浏览该类别下的完整公开工具列表，继续进入详情页或官网。",
+      trendingTools: "趋势工具",
+      trendingToolsText: "结合站内热度和最近发布情况，快速发现更受关注的选项。",
+      relatedCategories: "相关类别",
+      relatedCategoriesText: "这些类别与当前主题接近，适合继续横向探索。",
+      faq: "常见问题",
+      faqText: "保留现有 JSON-LD FAQ，同时把类别页补成更完整的落地体验。",
+      openTool: "打开工具",
+      visitSite: "访问官网",
+      noSummary: "该工具暂未提供简介。",
+      backToCategories: "返回类别页",
+      popularCategories: "热门类别",
+      popularCollections: "热门集合",
+      topCategories: "顶部类别",
+      newestTools: "最新工具",
+      blogGuides: "博客指南",
+      ctaHint: "查看工具与内部链接",
+    };
+  }
+
   if (locale === "zh") {
     return {
       home: "首页",
@@ -549,6 +601,13 @@ function getLabels(locale: string) {
     home: "Home",
     categoriesLabel: "Categories",
     directoryBadge: "ToolsDdar",
+    allCategoriesBadge: "Complete category index",
+    allCategoriesTitle: "All AI tool categories",
+    allCategoriesDescription:
+      "Browse the full ToolsDar category map, including niche and long-tail AI workflows beyond the featured shortlist.",
+    categoryColumn: "Category",
+    toolsColumn: "Tools",
+    actionColumn: "Open",
     indexTitle: "Browse ToolsDdar by category",
     indexDescription:
       "Start from the workflow, jump into the most relevant AI tool category, then continue into tool details, collections, and editorial guidance like a professional directory.",
