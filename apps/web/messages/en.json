@@ -1,4 +1,4 @@
-﻿{
+{
   "home": {
     "title": "AI Tool Directory",
     "description": "Discover, compare, and explore the best AI tools in one public directory.",
@@ -25,7 +25,7 @@
       "subtitle": "Crawl, enrich with AI, optimize for SEO, and ship with REST API, MCP Server, and full observability.",
       "ctaPrimary": "Start in 30 minutes",
       "ctaSecondary": "View on GitHub",
-      "stats": "Production 路 24x7 路 Documented 路 Observable"
+      "stats": "Production · 24x7 · Documented · Observable"
     },
     "features": {
       "title": "Everything you need to launch",
@@ -64,7 +64,7 @@
         "web": { "title": "Web + Admin", "desc": "Next.js 15" },
         "api": { "title": "API", "desc": "NestJS REST" },
         "worker": { "title": "Worker", "desc": "BullMQ async" },
-        "open": { "title": "Open API", "desc": "SDK 路 MCP 路 Webhooks" }
+        "open": { "title": "Open API", "desc": "SDK · MCP · Webhooks" }
       }
     },
     "demo": {
