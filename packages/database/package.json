@@ -27,7 +27,7 @@
   },
   "dependencies": {
     "@ai-tool-cms/config": "workspace:*",
-    "@prisma/client": "^6.19.3"
+    "@prisma/client": "^7.8.0"
   },
   "devDependencies": {
     "@ai-tool-cms/auth": "workspace:*",
