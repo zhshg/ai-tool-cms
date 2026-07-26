@@ -9,6 +9,13 @@ const optionalUrl = z
   .optional()
   .or(z.literal("").transform(() => undefined));
 
+function urlWithDefault(defaultValue: string) {
+  return z.preprocess(
+    (val) => (val === "" || val === undefined ? undefined : val),
+    z.string().trim().url().default(defaultValue),
+  );
+}
+
 const optionalString = z
   .string()
   .trim()
@@ -42,15 +49,15 @@ export const envSchema = z.object({
   JWT_ACCESS_EXPIRES_IN: z.string().default("15m"),
   JWT_REFRESH_SECRET: optionalString,
   JWT_REFRESH_EXPIRES_IN: z.string().default("7d"),
-  APP_URL: z.string().url().default("http://localhost:3000"),
-  ADMIN_URL: z.string().url().default("http://localhost:3001"),
-  API_URL: z.string().url().default("http://localhost:4000"),
+  APP_URL: urlWithDefault("http://localhost:3000"),
+  ADMIN_URL: urlWithDefault("http://localhost:3001"),
+  API_URL: urlWithDefault("http://localhost:4000"),
   PORT: z.coerce.number().int().positive().default(4000),
   LOG_LEVEL: z.string().default("info"),
   QUEUE_URL: optionalUrl,
   OPENAI_BASE_URL: optionalUrl,
   AI_DEFAULT_MODEL: z.string().default("gpt-4o-mini"),
-  NEXT_PUBLIC_APP_URL: z.string().url().default("http://localhost:3000"),
+  NEXT_PUBLIC_APP_URL: urlWithDefault("http://localhost:3000"),
   NEXT_PUBLIC_SITE_URL: optionalUrl,
   NEXT_PUBLIC_ADMIN_MOCK_ROLE: optionalString,
   SITE_URL: optionalUrl,
@@ -75,7 +82,7 @@ export const envSchema = z.object({
   SMTP_PORT: z.coerce.number().int().positive().default(1025),
   SMTP_USER: optionalString,
   SMTP_PASSWORD: optionalString,
-  MAILPIT_URL: z.string().url().default("http://localhost:8025"),
+  MAILPIT_URL: urlWithDefault("http://localhost:8025"),
   NEWSLETTER_FROM_EMAIL: optionalString,
   WEBHOOK_SIGNING_SECRET: optionalString,
   CRAWLER_ENABLE_PRODUCTION_ADAPTERS: z
