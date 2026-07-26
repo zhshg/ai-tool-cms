@@ -74,3 +74,21 @@ templates:
         locales: [en]
         variants:
           default: { weight: 100 }
+
+  translate:
+    description: Translate tool content (summary/description/features/faqs) to target locale
+    latestVersion: "1"
+    versions:
+      "1":
+        locales: [zh-CN]
+        variants:
+          default: { weight: 100 }
+
+  translate-category:
+    description: Translate category name and description to target locale
+    latestVersion: "1"
+    versions:
+      "1":
+        locales: [zh-CN]
+        variants:
+          default: { weight: 100 }

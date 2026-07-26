@@ -26,6 +26,8 @@ export function SiteFooter({ locale, categories, popularTools }: SiteFooterProps
         sitemapXml: "Sitemap",
         robots: "Robots",
         rss: "RSS",
+        bestAiTools: "最佳 AI 工具",
+        trendingAiTools: "热门 AI 工具",
       }
     : {
         categories: "Popular categories",
@@ -42,6 +44,8 @@ export function SiteFooter({ locale, categories, popularTools }: SiteFooterProps
         sitemapXml: "Sitemap",
         robots: "Robots",
         rss: "RSS",
+        bestAiTools: "Best AI Tools",
+        trendingAiTools: "Trending AI Tools",
       };
 
   const year = new Date().getFullYear();
@@ -97,8 +101,8 @@ export function SiteFooter({ locale, categories, popularTools }: SiteFooterProps
               { href: "/sitemap.xml", label: labels.sitemapXml },
               { href: "/robots.txt", label: labels.robots },
               { href: "/feed/rss", label: labels.rss },
-              { href: `/${locale}/best-ai-tools`, label: "Best AI Tools" },
-              { href: `/${locale}/trending-ai-tools`, label: "Trending AI Tools" },
+              { href: `/${locale}/best-ai-tools`, label: labels.bestAiTools },
+              { href: `/${locale}/trending-ai-tools`, label: labels.trendingAiTools },
             ]}
           />
         </div>

@@ -73,6 +73,18 @@ function filterCJKList(items: string[]): string[] {
   return items.filter((item) => !hasCJK(item));
 }
 
+/**
+ * 从混合文本中提取中文段落（当 locale 为中文时使用）。
+ * 优先返回含中文的段落；如果没有中文段落则返回 null（由调用方回退）。
+ */
+function pickZhParagraphs(text: string | null | undefined): string | null {
+  if (!text) return null;
+  const paragraphs = text.split(/\n+/).filter((p) => p.trim().length > 0);
+  const zhParagraphs = paragraphs.filter((p) => hasCJK(p));
+  if (zhParagraphs.length === 0) return null;
+  return zhParagraphs.join("\n\n");
+}
+
 /** 过滤推荐工具卡片中 summary 含中文的条目，并将 reason 中的中文替换 */
 function filterCJKFromRecommendedCards<T extends { summary: string | null; reason: string | null }>(
   cards: T[],
@@ -83,6 +95,142 @@ function filterCJKFromRecommendedCards<T extends { summary: string | null; reaso
       ...card,
       reason: pickEN(card.reason, card.reason),
     }));
+}
+
+/** 标签中英文映射表（slug -> 中文） */
+const TAG_ZH_MAP: Record<string, string> = {
+  drafting: "草稿撰写",
+  "code-help": "代码辅助",
+  "ui-design": "UI 设计",
+  frontend: "前端开发",
+  "technical-automation": "技术自动化",
+  reasoning: "推理能力",
+  "rapid-prototyping": "快速原型",
+  "audio-editing": "音频编辑",
+  "content-strategy": "内容策略",
+  api: "API",
+  "content-writing": "内容写作",
+  "workplace-information": "职场信息",
+  ide: "集成开发环境",
+  "answer-engine": "问答引擎",
+  "team-workflows": "团队工作流",
+  presentations: "演示文稿",
+  "short-form-video": "短视频",
+  productivity: "生产力",
+  "app-builder": "应用构建器",
+  "ai-assistant": "AI 助手",
+  "reading-support": "阅读辅助",
+  "marketing-content": "营销内容",
+  "long-context": "长上下文",
+  prompting: "提示词工程",
+  transcription: "语音转写",
+  coding: "编程开发",
+  "matter-analysis": "事项分析",
+  "design-exploration": "设计探索",
+  "conversation-intelligence": "会话智能",
+  operations: "运营管理",
+  "pair-programming": "结对编程",
+  "creative-production": "创意生产",
+  "sales-content": "销售内容",
+  "social-content": "社媒内容",
+  enterprise: "企业级",
+  "growth-content": "增长内容",
+  prototyping: "原型设计",
+  "generative-media": "生成式媒体",
+  "brand-assets": "品牌资产",
+  "company-knowledge": "企业知识",
+  "document-analysis": "文档分析",
+  training: "培训",
+  "go-to-market": "市场推广",
+  ai: "AI",
+  "audio-production": "音频制作",
+  "content-optimization": "内容优化",
+  editing: "编辑",
+  "business-decks": "商业演示",
+  "follow-up": "跟进",
+  "commerce-visuals": "电商视觉",
+  "full-stack": "全栈开发",
+  "visual-communication": "视觉传达",
+  "creative-editing": "创意编辑",
+  "image-generation": "图像生成",
+  accessibility: "无障碍",
+  "image-editing": "图像编辑",
+  notes: "笔记",
+  "visual-creation": "视觉创作",
+  "presentation-design": "演示设计",
+  "training-content": "培训内容",
+  "background-removal": "背景去除",
+  "marketing-copy": "营销文案",
+  "search-intent": "搜索意图",
+  "prompt-to-app": "提示词转应用",
+  "code-assistant": "代码助手",
+  chatbot: "聊天机器人",
+  "developer-tools": "开发者工具",
+  "visual-builder": "可视化构建器",
+  "professional-communication": "专业沟通",
+  "visual-assets": "视觉素材",
+  "audio-experimentation": "音频实验",
+  "meeting-assistant": "会议助手",
+  "document-review": "文档审阅",
+  "video-creation": "视频创作",
+  "training-audio": "培训音频",
+  "visual-concepts": "视觉概念",
+  "video-generation": "视频生成",
+  futurepedia: "Futurepedia",
+  "voice-cloning": "语音克隆",
+  "customer-service": "客户服务",
+  gpt: "GPT",
+  "marketing-video": "营销视频",
+  localization: "本地化",
+  "meeting-notes": "会议纪要",
+  integrations: "集成",
+  docs: "文档",
+  "creative-audio": "创意音频",
+  summarization: "摘要总结",
+  "study-tools": "学习工具",
+  "knowledge-work": "知识工作",
+  "social-distribution": "社媒分发",
+  "product-design": "产品设计",
+  image: "图像",
+  "adobe-workflow": "Adobe 工作流",
+  "brand-voice": "品牌声音",
+  "knowledge-base": "知识库",
+  "short-video": "短视频",
+  "slide-design": "幻灯片设计",
+  directory: "目录",
+  "script-to-video": "脚本转视频",
+  taaft: "TAAFT",
+};
+
+/** 定价方案描述中英文映射表 */
+const PRICING_DESC_ZH_MAP: Record<string, string> = {
+  "The product is positioned as a paid offering for ongoing use.":
+    "该产品定位为付费产品，供长期使用。",
+  "Public access is available without a paid subscription tier in the reviewed dataset.":
+    "在已审查的数据集中，无需付费订阅即可公开访问。",
+  "The official product uses custom or enterprise pricing in the curated dataset.":
+    "官方产品在精选数据集中采用定制或企业级定价。",
+  "The product offers a free entry point before paid expansion.":
+    "该产品提供免费入门，之后可升级为付费方案。",
+  "Public access is available without a paid subscription tier in the curated dataset.":
+    "在精选数据集中，无需付费订阅即可公开访问。",
+  "The official product offers a free entry point or trial before paid expansion.":
+    "官方产品提供免费入门或试用，之后可升级为付费方案。",
+  "The official product is positioned as a paid offering for ongoing use.":
+    "官方产品定位为付费产品，供长期使用。",
+};
+
+/** 翻译标签名 */
+function translateTagName(slug: string, name: string, isEN: boolean): string {
+  if (isEN) return name;
+  return TAG_ZH_MAP[slug] ?? name;
+}
+
+/** 翻译定价方案描述 */
+function translatePricingDescription(description: string | null, isEN: boolean): string | null {
+  if (!description) return null;
+  if (isEN) return pickEN(description, null);
+  return PRICING_DESC_ZH_MAP[description] ?? description;
 }
 
 export type ToolPageLink = {
@@ -276,18 +424,32 @@ export async function getToolPage(
 
   const isEN = locale === DEFAULT_LOCALE || locale.startsWith("en");
 
+  // 中文 locale 下优先使用 metadata 中的中文版字段（aiFeaturesZh 等）
+  const zhFeatures = normalizeStringList(metadata.aiFeaturesZh);
+  const zhUseCases = normalizeStringList(metadata.aiUseCasesZh);
+  const zhPros = normalizeStringList(metadata.aiProsZh);
+  const zhCons = normalizeStringList(metadata.aiConsZh);
+
   const pros = isEN
     ? filterCJKList(normalizeStringList(metadata.aiPros))
-    : normalizeStringList(metadata.aiPros);
+    : zhPros.length > 0
+      ? zhPros
+      : normalizeStringList(metadata.aiPros);
   const cons = isEN
     ? filterCJKList(normalizeStringList(metadata.aiCons))
-    : normalizeStringList(metadata.aiCons);
+    : zhCons.length > 0
+      ? zhCons
+      : normalizeStringList(metadata.aiCons);
   const baseUseCases = isEN
     ? filterCJKList(normalizeStringList(metadata.aiUseCases ?? metadata.useCases))
-    : normalizeStringList(metadata.aiUseCases ?? metadata.useCases);
+    : zhUseCases.length > 0
+      ? zhUseCases
+      : normalizeStringList(metadata.aiUseCases ?? metadata.useCases);
   const baseFeatures = isEN
     ? filterCJKList(buildFeatureList(metadata))
-    : buildFeatureList(metadata);
+    : zhFeatures.length > 0
+      ? zhFeatures
+      : buildFeatureList(metadata);
   const apiAccess = isEN ? filterCJKList(buildApiAccess(metadata)) : buildApiAccess(metadata);
   const platforms = isEN
     ? filterCJKList(normalizeStringList(metadata.aiPlatforms ?? metadata.platforms))
@@ -315,7 +477,10 @@ export async function getToolPage(
             localizedTranslation?.longDescription ?? tool.description,
             tool.summary,
           )
-        : (localizedTranslation?.longDescription ?? tool.description),
+        : (localizedTranslation?.longDescription ??
+            pickZhParagraphs(tool.longDescription) ??
+            pickZhParagraphs(tool.description) ??
+            tool.description),
     ) || null;
   const longDescription = isEN
     ? stripHtml(
@@ -326,7 +491,11 @@ export async function getToolPage(
         ),
       ).trim() || null
     : normalizePlainText(
-        localizedTranslation?.longDescription ?? tool.longDescription ?? tool.description,
+        localizedTranslation?.longDescription ??
+          pickZhParagraphs(tool.longDescription) ??
+          pickZhParagraphs(tool.description) ??
+          tool.longDescription ??
+          tool.description,
       ) || null;
   const summary =
     normalizePlainText(
@@ -337,17 +506,29 @@ export async function getToolPage(
 
   const config = getSiteConfig();
   const primaryCategory = tool.categories[0]?.category;
+
+  // 加载分类翻译（先加载 tool 自身的分类，后续再补充 relatedCategories）
+  const toolCategoryIds = tool.categories.map((item) => item.category.id);
+  const categoryTranslationMap = await fetchCategoryTranslationsForToolPage(
+    toolCategoryIds,
+    locale,
+  );
+
   const categories = tool.categories.map((item) => ({
     slug: item.category.slug,
-    name: item.category.name,
+    name: categoryTranslationMap.get(item.category.id)?.name ?? item.category.name,
     iconUrl: item.category.iconUrl,
     isPrimary: item.isPrimary,
   }));
   const tags = tool.tags.map((item) => ({
     slug: item.tag.slug,
-    name: item.tag.name,
+    name: translateTagName(item.tag.slug, item.tag.name, isEN),
   }));
-  const primaryCategoryName = primaryCategory?.name ?? (isEN ? "AI Tool" : "AI 工具");
+  const primaryCategoryName = primaryCategory
+    ? (categoryTranslationMap.get(primaryCategory.id)?.name ?? primaryCategory.name)
+    : isEN
+      ? "AI Tool"
+      : "AI 工具";
   const useCases = ensureMinimumUseCases(
     baseUseCases,
     tool.name,
@@ -376,10 +557,10 @@ export async function getToolPage(
   const screenshots = buildToolScreenshots(tool.toolScreenshots, metadata, tool.website);
   const recommendations = await buildToolRecommendations(prisma, tool.id, 6);
   const [recommendedAlternatives, similarTools, moreLikeThis, trendingTools] = await Promise.all([
-    hydrateRecommendedToolCards(recommendations.alternatives),
-    hydrateRecommendedToolCards(recommendations.similarTools),
-    hydrateRecommendedToolCards(recommendations.moreLikeThis),
-    hydrateRecommendedToolCards(recommendations.trendingTools),
+    hydrateRecommendedToolCards(recommendations.alternatives, locale),
+    hydrateRecommendedToolCards(recommendations.similarTools, locale),
+    hydrateRecommendedToolCards(recommendations.moreLikeThis, locale),
+    hydrateRecommendedToolCards(recommendations.trendingTools, locale),
   ]);
   const alternatives = await ensureMinimumAlternatives(
     tool.id,
@@ -387,6 +568,7 @@ export async function getToolPage(
     recommendedAlternatives,
     metadata,
     tool.categories.map((item) => item.category.slug),
+    locale,
   );
   const enrichedFaqs = ensureMinimumFaqs(
     faqs,
@@ -396,9 +578,17 @@ export async function getToolPage(
     alternatives,
     isEN,
   );
+  // 补充加载 relatedCategories 的翻译
+  const relatedCategoryIds = recommendations.relatedCategories
+    .map((cat) => cat.id)
+    .filter((id): id is string => Boolean(id) && !categoryTranslationMap.has(id));
+  if (relatedCategoryIds.length > 0) {
+    const extraMap = await fetchCategoryTranslationsForToolPage(relatedCategoryIds, locale);
+    for (const [k, v] of extraMap) categoryTranslationMap.set(k, v);
+  }
   const relatedCategories = recommendations.relatedCategories.map((category) => ({
     slug: category.slug,
-    name: category.name,
+    name: categoryTranslationMap.get(category.id)?.name ?? category.name,
     iconUrl: category.iconUrl ?? null,
     toolCount: category.toolCount,
     reason: category.reason,
@@ -414,7 +604,7 @@ export async function getToolPage(
       description:
         normalizePlainText(tool.metaDescription ?? tool.summary ?? undefined) || undefined,
       url: joinUrl(config.siteUrl, `/${locale}/tools/${tool.slug}`),
-      applicationCategory: primaryCategory?.name ?? "BusinessApplication",
+      applicationCategory: primaryCategoryName ?? "BusinessApplication",
       operatingSystem: "Web",
       image: resolvedLogoUrl ?? undefined,
       offers: firstPricingPlan
@@ -428,7 +618,7 @@ export async function getToolPage(
     breadcrumbs: [
       { name: "Home", path: `/${locale}` },
       ...(primaryCategory
-        ? [{ name: primaryCategory.name, path: `/${locale}/category/${primaryCategory.slug}` }]
+        ? [{ name: primaryCategoryName, path: `/${locale}/category/${primaryCategory.slug}` }]
         : []),
       { name: tool.name, path: `/${locale}/tools/${tool.slug}` },
     ],
@@ -478,7 +668,7 @@ export async function getToolPage(
         pricingModel: plan.pricingModel,
         price: plan.amount?.toString() ?? null,
         billingPeriod: plan.billingPeriod,
-        description: isEN ? pickEN(plan.description, null) : plan.description,
+        description: translatePricingDescription(plan.description, isEN),
         isFeatured: plan.isFeatured,
       })),
       screenshots,
@@ -580,6 +770,7 @@ function normalizeStringList(value: unknown): string[] {
 
 async function hydrateRecommendedToolCards(
   recommendations: Array<{ slug: string; reason: string }>,
+  locale: string = DEFAULT_LOCALE,
 ): Promise<RecommendedToolCard[]> {
   if (!recommendations.length) return [];
 
@@ -590,6 +781,7 @@ async function hydrateRecommendedToolCards(
       ...activeOnly,
     },
     select: {
+      id: true,
       slug: true,
       name: true,
       summary: true,
@@ -612,15 +804,26 @@ async function hydrateRecommendedToolCards(
   });
   const detailBySlug = new Map(details.map((detail) => [detail.slug, detail]));
 
+  // 中文 locale 下批量加载翻译
+  const isZh = locale.startsWith("zh");
+  const translationMap =
+    isZh && details.length > 0
+      ? await fetchRecommendedToolTranslations(
+          details.map((d) => d.id),
+          locale,
+        )
+      : new Map<string, string | null>();
+
   const cards: RecommendedToolCard[] = [];
   for (const item of recommendations) {
     const detail = detailBySlug.get(item.slug);
     if (!detail) continue;
 
+    const zhSummary = translationMap.get(detail.id);
     cards.push({
       slug: detail.slug,
       name: detail.name,
-      summary: detail.summary,
+      summary: zhSummary ?? detail.summary,
       logoUrl: resolveToolLogoUrl(
         detail.logoUrl,
         (detail.metadata ?? {}) as Record<string, unknown>,
@@ -640,12 +843,41 @@ async function hydrateRecommendedToolCards(
   return cards;
 }
 
+/** 批量获取推荐工具的中文 summary 翻译 */
+async function fetchRecommendedToolTranslations(
+  toolIds: string[],
+  locale: string,
+): Promise<Map<string, string | null>> {
+  if (!locale.startsWith("zh") || toolIds.length === 0) return new Map();
+  const translations = await prisma.toolTranslation.findMany({
+    where: { toolId: { in: toolIds }, locale, status: "PUBLISHED", deletedAt: null },
+    select: { toolId: true, summary: true },
+  });
+  return new Map(translations.map((t) => [t.toolId, t.summary]));
+}
+
+/** 批量获取分类的中文翻译（工具详情页用） */
+async function fetchCategoryTranslationsForToolPage(
+  categoryIds: string[],
+  locale: string,
+): Promise<Map<string, { name: string; description: string | null }>> {
+  if (!locale.startsWith("zh") || categoryIds.length === 0) return new Map();
+  const translations = await prisma.categoryTranslation.findMany({
+    where: { categoryId: { in: categoryIds }, locale, deletedAt: null },
+    select: { categoryId: true, name: true, description: true },
+  });
+  return new Map(
+    translations.map((t) => [t.categoryId, { name: t.name, description: t.description }]),
+  );
+}
+
 async function ensureMinimumAlternatives(
   toolId: string,
   toolSlug: string,
   recommended: RecommendedToolCard[],
   metadata: Record<string, unknown>,
   categorySlugs: string[],
+  locale: string = DEFAULT_LOCALE,
 ): Promise<RecommendedToolCard[]> {
   if (recommended.length >= 3) {
     return recommended.slice(0, 6);
@@ -693,7 +925,7 @@ async function ensureMinimumAlternatives(
     }
   }
 
-  const fallbackCards = await hydrateRecommendedToolCards(fallbackRecommendations);
+  const fallbackCards = await hydrateRecommendedToolCards(fallbackRecommendations, locale);
   return [...recommended, ...fallbackCards].slice(0, 6);
 }
 

@@ -73,6 +73,14 @@ function normalizeDomain(value) {
   }
 }
 
+function resolveWebsite(record) {
+  return (
+    normalizeUrl(record.website) ||
+    normalizeUrl(record.url) ||
+    normalizeUrl(record.metadata && record.metadata.sourceUrl)
+  );
+}
+
 function slugify(value) {
   return String(value || "")
     .normalize("NFKD")
@@ -89,6 +97,28 @@ function toStringArray(value) {
 
 function unique(values) {
   return [...new Set(values.filter(Boolean))];
+}
+
+function trimTo(value, maxLength) {
+  const text = String(value || "").trim();
+  if (!text) return "";
+  if (text.length <= maxLength) return text;
+  return text.slice(0, Math.max(0, maxLength - 1)).trimEnd();
+}
+
+function normalizeFreeText(value, maxLength) {
+  const text = trimTo(value, maxLength);
+  return text || null;
+}
+
+function normalizePricingModel(value) {
+  const text = trimTo(value, 120).toLowerCase();
+  if (!text) return "FREEMIUM";
+  if (text.includes("free") && !text.includes("paid")) return "FREE";
+  if (text.includes("contact") || text.includes("custom")) return "CONTACT";
+  if (text.includes("freemium")) return "FREEMIUM";
+  if (text.includes("paid") || text.includes("pro") || text.includes("premium")) return "PAID";
+  return "FREEMIUM";
 }
 
 function extractCategories(record) {
@@ -200,8 +230,8 @@ async function syncTags(toolId, tagIds) {
 
 async function findExistingTool(record) {
   const slug = slugify(record.slug || record.name);
-  const website = normalizeUrl(record.website);
-  const domain = normalizeDomain(record.website);
+  const website = resolveWebsite(record);
+  const domain = normalizeDomain(website);
   if (slug) {
     const bySlug = await prisma.tool.findFirst({ where: { slug, deletedAt: null } });
     if (bySlug) return bySlug;
@@ -248,12 +278,35 @@ function buildMetadata(existingMetadata, record, screenshots) {
   };
 }
 
+function buildToolData(record, screenshots) {
+  return {
+    slug: trimTo(slugify(record.slug || record.name), 120),
+    name: trimTo(record.name || "", 200),
+    website: resolveWebsite(record),
+    logoUrl: normalizeUrl(record.logoUrl),
+    summary: normalizeFreeText(record.summary, 500),
+    description: normalizeFreeText(record.description, 1800),
+    longDescription: normalizeFreeText(record.longDescription, 18000),
+    pricingModel: normalizePricingModel(record.pricingModel),
+    status:
+      String(record.status || "").toUpperCase() === "PUBLISHED"
+        ? ToolStatus.PUBLISHED
+        : ToolStatus.DRAFT,
+    publishedAt: record.publishedAt ? new Date(record.publishedAt) : new Date(),
+    metaTitle: normalizeFreeText(record.metaTitle, 160),
+    metaDescription: normalizeFreeText(record.metaDescription, 320),
+    metadata: buildMetadata({}, record, screenshots),
+    deletedAt: null,
+  };
+}
+
 async function main() {
   const { path: datasetPath, items } = loadDataset();
   let created = 0;
   let updated = 0;
   let logoUpdated = 0;
   let screenshotsUpdated = 0;
+  let skipped = 0;
 
   for (const record of items) {
     const existing = await findExistingTool(record);
@@ -272,26 +325,14 @@ async function main() {
     }
 
     if (!existing) {
+      const website = resolveWebsite(record);
+      if (!website) {
+        skipped += 1;
+        continue;
+      }
+
       const tool = await prisma.tool.create({
-        data: {
-          slug: slugify(record.slug || record.name),
-          name: String(record.name || "").trim(),
-          website: normalizeUrl(record.website),
-          logoUrl: normalizeUrl(record.logoUrl),
-          summary: String(record.summary || "").trim() || null,
-          description: String(record.description || "").trim() || null,
-          longDescription: String(record.longDescription || "").trim() || null,
-          pricingModel: "FREEMIUM",
-          status:
-            String(record.status || "").toUpperCase() === "PUBLISHED"
-              ? ToolStatus.PUBLISHED
-              : ToolStatus.DRAFT,
-          publishedAt: record.publishedAt ? new Date(record.publishedAt) : new Date(),
-          metaTitle: String(record.metaTitle || "").trim() || null,
-          metaDescription: String(record.metaDescription || "").trim() || null,
-          metadata: buildMetadata({}, record, screenshots),
-          deletedAt: null,
-        },
+        data: buildToolData(record, screenshots),
       });
 
       if (primaryCategory) {
@@ -344,6 +385,7 @@ async function main() {
         updated,
         logoUpdated,
         screenshotsUpdated,
+        skipped,
       },
       null,
       2,

@@ -27,19 +27,25 @@ import {
 
 const PAGE_SIZE = 12;
 
-const pricingOptions = [
-  { value: "", label: "All pricing" },
-  { value: "FREE", label: "Free" },
-  { value: "FREEMIUM", label: "Freemium" },
-  { value: "PAID", label: "Paid" },
-  { value: "CONTACT", label: "Contact sales" },
-];
+// 获取定价筛选项，根据语言返回中英文标签
+function getPricingOptions(isZh: boolean) {
+  return [
+    { value: "", label: isZh ? "全部定价" : "All pricing" },
+    { value: "FREE", label: isZh ? "免费" : "Free" },
+    { value: "FREEMIUM", label: isZh ? "免费增值" : "Freemium" },
+    { value: "PAID", label: isZh ? "付费" : "Paid" },
+    { value: "CONTACT", label: isZh ? "联系销售" : "Contact sales" },
+  ];
+}
 
-const sortOptions = [
-  { value: "latest", label: "Latest" },
-  { value: "popular", label: "Popular" },
-  { value: "name", label: "Name" },
-];
+// 获取排序选项，根据语言返回中英文标签
+function getSortOptions(isZh: boolean) {
+  return [
+    { value: "latest", label: isZh ? "最新" : "Latest" },
+    { value: "popular", label: isZh ? "热门" : "Popular" },
+    { value: "name", label: isZh ? "名称" : "Name" },
+  ];
+}
 
 export const dynamic = "force-dynamic";
 
@@ -63,10 +69,21 @@ export async function generateMetadata({
   const query = filters.q?.trim();
   const config = getSiteConfig();
   const path = `/${locale}/tools`;
-  const title = query ? `${query} AI Tools` : "AI Tools Directory";
+  const isZh = locale.startsWith("zh");
+  const title = query
+    ? isZh
+      ? `${query} AI 工具`
+      : `${query} AI Tools`
+    : isZh
+      ? "AI 工具目录"
+      : "AI Tools Directory";
   const description = query
-    ? `Find ${query} AI tools with category filters, pricing models, summaries, and website links.`
-    : "Browse AI tools by category, pricing, popularity, and launch date.";
+    ? isZh
+      ? `按分类、定价、摘要和官网链接查找 ${query} AI 工具。`
+      : `Find ${query} AI tools with category filters, pricing models, summaries, and website links.`
+    : isZh
+      ? "按分类、定价、热门程度和上线时间浏览 AI 工具。"
+      : "Browse AI tools by category, pricing, popularity, and launch date.";
 
   return buildMetadata(
     {
@@ -83,6 +100,9 @@ export default async function ToolsPage({ params, searchParams }: ToolsPageProps
   const { locale } = await params;
   const filters = await searchParams;
   setRequestLocale(locale);
+  const isZh = locale.startsWith("zh");
+  const pricingOptions = getPricingOptions(isZh);
+  const sortOptions = getSortOptions(isZh);
 
   const page = Math.max(1, Number(filters.page ?? 1) || 1);
   const result = await getToolsDirectory({
@@ -99,7 +119,13 @@ export default async function ToolsPage({ params, searchParams }: ToolsPageProps
   const url = joinUrl(config.siteUrl, path);
   const jsonLd = [
     buildItemListJsonLd({
-      name: result.query ? `${result.query} AI Tools` : "AI Tools Directory",
+      name: result.query
+        ? isZh
+          ? `${result.query} AI 工具`
+          : `${result.query} AI Tools`
+        : isZh
+          ? "AI 工具目录"
+          : "AI Tools Directory",
       url,
       items: result.tools.map((tool, index) => ({
         name: tool.name,
@@ -109,8 +135,8 @@ export default async function ToolsPage({ params, searchParams }: ToolsPageProps
     }),
     buildBreadcrumbJsonLd(
       [
-        { name: "Home", path: `/${locale}` },
-        { name: "Tools", path },
+        { name: isZh ? "首页" : "Home", path: `/${locale}` },
+        { name: isZh ? "工具" : "Tools", path },
       ],
       config.siteUrl,
     ),
@@ -132,22 +158,32 @@ export default async function ToolsPage({ params, searchParams }: ToolsPageProps
             <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
               <div>
                 <h1 className="text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">
-                  {result.query ? `Results for "${result.query}"` : "AI Tools Directory"}
+                  {result.query
+                    ? isZh
+                      ? `“${result.query}”的搜索结果`
+                      : `Results for "${result.query}"`
+                    : isZh
+                      ? "AI 工具目录"
+                      : "AI Tools Directory"}
                 </h1>
                 <p className="mt-1.5 text-sm text-slate-500">
-                  {result.totalHits.toLocaleString("en-US")} tools
-                  {activeCategory ? ` in ${activeCategory.name}` : ""}
-                  &nbsp;· Page {result.page}/{result.totalPages}
+                  {isZh
+                    ? `${activeCategory ? `${activeCategory.name} 分类下 ` : ""}${result.totalHits.toLocaleString("en-US")} 个工具`
+                    : `${result.totalHits.toLocaleString("en-US")} tools${activeCategory ? ` in ${activeCategory.name}` : ""}`}
+                  &nbsp;·{" "}
+                  {isZh
+                    ? `第 ${result.page}/${result.totalPages} 页`
+                    : `Page ${result.page}/${result.totalPages}`}
                 </p>
               </div>
               <form action={`/${locale}/tools`} className="flex w-full max-w-xl gap-2">
                 <label className="relative flex-1">
-                  <span className="sr-only">Search tools</span>
+                  <span className="sr-only">{isZh ? "搜索工具" : "Search tools"}</span>
                   <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
                   <input
                     name="q"
                     defaultValue={result.query}
-                    placeholder="Search tools, categories…"
+                    placeholder={isZh ? "搜索工具、分类…" : "Search tools, categories…"}
                     className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-3 text-sm outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
                   />
                 </label>
@@ -175,18 +211,20 @@ export default async function ToolsPage({ params, searchParams }: ToolsPageProps
                       <p className="text-2xl font-bold text-slate-950">
                         {result.totalHits.toLocaleString()}
                       </p>
-                      <p className="text-xs text-slate-500">AI tools available</p>
+                      <p className="text-xs text-slate-500">
+                        {isZh ? "个可用 AI 工具" : "AI tools available"}
+                      </p>
                     </div>
                   </div>
                   <div className="mt-4 grid grid-cols-2 gap-3">
                     <div className="rounded-xl bg-white/70 p-3">
-                      <p className="text-xs text-slate-400">Categories</p>
+                      <p className="text-xs text-slate-400">{isZh ? "分类" : "Categories"}</p>
                       <p className="mt-0.5 text-base font-semibold text-slate-900">
                         {result.categories.length}
                       </p>
                     </div>
                     <div className="rounded-xl bg-white/70 p-3">
-                      <p className="text-xs text-slate-400">Page</p>
+                      <p className="text-xs text-slate-400">{isZh ? "页码" : "Page"}</p>
                       <p className="mt-0.5 text-base font-semibold text-slate-900">
                         {result.page} / {result.totalPages}
                       </p>
@@ -199,14 +237,16 @@ export default async function ToolsPage({ params, searchParams }: ToolsPageProps
                   {/* 标题栏 */}
                   <div className="flex items-center gap-2 border-b border-slate-100 px-5 py-3.5">
                     <Filter className="size-4 text-emerald-600" />
-                    <span className="text-sm font-semibold text-slate-900">Filters</span>
+                    <span className="text-sm font-semibold text-slate-900">
+                      {isZh ? "筛选" : "Filters"}
+                    </span>
                     {(result.category || result.pricing || result.sort) && (
                       <Link
                         href={`/${locale}/tools`}
                         className="ml-auto inline-flex items-center gap-1 text-xs font-medium text-slate-400 transition hover:text-emerald-600"
                       >
                         <RotateCcw className="size-3" />
-                        Reset
+                        {isZh ? "重置" : "Reset"}
                       </Link>
                     )}
                   </div>
@@ -229,7 +269,7 @@ export default async function ToolsPage({ params, searchParams }: ToolsPageProps
                         )}
                         {result.pricing && (
                           <span className="inline-flex items-center gap-1 rounded-lg bg-blue-50 px-2.5 py-1.5 text-xs font-medium text-blue-700 ring-1 ring-blue-200/60">
-                            {formatPricing(result.pricing)}
+                            {formatPricing(result.pricing, isZh)}
                             <Link
                               href={buildFilterHref(locale, filters, "pricing", "")}
                               className="hover:text-blue-900"
@@ -253,7 +293,10 @@ export default async function ToolsPage({ params, searchParams }: ToolsPageProps
                     ) : null}
 
                     {/* 分类 */}
-                    <SidebarSection icon={<Layers className="size-4" />} title="Category">
+                    <SidebarSection
+                      icon={<Layers className="size-4" />}
+                      title={isZh ? "分类" : "Category"}
+                    >
                       <div className="max-h-64 space-y-1 overflow-y-auto pr-1">
                         <Link
                           href={buildFilterHref(locale, filters, "category", "")}
@@ -263,7 +306,7 @@ export default async function ToolsPage({ params, searchParams }: ToolsPageProps
                               : "text-slate-600 hover:bg-slate-50"
                           }`}
                         >
-                          <span>All categories</span>
+                          <span>{isZh ? "全部分类" : "All categories"}</span>
                           {!result.category && (
                             <span className="size-4 flex-shrink-0 rounded-full bg-emerald-500 text-[9px] text-white flex items-center justify-center">
                               ✓
@@ -295,7 +338,10 @@ export default async function ToolsPage({ params, searchParams }: ToolsPageProps
                     </SidebarSection>
 
                     {/* 定价 */}
-                    <SidebarSection icon={<Tag className="size-4" />} title="Pricing">
+                    <SidebarSection
+                      icon={<Tag className="size-4" />}
+                      title={isZh ? "定价" : "Pricing"}
+                    >
                       <div className="space-y-1.5">
                         {pricingOptions.map((option) => (
                           <Link
@@ -329,7 +375,10 @@ export default async function ToolsPage({ params, searchParams }: ToolsPageProps
                     </SidebarSection>
 
                     {/* 排序 */}
-                    <SidebarSection icon={<TrendingUp className="size-4" />} title="Sort by">
+                    <SidebarSection
+                      icon={<TrendingUp className="size-4" />}
+                      title={isZh ? "排序" : "Sort by"}
+                    >
                       <div className="space-y-1.5">
                         {sortOptions.map((option) => (
                           <Link
@@ -368,11 +417,20 @@ export default async function ToolsPage({ params, searchParams }: ToolsPageProps
                 <div className="rounded-2xl border border-slate-100 bg-gradient-to-br from-slate-50 to-white p-5">
                   <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
                     <Clock className="mb-1.5 size-3.5" />
-                    Pro tip
+                    {isZh ? "小提示" : "Pro tip"}
                   </p>
                   <p className="mt-2 text-sm leading-6 text-slate-600">
-                    Use <span className="font-medium text-emerald-600">keywords</span> in search to
-                    find tools by name, description, or category.
+                    {isZh ? (
+                      <>
+                        在搜索框中使用<span className="font-medium text-emerald-600">关键词</span>
+                        ，可按名称、描述或分类查找工具。
+                      </>
+                    ) : (
+                      <>
+                        Use <span className="font-medium text-emerald-600">keywords</span> in search
+                        to find tools by name, description, or category.
+                      </>
+                    )}
                   </p>
                 </div>
               </div>
@@ -385,7 +443,7 @@ export default async function ToolsPage({ params, searchParams }: ToolsPageProps
                 <Button asChild variant="outline" size="sm">
                   <Link href={`/${locale}/tools`}>
                     <SlidersHorizontal className="size-4" />
-                    Filters
+                    {isZh ? "筛选" : "Filters"}
                   </Link>
                 </Button>
                 {activeCategory ? (
@@ -393,7 +451,9 @@ export default async function ToolsPage({ params, searchParams }: ToolsPageProps
                     {activeCategory.name}
                   </span>
                 ) : null}
-                <span className="ml-auto text-sm text-slate-500">{result.tools.length} tools</span>
+                <span className="ml-auto text-sm text-slate-500">
+                  {result.tools.length} {isZh ? "个工具" : "tools"}
+                </span>
               </div>
 
               {/* 工具列表 - 紧凑行视图 */}
@@ -437,6 +497,7 @@ function ToolRow({
   tool: ToolsDirectoryTool;
   rank: number;
 }) {
+  const isZh = locale.startsWith("zh");
   const category = tool.primaryCategory;
 
   return (
@@ -467,11 +528,11 @@ function ToolRow({
             </Link>
           </h2>
           <span className="shrink-0 rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">
-            {formatPricing(tool.pricingModel)}
+            {formatPricing(tool.pricingModel, isZh)}
           </span>
         </div>
         <p className="mt-1 line-clamp-1 text-sm text-slate-500">
-          {tool.summary ?? "No description available yet."}
+          {tool.summary ?? (isZh ? "暂无描述。" : "No description available yet.")}
         </p>
         <div className="mt-2 flex flex-wrap gap-1.5">
           {category ? (
@@ -497,7 +558,7 @@ function ToolRow({
       {/* 操作 */}
       <div className="hidden shrink-0 items-center gap-2 sm:flex">
         <Button asChild variant="outline" size="sm">
-          <Link href={`/${locale}/tools/${tool.slug}`}>Details</Link>
+          <Link href={`/${locale}/tools/${tool.slug}`}>{isZh ? "详情" : "Details"}</Link>
         </Button>
         <Button asChild size="sm" className="shadow-sm">
           <a href={tool.website} target="_blank" rel="noreferrer">
@@ -600,18 +661,22 @@ function Pagination({
 }
 
 function EmptyState({ locale }: { locale: string }) {
+  const isZh = locale.startsWith("zh");
   return (
     <section className="rounded-2xl border border-dashed border-slate-200 bg-gradient-card p-12 text-center">
       <div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-slate-100">
         <Search className="size-6 text-slate-400" />
       </div>
-      <h2 className="mt-4 text-lg font-semibold text-slate-900">No tools found</h2>
+      <h2 className="mt-4 text-lg font-semibold text-slate-900">
+        {isZh ? "未找到工具" : "No tools found"}
+      </h2>
       <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">
-        Try a broader keyword, remove a category filter, or reset pricing to see more published AI
-        tools.
+        {isZh
+          ? "尝试使用更宽泛的关键词、移除分类筛选或重置定价条件，以查看更多已发布的 AI 工具。"
+          : "Try a broader keyword, remove a category filter, or reset pricing to see more published AI tools."}
       </p>
       <Button asChild variant="outline" className="mt-5">
-        <Link href={`/${locale}/tools`}>Clear filters</Link>
+        <Link href={`/${locale}/tools`}>{isZh ? "清除筛选" : "Clear filters"}</Link>
       </Button>
     </section>
   );
@@ -644,8 +709,8 @@ function buildFilterHref(
   return `/${locale}/tools?${params.toString()}`;
 }
 
-function formatPricing(pricing: string) {
-  const option = pricingOptions.find((item) => item.value === pricing);
+function formatPricing(pricing: string, isZh: boolean) {
+  const option = getPricingOptions(isZh).find((item) => item.value === pricing);
   return option?.label ?? pricing;
 }
 

@@ -54,6 +54,7 @@ export default async function BlogArticlePage({
   params: Promise<{ locale: string; slug: string }>;
 }) {
   const { locale, slug } = await params;
+  const isZh = locale.startsWith("zh");
   setRequestLocale(locale);
   const post = await getPost(slug);
   if (!post) notFound();
@@ -64,8 +65,8 @@ export default async function BlogArticlePage({
   const jsonLd = [
     buildBreadcrumbJsonLd(
       [
-        { name: "Home", path: `/${locale}` },
-        { name: "Blog", path: `/${locale}/blog` },
+        { name: isZh ? "首页" : "Home", path: `/${locale}` },
+        { name: isZh ? "博客" : "Blog", path: `/${locale}/blog` },
         { name: post.title, path },
       ],
       config.siteUrl,
@@ -85,14 +86,14 @@ export default async function BlogArticlePage({
             href={`/${locale}`}
             className="text-slate-400 transition-colors hover:text-emerald-600"
           >
-            Home
+            {isZh ? "首页" : "Home"}
           </Link>
           <ChevronRight className="size-3.5 text-slate-300" />
           <Link
             href={`/${locale}/blog`}
             className="text-slate-400 transition-colors hover:text-emerald-600"
           >
-            Blog
+            {isZh ? "博客" : "Blog"}
           </Link>
           {post.category ? (
             <>
@@ -127,8 +128,10 @@ export default async function BlogArticlePage({
               <span className="flex items-center gap-1.5">
                 <Calendar className="size-4" />
                 {post.publishedAt
-                  ? new Date(post.publishedAt).toLocaleDateString(locale)
-                  : "Published"}
+                  ? new Date(post.publishedAt).toLocaleDateString(isZh ? "zh-CN" : locale)
+                  : isZh
+                    ? "发布于"
+                    : "Published"}
               </span>
               {post.author?.displayName ? (
                 <span className="flex items-center gap-1.5">
@@ -148,7 +151,7 @@ export default async function BlogArticlePage({
                 className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-emerald-300 hover:text-emerald-600"
               >
                 <ArrowLeft className="size-4" />
-                Back to blog
+                {isZh ? "返回博客" : "Back to blog"}
               </Link>
             </div>
           </div>
@@ -168,7 +171,7 @@ export default async function BlogArticlePage({
           ) : null}
 
           <div>
-            <SectionEyebrow>Article</SectionEyebrow>
+            <SectionEyebrow>{isZh ? "文章" : "Article"}</SectionEyebrow>
             <div className="mt-4 rounded-2xl border border-slate-200/80 bg-white p-6 shadow-soft-sm">
               <div className="prose prose-slate max-w-none text-base leading-[1.85] text-slate-600">
                 {renderMarkdown(post.content, locale)}
@@ -177,7 +180,7 @@ export default async function BlogArticlePage({
           </div>
 
           <div>
-            <SectionEyebrow>Tags</SectionEyebrow>
+            <SectionEyebrow>{isZh ? "标签" : "Tags"}</SectionEyebrow>
             <div className="mt-3 flex flex-wrap gap-2">
               {post.tags.map((item) => (
                 <Link
@@ -195,12 +198,12 @@ export default async function BlogArticlePage({
           {related.length ? (
             <div>
               <div className="flex items-end justify-between">
-                <SectionEyebrow>Related Posts</SectionEyebrow>
+                <SectionEyebrow>{isZh ? "相关文章" : "Related Posts"}</SectionEyebrow>
                 <Link
                   href={`/${locale}/blog`}
                   className="text-sm font-medium text-emerald-600 hover:text-emerald-700"
                 >
-                  View all
+                  {isZh ? "查看全部" : "View all"}
                 </Link>
               </div>
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
@@ -224,8 +227,10 @@ export default async function BlogArticlePage({
                       </p>
                       <p className="mt-3 text-xs text-slate-400">
                         {item.publishedAt
-                          ? new Date(item.publishedAt).toLocaleDateString(locale)
-                          : "Published"}
+                          ? new Date(item.publishedAt).toLocaleDateString(isZh ? "zh-CN" : locale)
+                          : isZh
+                            ? "发布于"
+                            : "Published"}
                       </p>
                     </div>
                   </Link>
@@ -238,19 +243,23 @@ export default async function BlogArticlePage({
 
       <section className="border-t border-slate-200/60 bg-gradient-soft">
         <div className="mx-auto max-w-5xl px-6 py-10 text-center">
-          <p className="text-sm font-medium text-emerald-600">Want more articles?</p>
+          <p className="text-sm font-medium text-emerald-600">
+            {isZh ? "想要更多文章？" : "Want more articles?"}
+          </p>
           <h2 className="mt-2 text-xl font-bold tracking-tight text-slate-950">
-            Browse all blog posts
+            {isZh ? "浏览所有博客文章" : "Browse all blog posts"}
           </h2>
           <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">
-            Stay updated with the latest AI tool reviews, guides, and industry insights.
+            {isZh
+              ? "获取最新的 AI 工具评测、指南和行业洞察。"
+              : "Stay updated with the latest AI tool reviews, guides, and industry insights."}
           </p>
           <div className="mt-4 flex justify-center">
             <Link
               href={`/${locale}/blog`}
               className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-5 py-2.5 text-sm font-medium text-slate-700 transition hover:border-emerald-300 hover:text-emerald-600 shadow-sm"
             >
-              Read more articles
+              {isZh ? "阅读更多文章" : "Read more articles"}
               <ChevronRight className="size-4" />
             </Link>
           </div>

@@ -10,13 +10,17 @@ type PublicSiteLayoutProps = {
 };
 
 export async function PublicSiteLayout({ children, locale }: PublicSiteLayoutProps) {
-  const shellData = await getPublicShellData();
+  const shellData = await getPublicShellData(locale);
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <SiteHeader locale={locale} categories={shellData.categories} />
       <div className="flex-1">{children}</div>
-      <SiteFooter locale={locale} categories={shellData.categories} popularTools={shellData.popularTools} />
+      <SiteFooter
+        locale={locale}
+        categories={shellData.categories}
+        popularTools={shellData.popularTools}
+      />
     </div>
   );
 }

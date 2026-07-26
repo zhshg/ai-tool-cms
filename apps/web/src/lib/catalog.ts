@@ -16,6 +16,48 @@ import { resolveToolFallbackLogoUrl, resolveToolLogoUrl } from "./tool-logo";
 
 const activeOnly = { deletedAt: null } as const;
 const DEFAULT_LOCALE = "en";
+
+/** 判断 locale 是否为中文 */
+function isZhLocale(locale: string): boolean {
+  return locale.startsWith("zh");
+}
+
+/** 批量获取分类翻译，返回 categoryId ->翻译 的映射 */
+async function fetchCategoryTranslations(
+  categoryIds: string[],
+  locale: string,
+): Promise<Map<string, { name: string; description: string | null }>> {
+  if (isZhLocale(locale) && categoryIds.length > 0) {
+    const translations = await prisma.categoryTranslation.findMany({
+      where: { categoryId: { in: categoryIds }, locale, deletedAt: null },
+      select: { categoryId: true, name: true, description: true },
+    });
+    return new Map(
+      translations.map((t) => [t.categoryId, { name: t.name, description: t.description }]),
+    );
+  }
+  return new Map();
+}
+
+/** 批量获取工具翻译，返回 toolId ->翻译 的映射 */
+async function fetchToolTranslations(
+  toolIds: string[],
+  locale: string,
+): Promise<Map<string, { summary: string | null; longDescription: string | null }>> {
+  if (isZhLocale(locale) && toolIds.length > 0) {
+    const translations = await prisma.toolTranslation.findMany({
+      where: { toolId: { in: toolIds }, locale, status: "PUBLISHED", deletedAt: null },
+      select: { toolId: true, summary: true, longDescription: true },
+    });
+    return new Map(
+      translations.map((t) => [
+        t.toolId,
+        { summary: t.summary, longDescription: t.longDescription },
+      ]),
+    );
+  }
+  return new Map();
+}
 const STANDARD_CATEGORY_SLUGS = [
   "ai-writing",
   "ai-chatbots",
@@ -233,6 +275,7 @@ export type CategoryLandingData = {
 };
 
 type CategoryWithCount = {
+  id: string;
   slug: string;
   name: string;
   description: string | null;
@@ -330,17 +373,33 @@ const COLLECTION_PAGE_DEFS: Array<{
   },
 ];
 
-async function fetchPublishedTools(limit = 12): Promise<CatalogTool[]> {
+async function fetchPublishedTools(
+  limit = 12,
+  locale: string = DEFAULT_LOCALE,
+): Promise<CatalogTool[]> {
   const tools = await prisma.tool.findMany({
     where: { status: ToolStatus.PUBLISHED, ...activeOnly },
     orderBy: { publishedAt: "desc" },
     take: limit,
-    select: { slug: true, name: true, summary: true },
+    select: { id: true, slug: true, name: true, summary: true },
   });
-  return tools;
+  // 应用翻译
+  const translationMap = await fetchToolTranslations(
+    tools.map((t) => t.id),
+    locale,
+  );
+  return tools.map((tool) => {
+    const translation = translationMap.get(tool.id);
+    return translation?.summary
+      ? { slug: tool.slug, name: tool.name, summary: translation.summary }
+      : { slug: tool.slug, name: tool.name, summary: tool.summary };
+  });
 }
 
-async function fetchPopularTools(limit = 12): Promise<CatalogTool[]> {
+async function fetchPopularTools(
+  limit = 12,
+  locale: string = DEFAULT_LOCALE,
+): Promise<CatalogTool[]> {
   const tools = await prisma.tool.findMany({
     where: { status: ToolStatus.PUBLISHED, ...activeOnly },
     orderBy: [
@@ -349,12 +408,25 @@ async function fetchPopularTools(limit = 12): Promise<CatalogTool[]> {
       { name: "asc" },
     ],
     take: limit,
-    select: { slug: true, name: true, summary: true },
+    select: { id: true, slug: true, name: true, summary: true },
   });
-  return tools;
+  // 应用翻译
+  const translationMap = await fetchToolTranslations(
+    tools.map((t) => t.id),
+    locale,
+  );
+  return tools.map((tool) => {
+    const translation = translationMap.get(tool.id);
+    return translation?.summary
+      ? { slug: tool.slug, name: tool.name, summary: translation.summary }
+      : { slug: tool.slug, name: tool.name, summary: tool.summary };
+  });
 }
 
-async function fetchPopularHomePageTools(limit = 8): Promise<HomePageTool[]> {
+async function fetchPopularHomePageTools(
+  limit = 8,
+  locale: string = DEFAULT_LOCALE,
+): Promise<HomePageTool[]> {
   const tools = await prisma.tool.findMany({
     where: {
       status: ToolStatus.PUBLISHED,
@@ -383,6 +455,7 @@ async function fetchPopularHomePageTools(limit = 8): Promise<HomePageTool[]> {
         select: {
           category: {
             select: {
+              id: true,
               slug: true,
               name: true,
               iconUrl: true,
@@ -404,30 +477,53 @@ async function fetchPopularHomePageTools(limit = 8): Promise<HomePageTool[]> {
     },
   });
 
-  return tools.map((tool) => ({
-    id: tool.id,
-    slug: tool.slug,
-    name: tool.name,
-    summary: tool.summary,
-    website: tool.website,
-    logoUrl: resolveToolLogoUrl(
-      tool.logoUrl,
-      (tool.metadata ?? {}) as Record<string, unknown>,
-      tool.website,
-    ),
-    collectedLogoUrl: resolveToolFallbackLogoUrl(
-      tool.logoUrl,
-      (tool.metadata ?? {}) as Record<string, unknown>,
-      tool.website,
-    ),
-    pricingModel: tool.pricingModel,
-    publishedAt: tool.publishedAt?.toISOString() ?? null,
-    category: tool.categories[0]?.category ?? null,
-    tagSlugs: tool.tags.map((tag) => tag.tag.slug),
-  }));
+  // 获取工具翻译和分类翻译
+  const toolIds = tools.map((t) => t.id);
+  const categoryIds = tools
+    .map((t) => t.categories[0]?.category?.id)
+    .filter((id): id is string => Boolean(id));
+  const [toolTranslationMap, categoryTranslationMap] = await Promise.all([
+    fetchToolTranslations(toolIds, locale),
+    fetchCategoryTranslations(categoryIds, locale),
+  ]);
+
+  return tools.map((tool) => {
+    const toolTranslation = toolTranslationMap.get(tool.id);
+    const cat = tool.categories[0]?.category;
+    const catTranslation = cat ? categoryTranslationMap.get(cat.id) : undefined;
+    return {
+      id: tool.id,
+      slug: tool.slug,
+      name: tool.name,
+      summary: toolTranslation?.summary ?? tool.summary,
+      website: tool.website,
+      logoUrl: resolveToolLogoUrl(
+        tool.logoUrl,
+        (tool.metadata ?? {}) as Record<string, unknown>,
+        tool.website,
+      ),
+      collectedLogoUrl: resolveToolFallbackLogoUrl(
+        tool.logoUrl,
+        (tool.metadata ?? {}) as Record<string, unknown>,
+        tool.website,
+      ),
+      pricingModel: tool.pricingModel,
+      publishedAt: tool.publishedAt?.toISOString() ?? null,
+      category: cat
+        ? {
+            slug: cat.slug,
+            name: catTranslation?.name ?? cat.name,
+            iconUrl: cat.iconUrl,
+          }
+        : null,
+      tagSlugs: tool.tags.map((tag) => tag.tag.slug),
+    };
+  });
 }
 
-async function fetchAllCategoriesForMenu(): Promise<HomePageCategory[]> {
+async function fetchAllCategoriesForMenu(
+  locale: string = DEFAULT_LOCALE,
+): Promise<HomePageCategory[]> {
   const categories = await prisma.category.findMany({
     where: {
       ...activeOnly,
@@ -443,19 +539,29 @@ async function fetchAllCategoriesForMenu(): Promise<HomePageCategory[]> {
     },
   });
 
+  // 获取分类翻译
+  const translationMap = await fetchCategoryTranslations(
+    categories.map((c) => c.id),
+    locale,
+  );
+
   return categories
-    .map((category: CategoryWithCount) => ({
-      slug: category.slug,
-      name: category.name,
-      description: category.description ?? null,
-      toolCount: category._count.tools,
-    }))
+    .map((category: CategoryWithCount) => {
+      const translation = translationMap.get(category.id);
+      return {
+        slug: category.slug,
+        name: translation?.name ?? category.name,
+        description: translation?.description ?? category.description ?? null,
+        toolCount: category._count.tools,
+      };
+    })
     .sort((left, right) => right.toolCount - left.toolCount || left.name.localeCompare(right.name));
 }
 
 async function fetchRichCategoryDirectoryData(
   limit = 24,
   variant: "all" | "featured" = "featured",
+  locale: string = DEFAULT_LOCALE,
 ): Promise<CategoriesPageCategory[]> {
   const categories = await prisma.category.findMany({
     where: {
@@ -474,19 +580,29 @@ async function fetchRichCategoryDirectoryData(
     },
   });
 
+  // 获取分类翻译
+  const categoryIds = categories.map((c) => c.id);
+  const translationMap = await fetchCategoryTranslations(categoryIds, locale);
+  const isZh = isZhLocale(locale);
+
   return categories
     .map((category) => {
       const metadata =
         category.metadata && typeof category.metadata === "object"
           ? (category.metadata as Record<string, unknown>)
           : {};
+      const translation = translationMap.get(category.id);
+      const displayName = translation?.name ?? category.name;
+      const displayDescription = translation?.description ?? category.description ?? null;
       const shortDescription =
-        category.description ??
-        `Browse ${category.name} tools, compare options, and continue into related directory pages.`;
+        displayDescription ??
+        (isZh
+          ? `浏览${displayName}工具、对比选项，并进入相关目录页面。`
+          : `Browse ${displayName} tools, compare options, and continue into related directory pages.`);
       return {
         slug: category.slug,
-        name: category.name,
-        description: category.description ?? null,
+        name: displayName,
+        description: displayDescription,
         toolCount: category._count.tools,
         iconUrl: category.iconUrl ?? null,
         isFeatured:
@@ -494,8 +610,12 @@ async function fetchRichCategoryDirectoryData(
         shortDescription,
         ctaHint:
           category._count.tools > 0
-            ? `Explore ${category._count.tools} tools`
-            : "Open category hub",
+            ? isZh
+              ? `探索 ${category._count.tools} 个工具`
+              : `Explore ${category._count.tools} tools`
+            : isZh
+              ? "打开类别中心"
+              : "Open category hub",
       } satisfies CategoriesPageCategory;
     })
     .sort((left, right) => {
@@ -532,6 +652,7 @@ function formatDateLabel(date: Date, locale: string): string {
 async function fetchCategoryDetailTools(
   categoryId: string,
   limit = 12,
+  locale: string = DEFAULT_LOCALE,
 ): Promise<CategoryDetailTool[]> {
   const toolLinks = await prisma.toolCategory.findMany({
     where: {
@@ -559,6 +680,7 @@ async function fetchCategoryDetailTools(
             select: {
               category: {
                 select: {
+                  id: true,
                   slug: true,
                   name: true,
                   iconUrl: true,
@@ -577,16 +699,27 @@ async function fetchCategoryDetailTools(
     },
   });
 
+  // 获取工具翻译和分类翻译
+  const toolIds = toolLinks.map((link) => link.tool.id);
+  const categoryIds = toolLinks.flatMap((link) =>
+    link.tool.categories.map((item) => item.category.id),
+  );
+  const [toolTranslationMap, categoryTranslationMap] = await Promise.all([
+    fetchToolTranslations(toolIds, locale),
+    fetchCategoryTranslations(categoryIds, locale),
+  ]);
+
   return toolLinks.map((link) => {
     const ratings = link.tool.reviews.map((review) => review.rating);
     const averageRating = ratings.length
       ? ratings.reduce((total, value) => total + value, 0) / ratings.length
       : null;
+    const toolTranslation = toolTranslationMap.get(link.tool.id);
     return {
       id: link.tool.id,
       slug: link.tool.slug,
       name: link.tool.name,
-      summary: link.tool.summary,
+      summary: toolTranslation?.summary ?? link.tool.summary,
       website: link.tool.website,
       logoUrl: resolveToolLogoUrl(
         link.tool.logoUrl,
@@ -604,7 +737,13 @@ async function fetchCategoryDetailTools(
       rating: averageRating,
       ratingLabel: averageRating ? averageRating.toFixed(1) : null,
       publishedAt: link.tool.publishedAt?.toISOString() ?? null,
-      categories: link.tool.categories.map((item) => item.category),
+      categories: link.tool.categories.map((item) => {
+        const catTranslation = categoryTranslationMap.get(item.category.id);
+        return {
+          slug: item.category.slug,
+          name: catTranslation?.name ?? item.category.name,
+        };
+      }),
     } satisfies CategoryDetailTool;
   });
 }
@@ -664,7 +803,9 @@ async function fetchHomePageTools(input: {
   skip?: number;
   pricingModels?: PricingModel[];
   excludeIds?: string[];
+  locale?: string;
 }): Promise<HomePageTool[]> {
+  const locale = input.locale ?? DEFAULT_LOCALE;
   const tools = await prisma.tool.findMany({
     where: {
       status: ToolStatus.PUBLISHED,
@@ -692,6 +833,7 @@ async function fetchHomePageTools(input: {
         select: {
           category: {
             select: {
+              id: true,
               slug: true,
               name: true,
               iconUrl: true,
@@ -713,27 +855,48 @@ async function fetchHomePageTools(input: {
     },
   });
 
-  return tools.map((tool) => ({
-    id: tool.id,
-    slug: tool.slug,
-    name: tool.name,
-    summary: tool.summary,
-    website: tool.website,
-    logoUrl: resolveToolLogoUrl(
-      tool.logoUrl,
-      (tool.metadata ?? {}) as Record<string, unknown>,
-      tool.website,
-    ),
-    collectedLogoUrl: resolveToolFallbackLogoUrl(
-      tool.logoUrl,
-      (tool.metadata ?? {}) as Record<string, unknown>,
-      tool.website,
-    ),
-    pricingModel: tool.pricingModel,
-    publishedAt: tool.publishedAt?.toISOString() ?? null,
-    category: tool.categories[0]?.category ?? null,
-    tagSlugs: tool.tags.map((tag) => tag.tag.slug),
-  }));
+  // 获取工具翻译和分类翻译
+  const toolIds = tools.map((t) => t.id);
+  const categoryIds = tools
+    .map((t) => t.categories[0]?.category?.id)
+    .filter((id): id is string => Boolean(id));
+  const [toolTranslationMap, categoryTranslationMap] = await Promise.all([
+    fetchToolTranslations(toolIds, locale),
+    fetchCategoryTranslations(categoryIds, locale),
+  ]);
+
+  return tools.map((tool) => {
+    const toolTranslation = toolTranslationMap.get(tool.id);
+    const cat = tool.categories[0]?.category;
+    const catTranslation = cat ? categoryTranslationMap.get(cat.id) : undefined;
+    return {
+      id: tool.id,
+      slug: tool.slug,
+      name: tool.name,
+      summary: toolTranslation?.summary ?? tool.summary,
+      website: tool.website,
+      logoUrl: resolveToolLogoUrl(
+        tool.logoUrl,
+        (tool.metadata ?? {}) as Record<string, unknown>,
+        tool.website,
+      ),
+      collectedLogoUrl: resolveToolFallbackLogoUrl(
+        tool.logoUrl,
+        (tool.metadata ?? {}) as Record<string, unknown>,
+        tool.website,
+      ),
+      pricingModel: tool.pricingModel,
+      publishedAt: tool.publishedAt?.toISOString() ?? null,
+      category: cat
+        ? {
+            slug: cat.slug,
+            name: catTranslation?.name ?? cat.name,
+            iconUrl: cat.iconUrl,
+          }
+        : null,
+      tagSlugs: tool.tags.map((tag) => tag.tag.slug),
+    };
+  });
 }
 
 async function fetchCollectionToolsByCategorySlugs(
@@ -899,7 +1062,7 @@ export async function getToolsDirectory(input: {
           orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }],
           select: {
             isPrimary: true,
-            category: { select: { slug: true, name: true, iconUrl: true } },
+            category: { select: { id: true, slug: true, name: true, iconUrl: true } },
           },
         },
         tags: {
@@ -931,6 +1094,40 @@ export async function getToolsDirectory(input: {
   ]);
 
   void input.locale;
+
+  // 获取分类翻译：左侧筛选面板 + 工具卡片所涉及的所有分类都需翻译
+  const categoryIds = categories.map((c) => c.id);
+  // 直接从工具卡片中收集所有分类的 ID（避免 STANDARD_CATEGORY_SLUGS 过滤遗漏）
+  const toolCategoryIds = new Set<string>();
+  const slugToCategoryId = new Map<string, string>();
+  for (const t of tools) {
+    for (const item of t.categories) {
+      toolCategoryIds.add(item.category.id);
+      slugToCategoryId.set(item.category.slug, item.category.id);
+    }
+  }
+  const allCategoryIdsForTranslation = Array.from(new Set([...categoryIds, ...toolCategoryIds]));
+  const categoryTranslationMap = await fetchCategoryTranslations(
+    allCategoryIdsForTranslation,
+    input.locale,
+  );
+  // 建立 slug -> 翻译后名称 的映射，方便工具卡片使用
+  const slugToTranslatedName = new Map<string, string>();
+  for (const c of categories) {
+    const tr = categoryTranslationMap.get(c.id);
+    if (tr?.name) slugToTranslatedName.set(c.slug, tr.name);
+  }
+  // 补充工具卡片中独有分类的翻译（如 ai-social-media、ai-marketing 等）
+  for (const [slug, id] of slugToCategoryId) {
+    if (slugToTranslatedName.has(slug)) continue;
+    const tr = categoryTranslationMap.get(id);
+    if (tr?.name) slugToTranslatedName.set(slug, tr.name);
+  }
+
+  // 获取工具翻译
+  const toolIds = tools.map((t) => t.id);
+  const toolTranslationMap = await fetchToolTranslations(toolIds, input.locale);
+
   return {
     query,
     page,
@@ -940,20 +1137,39 @@ export async function getToolsDirectory(input: {
     sort,
     category,
     pricing,
-    categories: categories.map((item) => ({
-      slug: item.slug,
-      name: item.name,
-      toolCount: item._count.tools,
-    })),
+    categories: categories.map((item) => {
+      const translation = categoryTranslationMap.get(item.id);
+      return {
+        slug: item.slug,
+        name: translation?.name ?? item.name,
+        toolCount: item._count.tools,
+      };
+    }),
     tools: tools.map((tool) => {
-      const categories = tool.categories.map((item) => item.category);
-      const primaryCategory =
-        tool.categories.find((item) => item.isPrimary)?.category ?? categories[0] ?? null;
+      const translateCatName = (slug: string, fallback: string) =>
+        slugToTranslatedName.get(slug) ?? fallback;
+      const categories = tool.categories.map((item) => ({
+        slug: item.category.slug,
+        name: translateCatName(item.category.slug, item.category.name),
+        iconUrl: item.category.iconUrl,
+      }));
+      const rawPrimary =
+        tool.categories.find((item) => item.isPrimary)?.category ??
+        tool.categories[0]?.category ??
+        null;
+      const primaryCategory = rawPrimary
+        ? {
+            slug: rawPrimary.slug,
+            name: translateCatName(rawPrimary.slug, rawPrimary.name),
+            iconUrl: rawPrimary.iconUrl,
+          }
+        : null;
+      const toolTranslation = toolTranslationMap.get(tool.id);
       return {
         id: tool.id,
         slug: tool.slug,
         name: tool.name,
-        summary: tool.summary,
+        summary: toolTranslation?.summary ?? tool.summary,
         website: tool.website,
         logoUrl: resolveToolLogoUrl(
           tool.logoUrl,
@@ -1213,10 +1429,12 @@ function slugifyFilterValue(value: string): string {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "");
 }
-export async function getPublicShellData(): Promise<PublicShellData> {
+export async function getPublicShellData(
+  locale: string = DEFAULT_LOCALE,
+): Promise<PublicShellData> {
   const [categories, popularTools] = await Promise.all([
-    fetchAllCategoriesForMenu(),
-    fetchPopularTools(6),
+    fetchAllCategoriesForMenu(locale),
+    fetchPopularTools(6, locale),
   ]);
 
   return { categories, popularTools };
@@ -1227,13 +1445,11 @@ export async function getCategoriesPageData(
   variant: "all" | "featured" = "all",
 ): Promise<CategoriesPageData> {
   const [categories, featuredTools, categoryCount, toolCount] = await Promise.all([
-    fetchRichCategoryDirectoryData(variant === "featured" ? 24 : 200, variant),
-    fetchPopularHomePageTools(6),
+    fetchRichCategoryDirectoryData(variant === "featured" ? 24 : 200, variant, locale),
+    fetchPopularHomePageTools(6, locale),
     prisma.category.count({ where: activeOnly }),
     prisma.tool.count({ where: { status: ToolStatus.PUBLISHED, ...activeOnly } }),
   ]);
-
-  void locale;
 
   return {
     categories,
@@ -1602,9 +1818,9 @@ export async function getHomePageData(locale: string): Promise<{
 
   const [latestTools, freeOnlyTools, freemiumTools, toolCount, categoryCount, freeToTryCount] =
     await Promise.all([
-      fetchHomePageTools({ take: 8 }),
-      fetchHomePageTools({ take: 6, pricingModels: [PricingModel.FREE] }),
-      fetchHomePageTools({ take: 6, pricingModels: [PricingModel.FREEMIUM] }),
+      fetchHomePageTools({ take: 8, locale }),
+      fetchHomePageTools({ take: 6, pricingModels: [PricingModel.FREE], locale }),
+      fetchHomePageTools({ take: 6, pricingModels: [PricingModel.FREEMIUM], locale }),
       prisma.tool.count({
         where: { status: ToolStatus.PUBLISHED, ...activeOnly },
       }),
@@ -1624,17 +1840,6 @@ export async function getHomePageData(locale: string): Promise<{
       }),
     ]);
 
-  const featuredTools = latestTools.slice(0, 4);
-  const trendingTools = latestTools
-    .filter(
-      (tool) => tool.pricingModel !== PricingModel.FREE || tool.tagSlugs.includes("multimodal"),
-    )
-    .slice(0, 6);
-  const freeTools = [
-    ...freeOnlyTools,
-    ...freemiumTools.filter((tool) => !freeOnlyTools.some((freeTool) => freeTool.id === tool.id)),
-  ].slice(0, 6);
-
   const sortedCategories = categories
     .map((category: CategoryWithCount) => ({
       slug: category.slug,
@@ -1644,13 +1849,49 @@ export async function getHomePageData(locale: string): Promise<{
     }))
     .sort((left, right) => right.toolCount - left.toolCount || left.name.localeCompare(right.name));
 
-  void locale;
+  // 获取分类翻译
+  const categoryIds = categories.map((c) => c.id);
+  const categoryTranslationMap = await fetchCategoryTranslations(categoryIds, locale);
+  const translatedCategories = sortedCategories.map((cat) => {
+    // 通过 category id 查找翻译（sortedCategories 已丢失 id，需要从原数组找）
+    const original = categories.find((c) => c.slug === cat.slug);
+    const translation = original ? categoryTranslationMap.get(original.id) : undefined;
+    return translation
+      ? { ...cat, name: translation.name, description: translation.description ?? cat.description }
+      : cat;
+  });
+
+  // 获取工具翻译
+  const allTools = [...latestTools, ...freeOnlyTools, ...freemiumTools];
+  const toolIds = [...new Set(allTools.map((t) => t.id))];
+  const toolTranslationMap = await fetchToolTranslations(toolIds, locale);
+  const applyToolTranslation = <T extends { id: string; summary: string | null }>(tool: T): T => {
+    const translation = toolTranslationMap.get(tool.id);
+    return translation?.summary ? { ...tool, summary: translation.summary } : tool;
+  };
+
+  const translatedLatestTools = latestTools.map(applyToolTranslation);
+  const translatedFreeOnlyTools = freeOnlyTools.map(applyToolTranslation);
+  const translatedFreemiumTools = freemiumTools.map(applyToolTranslation);
+
+  const featuredTools = translatedLatestTools.slice(0, 4);
+  const trendingTools = translatedLatestTools
+    .filter(
+      (tool) => tool.pricingModel !== PricingModel.FREE || tool.tagSlugs.includes("multimodal"),
+    )
+    .slice(0, 6);
+  const freeTools = [
+    ...translatedFreeOnlyTools,
+    ...translatedFreemiumTools.filter(
+      (tool) => !translatedFreeOnlyTools.some((freeTool) => freeTool.id === tool.id),
+    ),
+  ].slice(0, 6);
 
   return {
-    categories: sortedCategories,
+    categories: translatedCategories,
     featuredTools,
     trendingTools,
-    latestTools,
+    latestTools: translatedLatestTools,
     freeTools,
     stats: {
       toolCount,
@@ -1665,7 +1906,7 @@ export async function getHomePageSeoData(locale: string): Promise<{
 }> {
   const config = getSiteConfig();
   const url = joinUrl(config.siteUrl, `/${locale}`);
-  const featuredTools = await fetchHomePageTools({ take: 6 });
+  const featuredTools = await fetchHomePageTools({ take: 6, locale });
 
   return {
     jsonLd: [
@@ -1744,10 +1985,10 @@ export async function getCategoryLanding(
 
   const [allTools, trendingTools, popularCategories, newestTools, categoryCount] =
     await Promise.all([
-      fetchCategoryDetailTools(category.id, 12),
-      fetchPopularHomePageTools(6),
-      fetchRichCategoryDirectoryData(8),
-      fetchHomePageTools({ take: 5 }),
+      fetchCategoryDetailTools(category.id, 12, locale),
+      fetchPopularHomePageTools(6, locale),
+      fetchRichCategoryDirectoryData(8, "featured", locale),
+      fetchHomePageTools({ take: 5, locale }),
       prisma.toolCategory.count({
         where: {
           categoryId: category.id,

@@ -114,7 +114,7 @@ export default async function BlogPage({ params }: { params: Promise<{ locale: s
                   </span>
                   {post.category ? (
                     <span>
-                      {isZh ? "类别" : "Category"}: {post.category.name}
+                      {isZh ? "分类" : "Category"}: {post.category.name}
                     </span>
                   ) : null}
                 </div>

@@ -9,26 +9,48 @@ import { getHomePageData, getHomePageSeoData, type HomePageTool } from "@/lib/ca
 import { serializeJsonLd } from "@/lib/seo";
 import { buildMetadata, getSiteConfig } from "@ai-tool-cms/seo";
 
-const BLOG_POSTS = [
-  {
-    slug: "v1-ga-launch",
-    title: "How to launch an AI tools directory",
-    excerpt:
-      "Production launch notes, deployment learnings, and what belongs on a public AI tools homepage.",
-  },
-  {
-    slug: "open-ecosystem",
-    title: "Build an open AI tools ecosystem",
-    excerpt:
-      "How to extend an AI tools directory with structured APIs, search, and ingestion workflows.",
-  },
-  {
-    slug: "production-ready",
-    title: "What production-ready really means",
-    excerpt:
-      "Search, health checks, Docker hardening, and release acceptance lessons from shipping the stack.",
-  },
-] as const;
+// 博客文章数据：根据语言返回对应的标题与摘要
+function getBlogPosts(isZh: boolean) {
+  if (isZh) {
+    return [
+      {
+        slug: "v1-ga-launch",
+        title: "AI 工具目录 v1.0.0 发布",
+        excerpt: "公开目录如何以可上线的搜索、SEO 与部署能力完成发布。",
+      },
+      {
+        slug: "open-ecosystem",
+        title: "目录平台：API、MCP 与 SDK",
+        excerpt: "目录如何向开发者暴露搜索、集成与结构化访问能力。",
+      },
+      {
+        slug: "production-ready",
+        title: "目录运营与生产就绪",
+        excerpt: "稳定 AI 工具目录背后的监控、CI/CD、备份与发布经验。",
+      },
+    ];
+  }
+  return [
+    {
+      slug: "v1-ga-launch",
+      title: "How to launch an AI tools directory",
+      excerpt:
+        "Production launch notes, deployment learnings, and what belongs on a public AI tools homepage.",
+    },
+    {
+      slug: "open-ecosystem",
+      title: "Build an open AI tools ecosystem",
+      excerpt:
+        "How to extend an AI tools directory with structured APIs, search, and ingestion workflows.",
+    },
+    {
+      slug: "production-ready",
+      title: "What production-ready really means",
+      excerpt:
+        "Search, health checks, Docker hardening, and release acceptance lessons from shipping the stack.",
+    },
+  ];
+}
 
 export async function generateMetadata({ params }: HomePageProps): Promise<Metadata> {
   const { locale } = await params;
@@ -59,7 +81,10 @@ export default async function HomePage({ params }: HomePageProps) {
   const [{ categories, featuredTools, trendingTools, latestTools, freeTools, stats }, { jsonLd }] =
     await Promise.all([getHomePageData(locale), getHomePageSeoData(locale)]);
 
-  const copy = locale.startsWith("zh")
+  const isZh = locale.startsWith("zh");
+  const blogPosts = getBlogPosts(isZh);
+
+  const copy = isZh
     ? {
         heroLabel: "ToolsDdar",
         heroTitle: "发现真正值得加入工作流的 AI 工具",
@@ -97,6 +122,10 @@ export default async function HomePage({ params }: HomePageProps) {
         trendingBadge: "趋势",
         latestBadge: "最新",
         freeBadge: "免费试用",
+        categoryToolsCount: "个工具",
+        newsletterLabel: "订阅",
+        viewDetails: "查看详情",
+        visitSite: "访问网站",
       }
     : {
         heroTitle: "Find AI tools worth adding to your workflow",
@@ -138,6 +167,10 @@ export default async function HomePage({ params }: HomePageProps) {
         trendingBadge: "Trending",
         latestBadge: "Latest",
         freeBadge: "Free to try",
+        categoryToolsCount: "tools",
+        newsletterLabel: "Newsletter",
+        viewDetails: "View details",
+        visitSite: "Visit site",
       };
 
   return (
@@ -239,7 +272,9 @@ export default async function HomePage({ params }: HomePageProps) {
                   <p className="whitespace-nowrap text-sm font-semibold text-slate-900">
                     {category.name}
                   </p>
-                  <p className="mt-0.5 text-xs text-slate-500">{category.toolCount} tools</p>
+                  <p className="mt-0.5 text-xs text-slate-500">
+                    {category.toolCount} {copy.categoryToolsCount}
+                  </p>
                 </div>
               </Link>
             ))}
@@ -391,7 +426,7 @@ export default async function HomePage({ params }: HomePageProps) {
               </Link>
             </div>
             <div className="mt-10 grid gap-6 lg:grid-cols-3">
-              {BLOG_POSTS.map((post, index) => (
+              {blogPosts.map((post, index) => (
                 <article
                   key={post.slug}
                   className="group relative rounded-2xl border border-slate-200/80 bg-white p-6 transition-all duration-300 hover:border-emerald-200 hover:shadow-lg"
@@ -428,7 +463,7 @@ export default async function HomePage({ params }: HomePageProps) {
               <div className="relative grid items-center gap-8 lg:grid-cols-[1fr_auto]">
                 <div className="space-y-4">
                   <p className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-white/90 backdrop-blur-sm">
-                    Newsletter
+                    {copy.newsletterLabel}
                   </p>
                   <h2 className="text-2xl font-bold tracking-tight sm:text-3xl lg:text-4xl">
                     {copy.newsletterTitle}
@@ -524,7 +559,7 @@ function DarkToolCard({
           asChild
           className="bg-emerald-500 text-white hover:bg-emerald-600 shadow-sm shadow-emerald-500/30"
         >
-          <Link href={`/${locale}/tools/${tool.slug}`}>View details</Link>
+          <Link href={`/${locale}/tools/${tool.slug}`}>{pricingLabels.viewDetails}</Link>
         </Button>
         <Button
           asChild
@@ -532,7 +567,7 @@ function DarkToolCard({
           className="border-slate-700 bg-transparent text-slate-300 hover:bg-slate-800 hover:text-white"
         >
           <a href={tool.website} target="_blank" rel="noopener noreferrer">
-            Visit site
+            {pricingLabels.visitSite}
           </a>
         </Button>
       </div>
