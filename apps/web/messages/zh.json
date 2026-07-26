@@ -1,4 +1,4 @@
-﻿{
+{
   "home": {
     "title": "AI 工具目录",
     "description": "发现、对比和探索最佳 AI 工具，尽在一个公开目录中。",
@@ -209,5 +209,38 @@
       "trending": "趋势",
       "categories": "分类"
     }
+  },
+  "toolDetail": {
+    "visitWebsite": "访问官网",
+    "backToTools": "返回工具列表",
+    "pricing": "定价",
+    "category": "分类",
+    "platforms": "平台",
+    "languages": "语言",
+    "aiTool": "AI 工具",
+    "highlights": "亮点",
+    "overview": "概述",
+    "keyFeatures": "核心功能",
+    "screenshots": "截图",
+    "faq": "常见问题",
+    "commonQuestions": "常见问题解答",
+    "faqEmpty": "暂未添加常见问题内容。",
+    "tags": "标签",
+    "pricingPlans": "定价方案",
+    "useCases": "使用场景",
+    "userReviews": "用户评价",
+    "whatUsersSay": "用户怎么说",
+    "noReviews": "暂无已审核的评价。",
+    "alternativesTo": "{name} 的替代工具",
+    "viewAll": "查看全部",
+    "exploreRelated": "探索此相关工具以适配附近的工作流。",
+    "readyToTry": "准备好尝试 {name} 了吗？",
+    "visitOfficial": "访问官方网站",
+    "openOfficialDesc": "打开 {name} 官方网站，了解最新功能、方案和产品动态。",
+    "openOfficialSite": "打开官网",
+    "browseMore": "浏览更多工具",
+    "noPlatformDetails": "暂无平台信息。",
+    "breadcrumbHome": "首页",
+    "breadcrumbTools": "工具"
   }
 }

@@ -305,7 +305,9 @@ export async function getToolPage(
     normalizePlainText(isEN ? pickEN(tool.summary, tool.description) : tool.summary) ||
     normalizePlainText(localizedTranslation?.longDescription) ||
     normalizePlainText(isEN ? pickEN(tool.description, tool.summary) : tool.description) ||
-    `${tool.name} is an AI tool listed in our directory.`;
+    (isEN
+      ? `${tool.name} is an AI tool listed in our directory.`
+      : `${tool.name} 是一个已收录在我们目录中的 AI 工具。`);
   const description =
     normalizePlainText(
       isEN
@@ -345,14 +347,21 @@ export async function getToolPage(
     slug: item.tag.slug,
     name: item.tag.name,
   }));
-  const primaryCategoryName = primaryCategory?.name ?? "AI Tool";
-  const useCases = ensureMinimumUseCases(baseUseCases, tool.name, primaryCategoryName, summary);
+  const primaryCategoryName = primaryCategory?.name ?? (isEN ? "AI Tool" : "AI 工具");
+  const useCases = ensureMinimumUseCases(
+    baseUseCases,
+    tool.name,
+    primaryCategoryName,
+    summary,
+    isEN,
+  );
   const features = ensureMinimumFeatures(
     baseFeatures,
     tool.name,
     primaryCategoryName,
     summary,
     tool.pricingModel,
+    isEN,
   );
   const translatedFaqs = normalizeFaqList(localizedTranslation?.faqJson);
   const rawFaqs = (
@@ -385,6 +394,7 @@ export async function getToolPage(
     tool.summary,
     tool.pricingModel,
     alternatives,
+    isEN,
   );
   const relatedCategories = recommendations.relatedCategories.map((category) => ({
     slug: category.slug,
@@ -428,7 +438,10 @@ export async function getToolPage(
   return {
     metadata: buildMetadata({
       title:
-        localizedTranslation?.metaTitle ?? `${tool.name} Review, Pricing, Features & Alternatives`,
+        localizedTranslation?.metaTitle ??
+        (isEN
+          ? `${tool.name} Review, Pricing, Features & Alternatives`
+          : `${tool.name} 评测、定价、功能与替代工具`),
       description:
         normalizePlainText(localizedTranslation?.metaDescription ?? summary ?? undefined) ||
         undefined,
@@ -709,17 +722,25 @@ function ensureMinimumFeatures(
   categoryName: string,
   summary: string | null,
   pricingModel: PricingModel,
+  isEN: boolean,
 ): string[] {
   const next = dedupeStrings(features);
 
-  const defaults = [
-    summary
-      ? `Supports ${summary.toLowerCase().replace(/\.$/, "")}`
-      : `${toolName} supports common ${categoryName.toLowerCase()} workflows`,
-    `${toolName} can be evaluated for ${categoryName.toLowerCase()} use cases`,
-    `${toolName} offers a ${pricingModel.toLowerCase()} pricing model`,
-    `Teams can compare ${toolName} against alternatives by workflow fit and feature coverage`,
-  ];
+  const defaults = isEN
+    ? [
+        summary
+          ? `Supports ${summary.toLowerCase().replace(/\.$/, "")}`
+          : `${toolName} supports common ${categoryName.toLowerCase()} workflows`,
+        `${toolName} can be evaluated for ${categoryName.toLowerCase()} use cases`,
+        `${toolName} offers a ${pricingModel.toLowerCase()} pricing model`,
+        `Teams can compare ${toolName} against alternatives by workflow fit and feature coverage`,
+      ]
+    : [
+        summary ? `支持${summary}` : `${toolName} 支持常见的${categoryName}工作流`,
+        `${toolName} 可用于${categoryName}相关场景`,
+        `${toolName} 提供${pricingModel.toLowerCase()}定价模式`,
+        `团队可以从工作流适配和功能覆盖角度对比${toolName}与替代方案`,
+      ];
 
   for (const item of defaults) {
     if (next.length >= 4) break;
@@ -734,15 +755,24 @@ function ensureMinimumUseCases(
   toolName: string,
   categoryName: string,
   summary: string | null,
+  isEN: boolean,
 ): string[] {
   const next = dedupeStrings(useCases);
-  const defaults = [
-    `Evaluate ${toolName} for day-to-day ${categoryName.toLowerCase()} tasks`,
-    `Compare ${toolName} with other tools before adopting a workflow`,
-    summary
-      ? `Use ${toolName} when you need ${summary.toLowerCase().replace(/\.$/, "")}`
-      : `Use ${toolName} for repeatable ${categoryName.toLowerCase()} work`,
-  ];
+  const defaults = isEN
+    ? [
+        `Evaluate ${toolName} for day-to-day ${categoryName.toLowerCase()} tasks`,
+        `Compare ${toolName} with other tools before adopting a workflow`,
+        summary
+          ? `Use ${toolName} when you need ${summary.toLowerCase().replace(/\.$/, "")}`
+          : `Use ${toolName} for repeatable ${categoryName.toLowerCase()} work`,
+      ]
+    : [
+        `在日常${categoryName}任务中评估${toolName}`,
+        `在采用某个工作流之前，将${toolName}与其他工具对比`,
+        summary
+          ? `当你需要${summary}时使用${toolName}`
+          : `在可重复的${categoryName}工作中使用${toolName}`,
+      ];
 
   for (const item of defaults) {
     if (next.length >= 3) break;
@@ -849,33 +879,49 @@ function ensureMinimumFaqs(
   summary: string | null,
   pricingModel: PricingModel,
   alternatives: Array<{ name: string }>,
+  isEN: boolean,
 ): Array<{ question: string; answer: string }> {
   const next = [...faqs];
 
   if (next.length === 0) {
     next.push({
-      question: `What is ${toolName}?`,
-      answer: summary ?? `${toolName} is an AI tool listed in the directory.`,
+      question: isEN ? `What is ${toolName}?` : `${toolName} 是什么？`,
+      answer:
+        summary ??
+        (isEN
+          ? `${toolName} is an AI tool listed in the directory.`
+          : `${toolName} 是一个已收录在目录中的 AI 工具。`),
     });
   }
 
   if (next.length < 2) {
     next.push({
-      question: `How is ${toolName} priced?`,
-      answer: `${toolName} is currently listed with a ${pricingModel.toLowerCase()} pricing model.`,
+      question: isEN ? `How is ${toolName} priced?` : `${toolName} 的定价如何？`,
+      answer: isEN
+        ? `${toolName} is currently listed with a ${pricingModel.toLowerCase()} pricing model.`
+        : `${toolName} 目前的定价模式为 ${pricingModel.toLowerCase()}。`,
     });
   }
 
   if (next.length < 3) {
     next.push({
-      question: `What are the best alternatives to ${toolName}?`,
+      question: isEN
+        ? `What are the best alternatives to ${toolName}?`
+        : `${toolName} 的最佳替代工具有哪些？`,
       answer:
         alternatives.length > 0
-          ? `Popular alternatives include ${alternatives
-              .slice(0, 3)
-              .map((tool) => tool.name)
-              .join(", ")}.`
-          : `${toolName} can be compared with other published tools in the same category for pricing, features, and workflow fit.`,
+          ? isEN
+            ? `Popular alternatives include ${alternatives
+                .slice(0, 3)
+                .map((tool) => tool.name)
+                .join(", ")}.`
+            : `热门替代工具包括 ${alternatives
+                .slice(0, 3)
+                .map((tool) => tool.name)
+                .join("、")}。`
+          : isEN
+            ? `${toolName} can be compared with other published tools in the same category for pricing, features, and workflow fit.`
+            : `可以将 ${toolName} 与同分类下的其他已发布工具在定价、功能和工作流适配方面进行对比。`,
     });
   }
 

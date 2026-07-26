@@ -209,5 +209,38 @@
       "trending": "Trending",
       "categories": "Categories"
     }
+  },
+  "toolDetail": {
+    "visitWebsite": "Visit Website",
+    "backToTools": "Back to tools",
+    "pricing": "Pricing",
+    "category": "Category",
+    "platforms": "Platforms",
+    "languages": "Languages",
+    "aiTool": "AI Tool",
+    "highlights": "Highlights",
+    "overview": "Overview",
+    "keyFeatures": "Key Features",
+    "screenshots": "Screenshots",
+    "faq": "FAQ",
+    "commonQuestions": "Common questions",
+    "faqEmpty": "FAQ content has not been added yet.",
+    "tags": "Tags",
+    "pricingPlans": "Pricing Plans",
+    "useCases": "Use Cases",
+    "userReviews": "User Reviews",
+    "whatUsersSay": "What users say",
+    "noReviews": "No approved reviews yet.",
+    "alternativesTo": "Alternatives to {name}",
+    "viewAll": "View all",
+    "exploreRelated": "Explore this related tool for a nearby workflow.",
+    "readyToTry": "Ready to try {name}?",
+    "visitOfficial": "Visit the official website",
+    "openOfficialDesc": "Open the official {name} website to verify latest features, plans, and product updates.",
+    "openOfficialSite": "Open official site",
+    "browseMore": "Browse more tools",
+    "noPlatformDetails": "No platform details available.",
+    "breadcrumbHome": "Home",
+    "breadcrumbTools": "Tools"
   }
 }

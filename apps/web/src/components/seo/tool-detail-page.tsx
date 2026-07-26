@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 import { ToolLogo } from "@/components/tool/tool-logo";
 import { Button } from "@/components/ui/button";
@@ -23,7 +24,8 @@ type ToolDetailPageProps = {
   locale: string;
 };
 
-export function ToolDetailPage({ data, locale }: ToolDetailPageProps) {
+export async function ToolDetailPage({ data, locale }: ToolDetailPageProps) {
+  const t = await getTranslations("toolDetail");
   const primaryCategory =
     data.categories.find((category) => category.isPrimary) ?? data.categories[0] ?? null;
   const overviewBlocks = buildOverviewBlocks(data);
@@ -33,20 +35,24 @@ export function ToolDetailPage({ data, locale }: ToolDetailPageProps) {
     6,
   );
   const keyFacts = [
-    { icon: <Zap className="size-4" />, label: "Pricing", value: formatPricing(data.pricingModel) },
+    {
+      icon: <Zap className="size-4" />,
+      label: t("pricing"),
+      value: formatPricing(data.pricingModel, locale),
+    },
     {
       icon: <Sparkles className="size-4" />,
-      label: "Category",
-      value: primaryCategory?.name ?? "AI Tool",
+      label: t("category"),
+      value: primaryCategory?.name ?? t("aiTool"),
     },
     {
       icon: <Monitor className="size-4" />,
-      label: "Platforms",
+      label: t("platforms"),
       value: data.platforms.join(", ") || "Web",
     },
     {
       icon: <Globe className="size-4" />,
-      label: "Languages",
+      label: t("languages"),
       value: data.languages.join(", ") || "EN, CN",
     },
   ];
@@ -74,14 +80,14 @@ export function ToolDetailPage({ data, locale }: ToolDetailPageProps) {
               href={`/${locale}`}
               className="text-slate-400 transition-colors hover:text-emerald-600"
             >
-              Home
+              {t("breadcrumbHome")}
             </Link>
             <ChevronRight className="size-3.5 text-slate-300" />
             <Link
               href={`/${locale}/tools`}
               className="text-slate-400 transition-colors hover:text-emerald-600"
             >
-              Tools
+              {t("breadcrumbTools")}
             </Link>
             {primaryCategory ? (
               <>
@@ -119,7 +125,7 @@ export function ToolDetailPage({ data, locale }: ToolDetailPageProps) {
                     {primaryCategory.name}
                   </Pill>
                 ) : null}
-                <Pill accent>{formatPricing(data.pricingModel)}</Pill>
+                <Pill accent>{formatPricing(data.pricingModel, locale)}</Pill>
                 {averageReview ? (
                   <Pill>
                     <Star className="size-3 fill-amber-400 text-amber-400" />
@@ -142,14 +148,14 @@ export function ToolDetailPage({ data, locale }: ToolDetailPageProps) {
               <div className="mt-6 flex flex-wrap justify-center gap-3">
                 <Button asChild size="lg" className="shadow-sm shadow-emerald-500/20">
                   <a href={data.website} target="_blank" rel="noopener noreferrer">
-                    Visit Website
+                    {t("visitWebsite")}
                     <ExternalLink className="size-4" />
                   </a>
                 </Button>
                 <Button asChild size="lg" variant="outline">
                   <Link href={`/${locale}/tools`}>
                     <ArrowLeft className="size-4" />
-                    Back to tools
+                    {t("backToTools")}
                   </Link>
                 </Button>
               </div>
@@ -189,7 +195,7 @@ export function ToolDetailPage({ data, locale }: ToolDetailPageProps) {
                 {data.tags.length ? (
                   <div>
                     <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-slate-400">
-                      Tags
+                      {t("tags")}
                     </p>
                     <div className="mt-2.5 flex flex-wrap gap-1.5">
                       {data.tags.slice(0, 6).map((tag) => (
@@ -208,7 +214,7 @@ export function ToolDetailPage({ data, locale }: ToolDetailPageProps) {
                 {data.platforms.length ? (
                   <div>
                     <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-slate-400">
-                      Platforms
+                      {t("platforms")}
                     </p>
                     <div className="mt-2.5 flex flex-wrap gap-1.5">
                       {data.platforms.map((item) => (
@@ -225,7 +231,7 @@ export function ToolDetailPage({ data, locale }: ToolDetailPageProps) {
                 {data.languages.length ? (
                   <div>
                     <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-slate-400">
-                      Languages
+                      {t("languages")}
                     </p>
                     <div className="mt-2.5 flex flex-wrap gap-1.5">
                       {data.languages.map((item) => (
@@ -245,7 +251,7 @@ export function ToolDetailPage({ data, locale }: ToolDetailPageProps) {
             {/* Highlights 横条 */}
             {highlights.length ? (
               <div>
-                <SectionEyebrow>Highlights</SectionEyebrow>
+                <SectionEyebrow>{t("highlights")}</SectionEyebrow>
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
                   {highlights.map((item) => (
                     <div
@@ -264,7 +270,7 @@ export function ToolDetailPage({ data, locale }: ToolDetailPageProps) {
 
             {/* Overview */}
             <div>
-              <SectionEyebrow>Overview</SectionEyebrow>
+              <SectionEyebrow>{t("overview")}</SectionEyebrow>
               <div className="mt-4 space-y-4 text-base leading-[1.85] text-slate-600">
                 {overviewBlocks.length ? (
                   overviewBlocks.map((block) => <p key={block}>{block}</p>)
@@ -277,7 +283,7 @@ export function ToolDetailPage({ data, locale }: ToolDetailPageProps) {
             {/* Key Features */}
             {featureItems.length ? (
               <div>
-                <SectionEyebrow>Key Features</SectionEyebrow>
+                <SectionEyebrow>{t("keyFeatures")}</SectionEyebrow>
                 <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   {featureItems.map((item, index) => (
                     <article
@@ -297,7 +303,7 @@ export function ToolDetailPage({ data, locale }: ToolDetailPageProps) {
             {/* Screenshots */}
             {screenshots.length ? (
               <div>
-                <SectionEyebrow>Screenshots</SectionEyebrow>
+                <SectionEyebrow>{t("screenshots")}</SectionEyebrow>
                 <div className="mt-4 grid gap-4 md:grid-cols-2">
                   {screenshots.map((screenshot) => (
                     <a
@@ -323,9 +329,9 @@ export function ToolDetailPage({ data, locale }: ToolDetailPageProps) {
 
             {/* FAQ */}
             <div className="max-w-2xl">
-              <SectionEyebrow>FAQ</SectionEyebrow>
+              <SectionEyebrow>{t("faq")}</SectionEyebrow>
               <div className="mt-4 space-y-3">
-                <p className="text-sm font-semibold text-slate-900">Common questions</p>
+                <p className="text-sm font-semibold text-slate-900">{t("commonQuestions")}</p>
                 {data.faqs.length ? (
                   data.faqs.slice(0, 5).map((faq) => (
                     <details
@@ -343,7 +349,7 @@ export function ToolDetailPage({ data, locale }: ToolDetailPageProps) {
                   ))
                 ) : (
                   <p className="rounded-xl border border-dashed border-slate-200 p-5 text-sm text-slate-400">
-                    FAQ content has not been added yet.
+                    {t("faqEmpty")}
                   </p>
                 )}
               </div>
@@ -352,7 +358,7 @@ export function ToolDetailPage({ data, locale }: ToolDetailPageProps) {
             {/* Pricing Plans */}
             {data.pricingPlans.length ? (
               <div>
-                <SectionEyebrow>Pricing Plans</SectionEyebrow>
+                <SectionEyebrow>{t("pricingPlans")}</SectionEyebrow>
                 <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   {data.pricingPlans.slice(0, 3).map((plan) => (
                     <div
@@ -362,11 +368,11 @@ export function ToolDetailPage({ data, locale }: ToolDetailPageProps) {
                       <div className="flex items-start justify-between gap-3">
                         <p className="text-base font-semibold text-slate-900">{plan.name}</p>
                         <span className="rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700">
-                          {formatPlanPrice(plan.price, plan.billingPeriod)}
+                          {formatPlanPrice(plan.price, plan.billingPeriod, locale)}
                         </span>
                       </div>
                       <p className="mt-1 text-xs text-slate-400">
-                        {formatPricing(plan.pricingModel)}
+                        {formatPricing(plan.pricingModel, locale)}
                       </p>
                       {plan.description ? (
                         <p className="mt-3 text-sm leading-6 text-slate-600">{plan.description}</p>
@@ -380,7 +386,7 @@ export function ToolDetailPage({ data, locale }: ToolDetailPageProps) {
             {/* Use Cases */}
             {data.useCases.length ? (
               <div className="max-w-2xl">
-                <SectionEyebrow>Use Cases</SectionEyebrow>
+                <SectionEyebrow>{t("useCases")}</SectionEyebrow>
                 <ul className="mt-4 space-y-3">
                   {data.useCases.slice(0, 5).map((item) => (
                     <li key={item} className="flex gap-3 text-sm leading-6 text-slate-600">
@@ -394,9 +400,9 @@ export function ToolDetailPage({ data, locale }: ToolDetailPageProps) {
 
             {/* User Reviews */}
             <div className="max-w-2xl">
-              <SectionEyebrow>User Reviews</SectionEyebrow>
+              <SectionEyebrow>{t("userReviews")}</SectionEyebrow>
               <div className="mt-4 space-y-3">
-                <p className="text-sm font-semibold text-slate-900">What users say</p>
+                <p className="text-sm font-semibold text-slate-900">{t("whatUsersSay")}</p>
                 {reviews.length ? (
                   reviews.map((review) => (
                     <article
@@ -424,7 +430,7 @@ export function ToolDetailPage({ data, locale }: ToolDetailPageProps) {
                   ))
                 ) : (
                   <p className="rounded-xl border border-dashed border-slate-200 p-5 text-sm text-slate-400">
-                    No approved reviews yet.
+                    {t("noReviews")}
                   </p>
                 )}
               </div>
@@ -434,12 +440,12 @@ export function ToolDetailPage({ data, locale }: ToolDetailPageProps) {
             {relatedTools.length ? (
               <div>
                 <div className="flex items-end justify-between">
-                  <SectionEyebrow>Alternatives to {data.name}</SectionEyebrow>
+                  <SectionEyebrow>{t("alternativesTo", { name: data.name })}</SectionEyebrow>
                   <Link
                     href={`/${locale}/tools`}
                     className="text-sm font-medium text-emerald-600 hover:text-emerald-700"
                   >
-                    View all
+                    {t("viewAll")}
                   </Link>
                 </div>
                 <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -462,12 +468,12 @@ export function ToolDetailPage({ data, locale }: ToolDetailPageProps) {
                             {tool.name}
                           </p>
                           <p className="mt-0.5 text-xs text-slate-400">
-                            {formatPricing(tool.pricingModel)}
+                            {formatPricing(tool.pricingModel, locale)}
                           </p>
                         </div>
                       </div>
                       <p className="mt-3 line-clamp-2 text-sm leading-6 text-slate-500">
-                        {tool.summary ?? "Explore this related tool for a nearby workflow."}
+                        {tool.summary ?? t("exploreRelated")}
                       </p>
                     </Link>
                   ))}
@@ -480,23 +486,24 @@ export function ToolDetailPage({ data, locale }: ToolDetailPageProps) {
         {/* ═══ 底部 CTA ═══ */}
         <section className="border-t border-slate-200/60 bg-gradient-emerald-soft">
           <div className="mx-auto max-w-5xl px-6 py-12 text-center">
-            <p className="text-sm font-medium text-emerald-600">Ready to try {data.name}?</p>
+            <p className="text-sm font-medium text-emerald-600">
+              {t("readyToTry", { name: data.name })}
+            </p>
             <h2 className="mt-2 text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">
-              Visit the official website
+              {t("visitOfficial")}
             </h2>
             <p className="mx-auto mt-3 max-w-md text-sm text-slate-500">
-              Open the official {data.name} website to verify latest features, plans, and product
-              updates.
+              {t("openOfficialDesc", { name: data.name })}
             </p>
             <div className="mt-6 flex justify-center gap-3">
               <Button asChild size="lg" className="shadow-sm shadow-emerald-500/20">
                 <a href={data.website} target="_blank" rel="noopener noreferrer">
-                  Open official site
+                  {t("openOfficialSite")}
                   <ExternalLink className="size-4" />
                 </a>
               </Button>
               <Button asChild size="lg" variant="outline">
-                <Link href={`/${locale}/tools`}>Browse more tools</Link>
+                <Link href={`/${locale}/tools`}>{t("browseMore")}</Link>
               </Button>
             </div>
           </div>
@@ -613,18 +620,27 @@ function averageRating(reviews: ToolPageData["reviews"]) {
   return value.toFixed(1);
 }
 
-function formatPricing(pricing: string) {
-  const labels: Record<string, string> = {
-    FREE: "Free",
-    FREEMIUM: "Freemium",
-    PAID: "Paid",
-    CONTACT: "Contact sales",
-  };
+function formatPricing(pricing: string, locale?: string) {
+  const isEN = !locale || locale === "en" || locale.startsWith("en");
+  const labels: Record<string, string> = isEN
+    ? {
+        FREE: "Free",
+        FREEMIUM: "Freemium",
+        PAID: "Paid",
+        CONTACT: "Contact sales",
+      }
+    : {
+        FREE: "免费",
+        FREEMIUM: "免费增值",
+        PAID: "付费",
+        CONTACT: "联系销售",
+      };
   return labels[pricing] ?? pricing;
 }
 
-function formatPlanPrice(price: string | null, billingPeriod: string | null) {
-  if (!price) return "Custom";
+function formatPlanPrice(price: string | null, billingPeriod: string | null, locale?: string) {
+  const isEN = !locale || locale === "en" || locale.startsWith("en");
+  if (!price) return isEN ? "Custom" : "自定义";
   const suffix = billingPeriod ? ` / ${billingPeriod.toLowerCase()}` : "";
   return `$${price}${suffix}`;
 }
