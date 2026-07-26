@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/components/rbac/auth-provider";
+import { getAdminRouterLoginPath } from "@/lib/api";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 
@@ -12,9 +14,13 @@ type AppSidebarProps = {
   className?: string;
 };
 
+const ADMIN_LOGO_LIGHT_URL = "https://img.toolsdar.io/logo/toolsdar-icon-black.png";
+const ADMIN_LOGO_DARK_URL = "https://img.toolsdar.io/logo/toolsdar-icon-white.png";
+
 export function AppSidebar({ onNavigate, className }: AppSidebarProps) {
   const pathname = usePathname();
-  const { navItems, user } = useAuth();
+  const router = useRouter();
+  const { navItems, user, logout } = useAuth();
 
   return (
     <aside
@@ -24,19 +30,26 @@ export function AppSidebar({ onNavigate, className }: AppSidebarProps) {
       )}
     >
       <div className="flex h-14 items-center border-b border-sidebar-border px-6">
-        <Link href="/" className="flex items-center gap-2 font-semibold" onClick={onNavigate}>
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-sidebar-primary text-sm text-sidebar-primary-foreground">
-            AI
-          </span>
-          <span>Tool CMS</span>
+        <Link href="/" className="flex items-center" onClick={onNavigate}>
+          <div className="relative h-10 w-[137px]">
+            <img
+              src={ADMIN_LOGO_LIGHT_URL}
+              alt="ToolsDdar"
+              className="h-10 w-[137px] object-contain object-left dark:hidden"
+            />
+            <img
+              src={ADMIN_LOGO_DARK_URL}
+              alt="ToolsDdar"
+              className="hidden h-10 w-[137px] object-contain object-left dark:block"
+            />
+          </div>
         </Link>
       </div>
 
       <ScrollArea className="flex-1 px-3 py-4">
         <nav className="flex flex-col gap-1">
           {navItems.map((item) => {
-            const isActive =
-              item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+            const isActive = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
             const Icon = item.icon;
 
             return (
@@ -61,9 +74,19 @@ export function AppSidebar({ onNavigate, className }: AppSidebarProps) {
 
       <Separator />
       <div className="space-y-1 p-4 text-xs text-muted-foreground">
-        <p className="font-medium text-foreground">{user.name}</p>
-        <p>{user.email}</p>
-        <p>Role: {user.roles.join(", ")}</p>
+        <p className="font-medium text-foreground">{user?.name ?? "Guest"}</p>
+        <p>{user?.email ?? "Not signed in"}</p>
+        <p>Role: {user?.roles.join(", ") ?? "-"}</p>
+        <button
+          type="button"
+          className="pt-2 text-left text-xs font-medium text-primary"
+          onClick={() => {
+            logout();
+            router.replace(getAdminRouterLoginPath());
+          }}
+        >
+          Sign out
+        </button>
       </div>
     </aside>
   );

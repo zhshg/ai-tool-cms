@@ -3,21 +3,77 @@ RUN corepack enable && corepack prepare pnpm@9.15.4 --activate
 WORKDIR /app
 
 FROM base AS deps
+ARG PNPM_REGISTRY=https://registry.npmmirror.com
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
-COPY apps ./apps
-COPY packages ./packages
-COPY prisma ./prisma
-RUN pnpm install --frozen-lockfile
+COPY apps/admin/package.json ./apps/admin/package.json
+COPY apps/api/package.json ./apps/api/package.json
+COPY apps/scheduler/package.json ./apps/scheduler/package.json
+COPY apps/web/package.json ./apps/web/package.json
+COPY apps/worker/package.json ./apps/worker/package.json
+COPY packages/ads/package.json ./packages/ads/package.json
+COPY packages/affiliate/package.json ./packages/affiliate/package.json
+COPY packages/ai/package.json ./packages/ai/package.json
+COPY packages/api-platform/package.json ./packages/api-platform/package.json
+COPY packages/auth/package.json ./packages/auth/package.json
+COPY packages/automation/package.json ./packages/automation/package.json
+COPY packages/cache/package.json ./packages/cache/package.json
+COPY packages/common/package.json ./packages/common/package.json
+COPY packages/config/package.json ./packages/config/package.json
+COPY packages/crawler-core/package.json ./packages/crawler-core/package.json
+COPY packages/database/package.json ./packages/database/package.json
+COPY packages/discovery/package.json ./packages/discovery/package.json
+COPY packages/email/package.json ./packages/email/package.json
+COPY packages/feature-flags/package.json ./packages/feature-flags/package.json
+COPY packages/geo/package.json ./packages/geo/package.json
+COPY packages/growth/package.json ./packages/growth/package.json
+COPY packages/i18n/package.json ./packages/i18n/package.json
+COPY packages/logger/package.json ./packages/logger/package.json
+COPY packages/mcp-server/package.json ./packages/mcp-server/package.json
+COPY packages/monitoring/package.json ./packages/monitoring/package.json
+COPY packages/observability/package.json ./packages/observability/package.json
+COPY packages/plugins/package.json ./packages/plugins/package.json
+COPY packages/public-api/package.json ./packages/public-api/package.json
+COPY packages/queue/package.json ./packages/queue/package.json
+COPY packages/ranking/package.json ./packages/ranking/package.json
+COPY packages/recommendation/package.json ./packages/recommendation/package.json
+COPY packages/screenshot/package.json ./packages/screenshot/package.json
+COPY packages/sdk/package.json ./packages/sdk/package.json
+COPY packages/search/package.json ./packages/search/package.json
+COPY packages/seo/package.json ./packages/seo/package.json
+COPY packages/types/package.json ./packages/types/package.json
+COPY packages/workflow/package.json ./packages/workflow/package.json
+COPY prisma/package.json ./prisma/package.json
+RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
+  pnpm config set store-dir /pnpm/store \
+  && pnpm config set registry ${PNPM_REGISTRY} \
+  && pnpm config set network-concurrency 8 \
+  && pnpm config set child-concurrency 4 \
+  && pnpm install \
+  --frozen-lockfile \
+  --config.fetch-retries=10 \
+  --config.fetch-retry-factor=2 \
+  --config.fetch-timeout=300000 \
+  --config.network-timeout=300000
 
 FROM base AS builder
 COPY --from=deps /app ./
 COPY . .
 ARG APP_NAME=web
 ARG ADMIN_BASE_PATH=
+ARG NEXT_PUBLIC_API_URL=
+ARG NEXT_PUBLIC_APP_URL=
+ARG NEXT_PUBLIC_GA_ID=
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV ADMIN_BASE_PATH=${ADMIN_BASE_PATH}
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+ENV NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL}
+ENV NEXT_PUBLIC_GA_ID=${NEXT_PUBLIC_GA_ID}
 ENV NEXT_STANDALONE=true
-RUN pnpm turbo run build --filter=@ai-tool-cms/${APP_NAME}
+RUN rm -rf apps/${APP_NAME}/.next packages/config/dist
+ENV PRISMA_HIDE_UPDATE_MESSAGE=1
+ENV PRISMA_GENERATE_SKIP_AUTOINSTALL=1
+RUN --mount=type=cache,id=prisma-engine-cache,target=/root/.cache/prisma \
+  pnpm turbo run build --filter=@ai-tool-cms/${APP_NAME} --force
 
 FROM node:20-alpine AS runner
 WORKDIR /app
@@ -35,6 +91,7 @@ ENV ADMIN_BASE_PATH=${ADMIN_BASE_PATH}
 
 COPY --from=builder --chown=nextjs:nodejs /app/apps/${APP_NAME}/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/apps/${APP_NAME}/.next/static ./apps/${APP_NAME}/.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/apps/${APP_NAME}/public ./apps/${APP_NAME}/public
 
 USER nextjs
 EXPOSE 3000

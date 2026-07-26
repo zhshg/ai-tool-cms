@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { setRequestLocale } from "next-intl/server";
 
-import { SeoLandingPage } from "@/components/seo/landing-page";
+import { CategoryLandingExperience } from "@/components/category/category-directory";
+import { serializeJsonLd } from "@/lib/seo";
 import { getCategoryLanding } from "@/lib/catalog";
 
 export async function generateMetadata({
@@ -27,5 +28,13 @@ export default async function CategoryPage({
   const landing = await getCategoryLanding(slug, locale);
   if (!landing) notFound();
 
-  return <SeoLandingPage locale={locale} {...landing.data} />;
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(landing.data.jsonLd) }}
+      />
+      <CategoryLandingExperience locale={locale} data={landing.data} />
+    </>
+  );
 }

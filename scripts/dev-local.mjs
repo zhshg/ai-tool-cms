@@ -62,7 +62,14 @@ function startInfrastructure() {
 function startApps() {
   const child = spawn(
     "pnpm",
-    ["turbo", "run", "dev", "--filter=@ai-tool-cms/web", "--filter=@ai-tool-cms/api"],
+    [
+      "turbo",
+      "run",
+      "dev",
+      "--filter=@ai-tool-cms/web",
+      "--filter=@ai-tool-cms/admin",
+      "--filter=@ai-tool-cms/api",
+    ],
     {
       cwd: root,
       stdio: "inherit",

@@ -7,6 +7,10 @@ type RedisClient = {
   set(key: string, value: string, mode: string, ttl: number): Promise<unknown>;
   del(key: string): Promise<unknown>;
   ping(): Promise<string>;
+  incr(key: string): Promise<number>;
+  pttl(key: string): Promise<number>;
+  expire(key: string, seconds: number): Promise<number>;
+  setnx(key: string, value: string): Promise<number>;
 };
 
 let client: RedisClient | null = null;

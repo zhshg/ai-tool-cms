@@ -1,4 +1,4 @@
-import type { Permission } from "@prisma/client";
+import type { Permission } from "../../packages/database/generated/client";
 import {
   ADMIN_ROLE_CODE,
   EDITOR_ROLE_CODE,

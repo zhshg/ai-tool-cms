@@ -51,7 +51,9 @@ export const envSchema = z.object({
   OPENAI_BASE_URL: optionalUrl,
   AI_DEFAULT_MODEL: z.string().default("gpt-4o-mini"),
   NEXT_PUBLIC_APP_URL: z.string().url().default("http://localhost:3000"),
-  NEXT_PUBLIC_ADMIN_MOCK_ROLE: z.string().default("admin"),
+  NEXT_PUBLIC_SITE_URL: optionalUrl,
+  NEXT_PUBLIC_ADMIN_MOCK_ROLE: optionalString,
+  SITE_URL: optionalUrl,
   SITE_NAME: z.string().default("AI Tool CMS"),
   SITE_DESCRIPTION: optionalString,
   DEFAULT_LOCALE: z.string().default("en"),
@@ -79,7 +81,17 @@ export const envSchema = z.object({
   CRAWLER_ENABLE_PRODUCTION_ADAPTERS: z
     .string()
     .optional()
-    .transform((v) => v === "true" || v === "1"),
+    .transform((v) => {
+      if (v === "true" || v === "1") {
+        return true;
+      }
+
+      if (v === "false" || v === "0") {
+        return false;
+      }
+
+      return process.env.NODE_ENV === "production";
+    }),
   CRAWLER_CONCURRENCY: z.coerce.number().int().positive().default(5),
   CRAWLER_TIMEOUT_MS: z.coerce.number().int().positive().default(30_000),
   /** Sprint 4: auto-apply AI output and publish tool without human review (default: true). */
@@ -88,6 +100,13 @@ export const envSchema = z.object({
     .optional()
     .transform((v) => v !== "false" && v !== "0"),
   AUTOMATION_AI_REFRESH_DAYS: z.coerce.number().int().positive().default(30),
+  INDEXNOW_ENABLED: z
+    .string()
+    .optional()
+    .transform((v) => v === "true" || v === "1"),
+  INDEXNOW_KEY: optionalString,
+  INDEXNOW_KEY_LOCATION: optionalUrl,
+  INDEXNOW_ENDPOINT: optionalUrl,
   BING_INDEXNOW_KEY: optionalString,
   GOOGLE_INDEXING_SERVICE_ACCOUNT_JSON: optionalString,
   OTEL_EXPORTER_OTLP_ENDPOINT: optionalUrl,

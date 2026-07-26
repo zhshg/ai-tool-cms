@@ -39,10 +39,30 @@ export class PublicSearchQueryDto extends PaginationQueryDto {
   @IsString()
   platform?: string;
 
-  @ApiPropertyOptional({ enum: ["relevance", "popularity", "newest", "rating"] })
+  @ApiPropertyOptional({ description: "Only tools with API or automation support" })
   @IsOptional()
-  @IsIn(["relevance", "popularity", "newest", "rating"])
-  sort?: "relevance" | "popularity" | "newest" | "rating";
+  @Type(() => Boolean)
+  @IsBoolean()
+  api?: boolean;
+
+  @ApiPropertyOptional({ description: "Only free or freemium tools" })
+  @IsOptional()
+  @Type(() => Boolean)
+  @IsBoolean()
+  free?: boolean;
+
+  @ApiPropertyOptional({ description: "Only open-source tools" })
+  @IsOptional()
+  @Type(() => Boolean)
+  @IsBoolean()
+  openSource?: boolean;
+
+  @ApiPropertyOptional({
+    enum: ["relevance", "popular", "popularity", "trending", "newest", "a-z", "rating"],
+  })
+  @IsOptional()
+  @IsIn(["relevance", "popular", "popularity", "trending", "newest", "a-z", "rating"])
+  sort?: "relevance" | "popular" | "popularity" | "trending" | "newest" | "a-z" | "rating";
 
   @ApiPropertyOptional({ default: true })
   @IsOptional()
@@ -88,6 +108,21 @@ export class HomeRecommendationsQueryDto {
   region?: string;
 
   @ApiPropertyOptional({ default: 6 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(20)
+  limit?: number;
+}
+
+export class SearchSuggestionQueryDto {
+  @ApiPropertyOptional({ description: "Partial query for autocomplete" })
+  @IsOptional()
+  @IsString()
+  q?: string;
+
+  @ApiPropertyOptional({ default: 10 })
   @IsOptional()
   @Type(() => Number)
   @IsInt()

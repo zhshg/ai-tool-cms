@@ -1,9 +1,20 @@
+import { buildSitemapIndexXml, getSiteConfig, SITEMAP_CHUNK_IDS } from "@ai-tool-cms/seo";
+
 const API_URL = process.env.INTERNAL_API_URL ?? process.env.API_URL ?? "http://localhost:4000";
 
-const FALLBACK_SITEMAP_INDEX = `<?xml version="1.0" encoding="UTF-8"?>
-<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <sitemap><loc>${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/sitemaps/tool.xml</loc></sitemap>
-</sitemapindex>`;
+function buildFallbackSitemapIndex() {
+  const config = getSiteConfig();
+  const localeChunks = config.locales.map((locale) => ({
+    loc: `${config.siteUrl}/sitemaps/${locale}.xml`,
+    lastmod: new Date(),
+  }));
+  const contentChunks = SITEMAP_CHUNK_IDS.map((chunk) => ({
+    loc: `${config.siteUrl}/sitemaps/${chunk}.xml`,
+    lastmod: new Date(),
+  }));
+
+  return buildSitemapIndexXml([...localeChunks, ...contentChunks]);
+}
 
 export async function GET() {
   try {
@@ -19,7 +30,7 @@ export async function GET() {
     /* fallback */
   }
 
-  return new Response(FALLBACK_SITEMAP_INDEX, {
+  return new Response(buildFallbackSitemapIndex(), {
     headers: { "Content-Type": "application/xml; charset=utf-8" },
   });
 }

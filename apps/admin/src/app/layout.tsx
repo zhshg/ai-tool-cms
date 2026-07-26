@@ -4,8 +4,8 @@ import { ThemeProvider } from "@/components/theme-provider";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "AI Tool CMS Admin",
-  description: "AI Tool CMS administration dashboard",
+  title: "ToolsDdar Admin",
+  description: "ToolsDdar administration dashboard",
 };
 
 export default function RootLayout({

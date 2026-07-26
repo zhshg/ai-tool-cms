@@ -4,6 +4,7 @@ import { embedText } from "./embeddings";
 import { buildSearchableText } from "./ranking";
 import { deleteToolDocument, upsertToolDocument } from "./client";
 import type { IndexToolPayload, SearchToolDocument } from "./types";
+import { resolveSearchLogoUrl } from "./logo";
 
 const activeOnly = { deletedAt: null } as const;
 
@@ -32,10 +33,10 @@ export class Indexer {
     }
 
     const metadata = (tool.metadata ?? {}) as Record<string, unknown>;
-    const features = (metadata.aiFeatures as string[] | undefined) ?? [];
-    const useCases = (metadata.aiUseCases as string[] | undefined) ?? [];
-    const platforms = (metadata.aiPlatforms as string[] | undefined) ?? [];
-    const languages = (metadata.aiLanguages as string[] | undefined) ?? [];
+    const features = normalizeStringList(metadata.aiFeatures ?? metadata.features);
+    const useCases = normalizeStringList(metadata.aiUseCases ?? metadata.useCases);
+    const platforms = normalizeStringList(metadata.aiPlatforms ?? metadata.platforms);
+    const languages = normalizeStringList(metadata.aiLanguages ?? metadata.languages);
 
     const categorySlugs = tool.categories.map((c) => c.category.slug);
     const categoryNames = tool.categories.map((c) => c.category.name);
@@ -56,7 +57,7 @@ export class Indexer {
       description: tool.description ?? undefined,
       summary: tool.summary ?? undefined,
       website: tool.website,
-      logoUrl: tool.logoUrl ?? undefined,
+      logoUrl: resolveSearchLogoUrl(tool.logoUrl, metadata, tool.website),
       pricingModel: tool.pricingModel,
       categorySlugs,
       categoryNames,
@@ -66,7 +67,11 @@ export class Indexer {
       languages,
       features,
       useCases,
+      hasApi: hasApiAccess(metadata),
+      isFree: tool.pricingModel === "FREE" || tool.pricingModel === "FREEMIUM",
+      isOpenSource: isOpenSourceTool(metadata, tagSlugs),
       popularityScore,
+      trendingScore: Number(metadata.trendingScore ?? popularityScore),
       reviewScore,
       publishedAt: tool.publishedAt?.toISOString(),
       updatedAt: tool.updatedAt.toISOString(),
@@ -103,4 +108,21 @@ export async function indexTool(
 ): Promise<{ indexed: boolean; embeddingDimensions: number }> {
   const indexer = new Indexer(prisma);
   return indexer.indexTool(toolId, payload);
+}
+
+function normalizeStringList(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.map((item) => (typeof item === "string" ? item.trim() : "")).filter(Boolean);
+}
+
+function hasApiAccess(metadata: Record<string, unknown>): boolean {
+  const explicit = metadata.hasApi ?? metadata.apiAccess ?? metadata.aiApiAccess ?? metadata.api;
+  if (typeof explicit === "boolean") return explicit;
+  const integrations = normalizeStringList(metadata.aiIntegrations ?? metadata.integrations);
+  return integrations.some((item) => /api|webhook|zapier|make|n8n/i.test(item));
+}
+
+function isOpenSourceTool(metadata: Record<string, unknown>, tagSlugs: string[]): boolean {
+  if (metadata.openSource === true || metadata.isOpenSource === true) return true;
+  return tagSlugs.some((slug) => ["open-source", "opensource", "oss"].includes(slug));
 }

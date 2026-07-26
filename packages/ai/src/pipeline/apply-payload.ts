@@ -52,6 +52,7 @@ export async function applyStagePayload(
             aiIntegrations: data.integrations,
             aiTargetUsers: data.targetUsers,
             aiUseCases: data.useCases,
+            aiSupport: data.support,
             aiPricingNotes: data.pricing,
             ...(data.pros ? { aiPros: data.pros } : {}),
             ...(data.cons ? { aiCons: data.cons } : {}),
@@ -108,6 +109,7 @@ export async function applyStagePayload(
           canonicalUrl: data.canonical,
           schemaJson: {
             keywords: data.keywords,
+            ogDescription: data.ogDescription ?? data.openGraph?.description,
             openGraph: data.openGraph,
             twitterCard: data.twitterCard,
             jsonLd: data.jsonLd,
@@ -120,6 +122,7 @@ export async function applyStagePayload(
           canonicalUrl: data.canonical,
           schemaJson: {
             keywords: data.keywords,
+            ogDescription: data.ogDescription ?? data.openGraph?.description,
             openGraph: data.openGraph,
             twitterCard: data.twitterCard,
             jsonLd: data.jsonLd,

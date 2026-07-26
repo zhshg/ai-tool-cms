@@ -1,4 +1,4 @@
-import { PricingModel, PromptStatus, ToolStatus } from "@prisma/client";
+import { PricingModel, PromptStatus, ToolStatus } from "../../packages/database/generated/client";
 import { prisma } from "./context";
 import { upsertBySlug } from "./helpers";
 

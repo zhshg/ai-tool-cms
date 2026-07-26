@@ -1,4 +1,4 @@
-import { PricingModel, ToolStatus } from "@prisma/client";
+import { PricingModel, ToolStatus } from "../../packages/database/generated/client";
 import { slugify } from "@ai-tool-cms/common";
 import { prisma } from "./context";
 import { upsertBySlug } from "./helpers";

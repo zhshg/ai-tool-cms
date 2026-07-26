@@ -65,6 +65,18 @@ export class AutomationController {
     return this.automationService.triggerScreenshots(toolId);
   }
 
+  @Get("logos/:toolId/preview")
+  @RequirePermission(PermissionCode.AutomationRead)
+  logoPreview(@Param("toolId") toolId: string) {
+    return this.automationService.previewToolLogo(toolId);
+  }
+
+  @Post("logos/:toolId")
+  @RequirePermission(PermissionCode.AutomationManage)
+  logo(@Param("toolId") toolId: string, @Body() body: { force?: boolean } = {}) {
+    return this.automationService.triggerToolLogo(toolId, body.force ?? true);
+  }
+
   @Post("social")
   @RequirePermission(PermissionCode.AutomationManage)
   social(@Body() body: { template?: "NEW_AI" | "TRENDING_AI" | "WEEKLY_AI" | "TOP_AI" }) {
@@ -82,5 +94,29 @@ export class AutomationController {
   @ApiOperation({ summary: "MCP Server connection info (AI Native Interface)" })
   mcp() {
     return this.automationService.mcpInfo();
+  }
+
+  @Get("runs")
+  @RequirePermission(PermissionCode.AutomationRead)
+  @ApiOperation({ summary: "List automation run logs" })
+  listRuns(
+    @Query("page") page?: string,
+    @Query("pageSize") pageSize?: string,
+    @Query("kind") kind?: string,
+    @Query("status") status?: string,
+  ) {
+    return this.automationService.listRuns({
+      page: page ? Number(page) : undefined,
+      pageSize: pageSize ? Number(pageSize) : undefined,
+      kind,
+      status,
+    });
+  }
+
+  @Get("runs/:id")
+  @RequirePermission(PermissionCode.AutomationRead)
+  @ApiOperation({ summary: "Get automation run detail" })
+  getRun(@Param("id") id: string) {
+    return this.automationService.getRun(id);
   }
 }

@@ -1,6 +1,6 @@
 export { connectPrisma, disconnectPrisma, prisma } from "./prisma";
-export type { PrismaClient } from "../generated/client";
-export type * from "../generated/client";
+export type { PrismaClient } from "../generated/crawler-client";
+export type * from "../generated/crawler-client";
 export {
   ContentRevisionStatus,
   AiPipelineStage,
@@ -8,11 +8,16 @@ export {
   SeoComparePageType,
   AiGenerationTaskStatus,
   ApiKeyStatus,
+  AutomationRunStatus,
   AuditAction,
   BillingPeriod,
   CrawlJobStatus,
   CrawlQueueJobType,
   CrawlSchedule,
+  CrawlFieldType,
+  CrawlRecordStatus,
+  CrawlRuleType,
+  CrawlSourceKind,
   CrawlSourceStatus,
   PricingModel,
   PromptStatus,
@@ -21,4 +26,4 @@ export {
   SeoEntityType,
   ToolStatus,
   UserStatus,
-} from "../generated/client";
+} from "../generated/crawler-client";

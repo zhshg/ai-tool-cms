@@ -5,6 +5,8 @@ import { AdsController } from "./ads.controller";
 import { AdsService } from "./ads.service";
 import { NewsletterController } from "./newsletter.controller";
 import { NewsletterService } from "./newsletter.service";
+import { MonetizationController } from "./monetization.controller";
+import { MonetizationService } from "./monetization.service";
 import {
   PlatformController,
   RevenueController,
@@ -30,6 +32,7 @@ import { SponsoredService } from "./sponsored.service";
     RevenueController,
     GrowthCenterController,
     PartnerController,
+    MonetizationController,
   ],
   providers: [
     AffiliateService,
@@ -40,6 +43,7 @@ import { SponsoredService } from "./sponsored.service";
     RevenueService,
     GrowthCenterService,
     PartnerService,
+    MonetizationService,
   ],
   exports: [PlatformService],
 })

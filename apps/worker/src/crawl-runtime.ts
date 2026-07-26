@@ -41,6 +41,41 @@ export async function markJobRunning(crawlJobId: string): Promise<void> {
   });
 }
 
+export async function appendJobStep(
+  crawlJobId: string,
+  step: Record<string, unknown>,
+): Promise<void> {
+  const crawlJob = await prisma.crawlJob.findUnique({
+    where: { id: crawlJobId },
+    select: { result: true, metadata: true },
+  });
+  const result = (crawlJob?.result ?? {}) as Record<string, unknown>;
+  const metadata = (crawlJob?.metadata ?? {}) as Record<string, unknown>;
+  const steps = Array.isArray(result.steps)
+    ? [...result.steps]
+    : Array.isArray(metadata.steps)
+      ? [...metadata.steps]
+      : [];
+  steps.push({
+    ...step,
+    at: new Date().toISOString(),
+  });
+
+  await prisma.crawlJob.update({
+    where: { id: crawlJobId },
+    data: {
+      result: {
+        ...result,
+        steps,
+      },
+      metadata: {
+        ...metadata,
+        steps,
+      },
+    },
+  });
+}
+
 export async function markJobSucceeded(
   crawlJobId: string,
   sourceId: string,

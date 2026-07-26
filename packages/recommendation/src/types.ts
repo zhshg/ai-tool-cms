@@ -1,3 +1,13 @@
+export type RecommendationBreakdown = {
+  sharedTags: number;
+  sharedCategories: number;
+  samePricing: number;
+  sharedPlatforms: number;
+  popularity: number;
+  freshness: number;
+  semanticSimilarity: number;
+};
+
 export type RelatedTool = {
   toolId: string;
   slug: string;
@@ -5,6 +15,24 @@ export type RelatedTool = {
   summary?: string | null;
   score: number;
   reason: string;
+  breakdown: RecommendationBreakdown;
+};
+
+export type RelatedCategory = {
+  id: string;
+  slug: string;
+  name: string;
+  iconUrl?: string | null;
+  toolCount: number;
+  reason: string;
+};
+
+export type ToolRecommendationSet = {
+  similarTools: RelatedTool[];
+  alternatives: RelatedTool[];
+  moreLikeThis: RelatedTool[];
+  trendingTools: RelatedTool[];
+  relatedCategories: RelatedCategory[];
 };
 
 export type HomeSectionKind =

@@ -1,5 +1,10 @@
+import { AuthGuard } from "@/components/rbac/auth-guard";
 import { DashboardShell } from "@/components/layout/dashboard-shell";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  return <DashboardShell>{children}</DashboardShell>;
+  return (
+    <AuthGuard>
+      <DashboardShell>{children}</DashboardShell>
+    </AuthGuard>
+  );
 }

@@ -1,5 +1,5 @@
 // =============================================================================
-// AI Tool CMS — Prisma Schema v1 (Commit 011)
+// AI Tool CMS 鈥?Prisma Schema v1 (Commit 011)
 // Production-grade baseline. Minimize future breaking migrations.
 // =============================================================================
 //
@@ -19,7 +19,7 @@
 
 generator client {
   provider = "prisma-client-js"
-  output   = "../packages/database/generated/client"
+  output   = "../packages/database/generated/crawler-client"
 }
 
 datasource db {
@@ -102,6 +102,44 @@ enum CrawlSchedule {
   DAILY
   WEEKLY
   MANUAL
+}
+
+/// Generic crawler source category for local config-driven setup.
+enum CrawlSourceKind {
+  TOOLS
+  NEWS
+  BLOG
+  CUSTOM
+}
+
+/// Rule phase for generic crawler execution.
+enum CrawlRuleType {
+  LIST
+  DETAIL
+  CONTENT
+}
+
+/// Field value type produced by a rule.
+enum CrawlFieldType {
+  TEXT
+  HTML
+  URL
+  IMAGE
+  NUMBER
+  BOOLEAN
+  JSON
+  ARRAY
+  DATE
+}
+
+/// Lifecycle for normalized crawl records.
+enum CrawlRecordStatus {
+  PENDING
+  PARSED
+  CLEANED
+  PUBLISHED
+  FAILED
+  SKIPPED
 }
 
 enum CrawlQueueJobType {
@@ -353,6 +391,7 @@ model User {
   reviewVotes       ReviewVote[]
   favorites         Favorite[]
   collections       Collection[]
+  blogArticles      BlogArticle[]
   auditLogs         AuditLog[]         @relation("AuditActor")
   aiGenerationTasks AiGenerationTask[]
 
@@ -423,7 +462,7 @@ model Permission {
   @@map("permissions")
 }
 
-/// User ↔ Role assignment.
+/// User 鈫?Role assignment.
 model UserRole {
   id        String    @id @default(uuid()) @db.Uuid
   userId    String    @map("user_id") @db.Uuid
@@ -444,7 +483,7 @@ model UserRole {
   @@map("user_roles")
 }
 
-/// Role ↔ Permission assignment.
+/// Role 鈫?Permission assignment.
 model RolePermission {
   id           String    @id @default(uuid()) @db.Uuid
   roleId       String    @map("role_id") @db.Uuid
@@ -614,9 +653,10 @@ model Tool {
   favorites         Favorite[]
   collectionItems   CollectionItem[]
   seoMetadata       SeoMetadata[]
-  aiGenerationTasks AiGenerationTask[]
-  contentRevisions  ContentRevision[]
-  internalLinks     InternalLink[]     @relation("InternalLinkSource")
+    aiGenerationTasks AiGenerationTask[]
+    contentRevisions  ContentRevision[]
+    crawlRecords      CrawlRecord[]
+    internalLinks     InternalLink[]     @relation("InternalLinkSource")
   seoComparePages   SeoComparePage[]   @relation("SeoComparePrimaryTool")
   seoComparePagesB  SeoComparePage[]   @relation("SeoCompareSecondaryTool")
   popularitySnapshots ToolPopularitySnapshot[]
@@ -644,7 +684,7 @@ model Tool {
   @@map("tools")
 }
 
-/// Tool ↔ Category (M:N).
+/// Tool 鈫?Category (M:N).
 model ToolCategory {
   id         String    @id @default(uuid()) @db.Uuid
   toolId     String    @map("tool_id") @db.Uuid
@@ -666,7 +706,7 @@ model ToolCategory {
   @@map("tool_categories")
 }
 
-/// Tool ↔ Tag (M:N).
+/// Tool 鈫?Tag (M:N).
 model ToolTag {
   id        String    @id @default(uuid()) @db.Uuid
   toolId    String    @map("tool_id") @db.Uuid
@@ -1036,6 +1076,7 @@ model CrawlSource {
   id                   String            @id @default(uuid()) @db.Uuid
   slug                 String            @db.VarChar(120)
   name                 String            @db.VarChar(160)
+  kind                 CrawlSourceKind   @default(CUSTOM)
   baseUrl              String            @map("base_url") @db.VarChar(2048)
   adapterType          String            @map("adapter_type") @db.VarChar(64)
   status               CrawlSourceStatus @default(ENABLED)
@@ -1056,6 +1097,9 @@ model CrawlSource {
   deletedAt            DateTime?         @map("deleted_at")
 
   jobs CrawlJob[]
+  rules CrawlRule[]
+  fieldDefines CrawlFieldDefine[]
+  records CrawlRecord[]
 
   @@index([slug])
   @@index([status])
@@ -1094,6 +1138,7 @@ model CrawlJob {
   deletedAt    DateTime?      @map("deleted_at")
 
   source CrawlSource @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  records CrawlRecord[]
 
   @@index([sourceId])
   @@index([jobType])
@@ -1105,6 +1150,126 @@ model CrawlJob {
   @@index([deletedAt])
   @@index([updatedAt])
   @@map("crawl_jobs")
+}
+
+/// Crawl rule registry for list/detail/content extraction.
+model CrawlRule {
+  id            String        @id @default(uuid()) @db.Uuid
+  sourceId      String        @map("source_id") @db.Uuid
+  ruleType      CrawlRuleType  @map("rule_type")
+  name          String        @db.VarChar(160)
+  code          String        @db.VarChar(120)
+  isEnabled     Boolean       @default(true) @map("is_enabled")
+  priority      Int           @default(100)
+  listConfig    Json          @default("{}") @map("list_config")
+  detailConfig   Json          @default("{}") @map("detail_config")
+  parseConfig   Json          @default("{}") @map("parse_config")
+  requestConfig Json          @default("{}") @map("request_config")
+  metadata      Json          @default("{}")
+  createdById   String?       @map("created_by_id") @db.Uuid
+  updatedById   String?       @map("updated_by_id") @db.Uuid
+  deletedById   String?       @map("deleted_by_id") @db.Uuid
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+  deletedAt     DateTime?     @map("deleted_at")
+
+  source CrawlSource @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  fields CrawlFieldDefine[]
+  records CrawlRecord[]
+
+  @@index([sourceId])
+  @@index([ruleType])
+  @@index([isEnabled])
+  @@index([priority])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+  @@index([deletedAt])
+  @@index([updatedAt])
+  @@map("crawl_rules")
+}
+
+/// Field definition for a crawl rule.
+model CrawlFieldDefine {
+  id            String         @id @default(uuid()) @db.Uuid
+  sourceId      String         @map("source_id") @db.Uuid
+  ruleId        String         @map("rule_id") @db.Uuid
+  fieldKey      String         @map("field_key") @db.VarChar(120)
+  label         String         @db.VarChar(160)
+  fieldType     CrawlFieldType @map("field_type")
+  sourcePath    String?        @map("source_path") @db.VarChar(512)
+  transform     String?        @db.VarChar(160)
+  defaultValue  String?        @map("default_value") @db.Text
+  isRequired    Boolean        @default(false) @map("is_required")
+  isArray       Boolean        @default(false) @map("is_array")
+  sortOrder     Int            @default(0) @map("sort_order")
+  config        Json           @default("{}")
+  metadata      Json           @default("{}")
+  createdById   String?        @map("created_by_id") @db.Uuid
+  updatedById   String?        @map("updated_by_id") @db.Uuid
+  deletedById   String?        @map("deleted_by_id") @db.Uuid
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+  deletedAt     DateTime?      @map("deleted_at")
+
+  source CrawlSource @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  rule CrawlRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+
+  @@index([sourceId])
+  @@index([ruleId])
+  @@index([fieldKey])
+  @@index([fieldType])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+  @@index([deletedAt])
+  @@index([updatedAt])
+  @@map("crawl_field_defines")
+}
+
+/// Materialized crawl record for parsing / cleaning / publishing.
+model CrawlRecord {
+  id             String             @id @default(uuid()) @db.Uuid
+  sourceId       String             @map("source_id") @db.Uuid
+  ruleId         String?            @map("rule_id") @db.Uuid
+  crawlJobId     String?            @map("crawl_job_id") @db.Uuid
+  recordKey      String?            @map("record_key") @db.VarChar(160)
+  sourceUrl      String             @map("source_url") @db.VarChar(2048)
+  title          String?            @db.VarChar(240)
+  status         CrawlRecordStatus   @default(PENDING)
+  rawData        Json               @default("{}") @map("raw_data")
+  parsedData     Json               @default("{}") @map("parsed_data")
+  cleanedData    Json               @default("{}") @map("cleaned_data")
+  publishedToolId String?            @map("published_tool_id") @db.Uuid
+  errorMessage   String?            @map("error_message") @db.Text
+  fetchedAt      DateTime?          @map("fetched_at")
+  publishedAt    DateTime?          @map("published_at")
+  retryCount     Int                @default(0) @map("retry_count")
+  metadata       Json               @default("{}")
+  createdById    String?            @map("created_by_id") @db.Uuid
+  updatedById    String?            @map("updated_by_id") @db.Uuid
+  deletedById    String?            @map("deleted_by_id") @db.Uuid
+  createdAt      DateTime           @default(now()) @map("created_at")
+  updatedAt      DateTime           @updatedAt @map("updated_at")
+  deletedAt      DateTime?          @map("deleted_at")
+
+  source CrawlSource @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  rule CrawlRule? @relation(fields: [ruleId], references: [id], onDelete: SetNull)
+  crawlJob CrawlJob? @relation(fields: [crawlJobId], references: [id], onDelete: SetNull)
+  publishedTool Tool? @relation(fields: [publishedToolId], references: [id], onDelete: SetNull)
+
+  @@index([sourceId])
+  @@index([ruleId])
+  @@index([crawlJobId])
+  @@index([recordKey])
+  @@index([status])
+  @@index([publishedToolId])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+  @@index([deletedAt])
+  @@index([updatedAt])
+  @@map("crawl_records")
 }
 
 // -----------------------------------------------------------------------------
@@ -1181,7 +1346,7 @@ model ContentRevision {
 }
 
 // -----------------------------------------------------------------------------
-// SEO platform (Commits 041–050)
+// SEO platform (Commits 041鈥?50)
 // -----------------------------------------------------------------------------
 
 /// Programmatic compare / alternatives / list pages.
@@ -1251,7 +1416,7 @@ model SeoHealthSnapshot {
 }
 
 // -----------------------------------------------------------------------------
-// Search platform (Commits 051–060)
+// Search platform (Commits 051鈥?60)
 // -----------------------------------------------------------------------------
 
 /// Search query log for analytics dashboard (Commit 059).
@@ -1316,7 +1481,7 @@ model ToolPopularitySnapshot {
 }
 
 // -----------------------------------------------------------------------------
-// Monetization — Affiliate (Commit 061)
+// Monetization 鈥?Affiliate (Commit 061)
 // -----------------------------------------------------------------------------
 
 /// Affiliate program (Amazon, Impact, CJ, etc.).
@@ -1346,7 +1511,7 @@ model AffiliateProgram {
   @@map("affiliate_programs")
 }
 
-/// Tool affiliate link (official URL → affiliate redirect).
+/// Tool affiliate link (official URL 鈫?affiliate redirect).
 model AffiliateLink {
   id          String              @id @default(uuid()) @db.Uuid
   toolId      String              @map("tool_id") @db.Uuid
@@ -1448,7 +1613,7 @@ model AffiliateCampaign {
 }
 
 // -----------------------------------------------------------------------------
-// Monetization — Sponsored (Commit 062)
+// Monetization 鈥?Sponsored (Commit 062)
 // -----------------------------------------------------------------------------
 
 model SponsoredPlacement {
@@ -1481,7 +1646,7 @@ model SponsoredPlacement {
 }
 
 // -----------------------------------------------------------------------------
-// Monetization — Ads (Commit 063)
+// Monetization 鈥?Ads (Commit 063)
 // -----------------------------------------------------------------------------
 
 model AdSlot {
@@ -1510,7 +1675,7 @@ model AdSlot {
 }
 
 // -----------------------------------------------------------------------------
-// Newsletter & Email (Commits 064–065)
+// Newsletter & Email (Commits 064鈥?65)
 // -----------------------------------------------------------------------------
 
 model NewsletterSubscriber {
@@ -1592,7 +1757,7 @@ model EmailSendLog {
 }
 
 // -----------------------------------------------------------------------------
-// Platform — Webhooks (Commit 067)
+// Platform 鈥?Webhooks (Commit 067)
 // -----------------------------------------------------------------------------
 
 model Webhook {
@@ -1640,7 +1805,7 @@ model WebhookDelivery {
 }
 
 // -----------------------------------------------------------------------------
-// Partner & Revenue (Commits 068–069)
+// Partner & Revenue (Commits 068鈥?69)
 // -----------------------------------------------------------------------------
 
 model PartnerAccount {
@@ -1682,10 +1847,10 @@ model RevenueSnapshot {
 }
 
 // -----------------------------------------------------------------------------
-// Internationalization (Commits 071–080)
+// Internationalization (Commits 071鈥?80)
 // -----------------------------------------------------------------------------
 
-/// Per-locale tool content (Commit 072) — AI-generated per language, not machine-translated.
+/// Per-locale tool content (Commit 072) 鈥?AI-generated per language, not machine-translated.
 model ToolTranslation {
   id              String            @id @default(uuid()) @db.Uuid
   toolId          String            @map("tool_id") @db.Uuid
@@ -1810,7 +1975,7 @@ model CountryAnalyticsSnapshot {
 }
 
 // -----------------------------------------------------------------------------
-// Autonomous Platform — Automation 2.0 (Commits 081–090)
+// Autonomous Platform 鈥?Automation 2.0 (Commits 081鈥?90)
 // -----------------------------------------------------------------------------
 
 enum DiscoverySourceKind {
@@ -2216,7 +2381,7 @@ model AutomationRun {
 }
 
 // -----------------------------------------------------------------------------
-// Open Ecosystem — Platform (Commits 091–100)
+// Open Ecosystem 鈥?Platform (Commits 091鈥?00)
 // -----------------------------------------------------------------------------
 
 enum WorkflowRunStatus {
@@ -2375,4 +2540,103 @@ model Setting {
   @@index([deletedAt])
   @@index([updatedAt])
   @@map("settings")
+}
+
+// -----------------------------------------------------------------------------
+// Blog CMS
+// -----------------------------------------------------------------------------
+
+model BlogCategory {
+  id              String    @id @default(uuid()) @db.Uuid
+  slug            String    @unique @db.VarChar(120)
+  name            String    @db.VarChar(160)
+  description     String?   @db.Text
+  sortOrder       Int       @default(0) @map("sort_order")
+  metaTitle       String?   @map("meta_title") @db.VarChar(160)
+  metaDescription String?   @map("meta_description") @db.VarChar(320)
+  metadata        Json      @default("{}")
+  createdById     String?   @map("created_by_id") @db.Uuid
+  updatedById     String?   @map("updated_by_id") @db.Uuid
+  deletedById     String?   @map("deleted_by_id") @db.Uuid
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  deletedAt       DateTime? @map("deleted_at")
+
+  articles BlogArticle[]
+
+  @@index([sortOrder])
+  @@index([deletedAt])
+  @@map("blog_categories")
+}
+
+model BlogTag {
+  id          String    @id @default(uuid()) @db.Uuid
+  slug        String    @unique @db.VarChar(120)
+  name        String    @db.VarChar(120)
+  description String?   @db.Text
+  metadata    Json      @default("{}")
+  createdById String?   @map("created_by_id") @db.Uuid
+  updatedById String?   @map("updated_by_id") @db.Uuid
+  deletedById String?   @map("deleted_by_id") @db.Uuid
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  articles BlogArticleTag[]
+
+  @@index([deletedAt])
+  @@map("blog_tags")
+}
+
+model BlogArticle {
+  id              String     @id @default(uuid()) @db.Uuid
+  slug            String     @unique @db.VarChar(160)
+  title           String     @db.VarChar(220)
+  excerpt         String?    @db.VarChar(500)
+  content         String     @db.Text
+  status          ToolStatus @default(DRAFT)
+  coverImageUrl   String?    @map("cover_image_url") @db.VarChar(2048)
+  categoryId      String?    @map("category_id") @db.Uuid
+  authorId        String?    @map("author_id") @db.Uuid
+  scheduledAt     DateTime?  @map("scheduled_at")
+  publishedAt     DateTime?  @map("published_at")
+  metaTitle       String?    @map("meta_title") @db.VarChar(160)
+  metaDescription String?    @map("meta_description") @db.VarChar(320)
+  ogImageUrl      String?    @map("og_image_url") @db.VarChar(2048)
+  canonicalUrl    String?    @map("canonical_url") @db.VarChar(2048)
+  metadata        Json       @default("{}")
+  createdById     String?    @map("created_by_id") @db.Uuid
+  updatedById     String?    @map("updated_by_id") @db.Uuid
+  deletedById     String?    @map("deleted_by_id") @db.Uuid
+  createdAt       DateTime   @default(now()) @map("created_at")
+  updatedAt       DateTime   @updatedAt @map("updated_at")
+  deletedAt       DateTime?  @map("deleted_at")
+
+  category BlogCategory?    @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  author   User?            @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  tags     BlogArticleTag[]
+
+  @@index([status])
+  @@index([categoryId])
+  @@index([authorId])
+  @@index([publishedAt])
+  @@index([scheduledAt])
+  @@index([deletedAt])
+  @@map("blog_articles")
+}
+
+model BlogArticleTag {
+  id        String    @id @default(uuid()) @db.Uuid
+  articleId String    @map("article_id") @db.Uuid
+  tagId     String    @map("tag_id") @db.Uuid
+  createdAt DateTime  @default(now()) @map("created_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  article BlogArticle @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  tag     BlogTag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([articleId, tagId])
+  @@index([tagId])
+  @@index([deletedAt])
+  @@map("blog_article_tags")
 }

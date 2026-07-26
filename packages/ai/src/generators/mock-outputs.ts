@@ -32,6 +32,7 @@ export function mockFeatureOutput(ctx: ToolPromptContext): FeatureExtractionOutp
     integrations: ["Slack", "Zapier"],
     targetUsers: ["Developers", "Marketers"],
     useCases: [`${ctx.tool_name} for ${ctx.category || "daily"} tasks`],
+    support: ["Documentation", "Email support", "Community resources"],
   };
 }
 
@@ -71,10 +72,11 @@ export function mockSeoOutput(ctx: ToolPromptContext): SeoOutput {
     title: `${name} Review, Pricing & Features (2026)`,
     metaDescription: `Discover ${name}: features, pricing, and how it compares. Updated guide for teams evaluating AI tools.`,
     keywords: [name, "AI tool", ctx.category ?? "software", "review"],
+    ogDescription: `${name} features, pricing, use cases, pros, cons, and alternatives for AI tool buyers.`,
     canonical: `https://example.com/tools/${slug}`,
     openGraph: {
       title: `${name} — AI Tool Guide`,
-      description: ctx.description ?? `${name} overview`,
+      description: `${name} features, pricing, use cases, pros, cons, and alternatives.`,
       type: "article",
     },
     twitterCard: {

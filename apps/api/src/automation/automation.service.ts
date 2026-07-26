@@ -2,6 +2,8 @@ import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import {
   bootstrapAutomation,
+  enqueueToolLogoCollect,
+  previewToolLogo,
   getAutomationCenterMetrics,
   runDailyAutomationPoll,
   runWeeklyAutomationPoll,
@@ -57,6 +59,15 @@ export class AutomationService {
   async triggerScreenshots(toolId: string) {
     const jobId = await enqueueScreenshotCapture(toolId);
     return { jobId };
+  }
+
+  async triggerToolLogo(toolId: string, force = true) {
+    const jobId = await enqueueToolLogoCollect(toolId, force);
+    return { jobId };
+  }
+
+  async previewToolLogo(toolId: string) {
+    return previewToolLogo(this.db, toolId);
   }
 
   async triggerSocial(template: "NEW_AI" | "TRENDING_AI" | "WEEKLY_AI" | "TOP_AI") {
@@ -116,5 +127,53 @@ export class AutomationService {
       description:
         "AI Native Interface — connect any MCP client to search, compare, and query AI tools from the CMS.",
     };
+  }
+
+  async listRuns(params: { page?: number; pageSize?: number; kind?: string; status?: string }) {
+    const page = params.page ?? 1;
+    const pageSize = params.pageSize ?? 20;
+    const skip = (page - 1) * pageSize;
+
+    const where: Record<string, unknown> = {};
+    if (params.kind) {
+      where.kind = params.kind;
+    }
+    if (params.status) {
+      where.status = params.status;
+    }
+
+    const [items, total] = await Promise.all([
+      this.db.automationRun.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: pageSize,
+        select: {
+          id: true,
+          kind: true,
+          status: true,
+          referenceId: true,
+          startedAt: true,
+          finishedAt: true,
+          errorMessage: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      }),
+      this.db.automationRun.count({ where }),
+    ]);
+
+    return {
+      items,
+      total,
+      page,
+      pageSize,
+    };
+  }
+
+  async getRun(id: string) {
+    return this.db.automationRun.findUnique({
+      where: { id },
+    });
   }
 }

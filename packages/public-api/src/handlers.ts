@@ -43,6 +43,8 @@ export async function publicListTools(
     slug: string;
     name: string;
     summary: string | null;
+    website: string;
+    logoUrl: string | null;
     pricingModel: string;
     publishedAt: string | null;
   }>
@@ -63,6 +65,9 @@ export async function publicListTools(
       slug: true,
       name: true,
       summary: true,
+      website: true,
+      logoUrl: true,
+      metadata: true,
       pricingModel: true,
       publishedAt: true,
     },
@@ -77,6 +82,8 @@ export async function publicListTools(
       slug: t.slug,
       name: t.name,
       summary: t.summary,
+      website: t.website,
+      logoUrl: resolvePublicLogoUrl(t.logoUrl, (t.metadata ?? {}) as Record<string, unknown>, t.website),
       pricingModel: t.pricingModel,
       publishedAt: t.publishedAt?.toISOString() ?? null,
     })),
@@ -103,6 +110,7 @@ export async function publicSearchTools(prisma: PrismaClient, input: SearchQuery
       name: hit.document.name,
       summary: hit.document.summary,
       website: hit.document.website,
+      logoUrl: hit.document.logoUrl ?? buildFaviconLogoUrl(hit.document.website) ?? null,
       pricingModel: hit.document.pricingModel,
       categories: hit.document.categoryNames,
       tags: hit.document.tagNames,
@@ -126,12 +134,16 @@ export async function publicGetTool(prisma: PrismaClient, slug: string, locale =
 
   const metadata = (tool.metadata ?? {}) as Record<string, unknown>;
   const related = await computeRelatedTools(prisma, tool.id, 6);
+  const relatedLogos = await loadToolLogosBySlug(
+    prisma,
+    related.map((item) => item.slug),
+  );
 
   return {
     slug: tool.slug,
     name: tool.name,
     website: tool.website,
-    logoUrl: tool.logoUrl,
+    logoUrl: resolvePublicLogoUrl(tool.logoUrl, metadata, tool.website),
     summary: tool.summary,
     longDescription: tool.longDescription,
     pricingModel: tool.pricingModel,
@@ -163,6 +175,7 @@ export async function publicGetTool(prisma: PrismaClient, slug: string, locale =
       slug: r.slug,
       name: r.name,
       summary: r.summary,
+      logoUrl: relatedLogos.get(r.slug) ?? null,
       score: r.score,
     })),
     publishedAt: tool.publishedAt?.toISOString(),
@@ -250,7 +263,17 @@ export async function publicListCategories(
         tool: { status: ToolStatus.PUBLISHED, ...activeOnly },
       },
       include: {
-        tool: { select: { slug: true, name: true, summary: true, pricingModel: true } },
+        tool: {
+          select: {
+            slug: true,
+            name: true,
+            summary: true,
+            pricingModel: true,
+            website: true,
+            logoUrl: true,
+            metadata: true,
+          },
+        },
       },
       take: limit,
       orderBy: { tool: { publishedAt: "desc" } },
@@ -258,7 +281,18 @@ export async function publicListCategories(
 
     return {
       category: { slug: category.slug, name: category.name, description: category.description },
-      tools: links.map((l) => l.tool),
+      tools: links.map((l) => ({
+        slug: l.tool.slug,
+        name: l.tool.name,
+        summary: l.tool.summary,
+        pricingModel: l.tool.pricingModel,
+        website: l.tool.website,
+        logoUrl: resolvePublicLogoUrl(
+          l.tool.logoUrl,
+          (l.tool.metadata ?? {}) as Record<string, unknown>,
+          l.tool.website,
+        ),
+      })),
     };
   }
 
@@ -371,7 +405,17 @@ export async function publicListTrending(
   input: { period?: "weekly" | "monthly" | "yearly"; limit?: number },
 ) {
   const items = await computeTrending(prisma, input.period ?? "weekly", input.limit ?? 20);
-  return { period: input.period ?? "weekly", tools: items };
+  const logoBySlug = await loadToolLogosBySlug(
+    prisma,
+    items.map((item) => item.slug),
+  );
+  return {
+    period: input.period ?? "weekly",
+    tools: items.map((item) => ({
+      ...item,
+      logoUrl: logoBySlug.get(item.slug) ?? null,
+    })),
+  };
 }
 
 export async function publicLatestTools(
@@ -389,16 +433,91 @@ export async function publicGetAlternatives(prisma: PrismaClient, slug: string, 
   if (!tool) return { tool: null, alternatives: [] };
 
   const alternatives = await computeRelatedTools(prisma, tool.id, limit);
+  const logoBySlug = await loadToolLogosBySlug(
+    prisma,
+    alternatives.map((item) => item.slug),
+  );
   return {
     tool: { slug: tool.slug, name: tool.name },
     alternatives: alternatives.map((a) => ({
       slug: a.slug,
       name: a.name,
       summary: a.summary,
+      logoUrl: logoBySlug.get(a.slug) ?? null,
       score: a.score,
       reason: a.reason,
     })),
   };
+}
+
+async function loadToolLogosBySlug(prisma: PrismaClient, slugs: string[]): Promise<Map<string, string>> {
+  if (!slugs.length) return new Map();
+
+  const tools = await prisma.tool.findMany({
+    where: { slug: { in: slugs }, status: ToolStatus.PUBLISHED, ...activeOnly },
+    select: { slug: true, website: true, logoUrl: true, metadata: true },
+  });
+
+  return new Map(
+    tools
+      .map((tool) => [
+        tool.slug,
+        resolvePublicLogoUrl(
+          tool.logoUrl,
+          (tool.metadata ?? {}) as Record<string, unknown>,
+          tool.website,
+        ),
+      ] as const)
+      .filter((entry): entry is [string, string] => Boolean(entry[1])),
+  );
+}
+
+function resolvePublicLogoUrl(
+  primaryLogoUrl: string | null | undefined,
+  metadata: Record<string, unknown>,
+  website: string | null | undefined,
+): string | null {
+  const primary = cleanString(primaryLogoUrl);
+  if (primary) return primary;
+
+  const candidates = [
+    metadata.logoUrl,
+    metadata.logo,
+    metadata.collectedLogoUrl,
+    metadata.faviconUrl,
+    metadata.appleTouchIconUrl,
+    metadata.openGraphImageUrl,
+    metadata.imageUrl,
+    metadata.iconUrl,
+  ];
+
+  for (const candidate of candidates) {
+    const value = cleanString(candidate);
+    if (value) return value;
+  }
+
+  return buildFaviconLogoUrl(
+    cleanString(website) ??
+      cleanString(metadata.website) ??
+      cleanString(metadata.canonicalUrl) ??
+      cleanString(metadata.sourceUrl),
+  );
+}
+
+function buildFaviconLogoUrl(website: string | null): string | null {
+  if (!website) return null;
+
+  try {
+    const hostname = new URL(website).hostname;
+    if (!hostname) return null;
+    return `https://www.google.com/s2/favicons?sz=128&domain=${hostname}`;
+  } catch {
+    return null;
+  }
+}
+
+function cleanString(value: unknown): string | null {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
 // MCP 兼容别名

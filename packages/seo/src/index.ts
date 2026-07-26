@@ -31,6 +31,7 @@ export {
 } from "./utils";
 
 export { buildMetadata, buildToolMetadata, type BuiltMetadata } from "./metadata";
+export { normalizePlainText, splitRichText, stripHtml } from "./text";
 export {
   buildBreadcrumbJsonLd,
   buildCollectionPageJsonLd,

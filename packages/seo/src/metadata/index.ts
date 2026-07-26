@@ -1,8 +1,9 @@
 import type { SeoPageInput } from "../types";
 import { getSiteConfig, type SiteConfig } from "../site-config";
 import { joinUrl, resolveAbsoluteUrl } from "../utils";
+import { normalizePlainText } from "../text";
 
-/** Next.js Metadata-compatible shape (plain object — no next import). */
+/** Next.js Metadata-compatible shape (plain object - no next import). */
 export type BuiltMetadata = {
   metadataBase: URL;
   title: string;
@@ -36,23 +37,49 @@ function toOpenGraphLocale(locale: string): string {
   return locale.replace("-", "_");
 }
 
+function inferMetadataLocale(input: SeoPageInput, config: SiteConfig): string {
+  const path = input.path ?? "/";
+  const [, maybeLocale] = path.match(/^\/([^/?#]+)/) ?? [];
+  if (maybeLocale && config.locales.includes(maybeLocale)) {
+    return maybeLocale;
+  }
+  return config.defaultLocale;
+}
+
+function sanitizePublicBranding(value: string | undefined, siteName: string): string | undefined {
+  if (!value) return value;
+  return value
+    .replace(/AI Tool CMS/g, siteName)
+    .replace(/AI Tool CMS Admin/g, "AI Tool CMS Admin")
+    .replace(/\s+[��-]\s+AI Tool Directory\s*\|\s*AI Tool Directory$/u, ` | ${siteName}`)
+    .replace(/\s+[��-]\s+AI Tool Directory$/u, ` | ${siteName}`)
+    .trim();
+}
+
 function buildTitle(title: string | undefined, siteName: string): string {
-  if (!title) return siteName;
-  if (title === siteName || title.endsWith(` | ${siteName}`)) return title;
-  return `${title} | ${siteName}`;
+  const normalizedTitle = sanitizePublicBranding(title, siteName);
+  if (!normalizedTitle) return siteName;
+  if (normalizedTitle === siteName || normalizedTitle.endsWith(` | ${siteName}`)) {
+    return normalizedTitle;
+  }
+  return `${normalizedTitle} | ${siteName}`;
 }
 
 /**
- * Unified metadata builder — pages must use this instead of hand-rolling SEO tags.
+ * Unified metadata builder - pages must use this instead of hand-rolling SEO tags.
  */
 export function buildMetadata(
   input: SeoPageInput = {},
   config: SiteConfig = getSiteConfig(),
 ): BuiltMetadata {
   const path = input.path ?? "/";
+  const pageLocale = inferMetadataLocale(input, config);
   const canonicalUrl = input.canonical ?? joinUrl(config.siteUrl, path);
   const title = buildTitle(input.title, config.siteName);
-  const description = input.description ?? config.siteDescription ?? undefined;
+  const description = sanitizePublicBranding(
+    normalizePlainText(input.description ?? config.siteDescription ?? undefined) || undefined,
+    config.siteName,
+  );
   const ogImage = input.ogImage ?? config.ogImage;
   const resolvedOgImage = ogImage ? resolveAbsoluteUrl(ogImage, config.siteUrl) : undefined;
   const twitterCard = input.twitterCard ?? (resolvedOgImage ? "summary_large_image" : "summary");
@@ -78,7 +105,7 @@ export function buildMetadata(
       (shouldNoIndex ? { index: false, follow: false } : { index: true, follow: true }),
     openGraph: {
       type: input.ogType ?? "website",
-      locale: toOpenGraphLocale(config.defaultLocale),
+      locale: toOpenGraphLocale(pageLocale),
       url: canonicalUrl,
       siteName: config.siteName,
       title,
@@ -111,8 +138,9 @@ export function buildToolMetadata(
 ): BuiltMetadata {
   return buildMetadata(
     {
-      title: tool.metaTitle ?? tool.name,
-      description: tool.metaDescription ?? tool.summary ?? undefined,
+      title: tool.metaTitle ?? `${tool.name} Review, Pricing, Features & Alternatives`,
+      description:
+        normalizePlainText(tool.metaDescription ?? tool.summary ?? undefined) || undefined,
       path: `/${locale}/tools/${tool.slug}`,
       ogImage: tool.logoUrl ?? undefined,
       ogType: "article",

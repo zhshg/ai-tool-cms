@@ -1,4 +1,4 @@
-import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
+﻿import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import { PricingModel, ToolStatus } from "@ai-tool-cms/database";
 import { Type } from "class-transformer";
 import {
@@ -23,6 +23,30 @@ export class ToolMetadataDto {
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
+  useCases?: string[];
+
+  @ApiPropertyOptional({ type: [String] })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  alternatives?: string[];
+
+  @ApiPropertyOptional({ type: [String] })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  alternativeSlugs?: string[];
+
+  @ApiPropertyOptional({ type: [String] })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  languages?: string[];
+
+  @ApiPropertyOptional({ type: [String] })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
   platforms?: string[];
 
   @ApiPropertyOptional({ type: [String] })
@@ -34,7 +58,28 @@ export class ToolMetadataDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
+  canonicalUrl?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  openGraphImageUrl?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
   aiSummary?: string;
+}
+
+export class ToolFaqDto {
+  @ApiProperty()
+  @IsString()
+  @MaxLength(500)
+  question!: string;
+
+  @ApiProperty()
+  @IsString()
+  answer!: string;
 }
 
 export class CreateToolDto {
@@ -61,6 +106,7 @@ export class CreateToolDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
+  @MaxLength(120)
   summary?: string;
 
   @ApiPropertyOptional()
@@ -105,6 +151,13 @@ export class CreateToolDto {
   @ValidateNested()
   @Type(() => ToolMetadataDto)
   metadata?: ToolMetadataDto;
+
+  @ApiPropertyOptional({ type: [ToolFaqDto] })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ToolFaqDto)
+  faqs?: ToolFaqDto[];
 }
 
 export class UpdateToolDto {
@@ -133,6 +186,7 @@ export class UpdateToolDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
+  @MaxLength(120)
   summary?: string;
 
   @ApiPropertyOptional()
@@ -177,4 +231,11 @@ export class UpdateToolDto {
   @ValidateNested()
   @Type(() => ToolMetadataDto)
   metadata?: ToolMetadataDto;
+
+  @ApiPropertyOptional({ type: [ToolFaqDto] })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ToolFaqDto)
+  faqs?: ToolFaqDto[];
 }

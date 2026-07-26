@@ -57,7 +57,9 @@ export function parseEnv(source?: EnvSource): Env {
     OPENAI_BASE_URL: resolved.OPENAI_BASE_URL,
     AI_DEFAULT_MODEL: resolved.AI_DEFAULT_MODEL,
     NEXT_PUBLIC_APP_URL: resolved.NEXT_PUBLIC_APP_URL ?? resolved.APP_URL,
+    NEXT_PUBLIC_SITE_URL: resolved.NEXT_PUBLIC_SITE_URL,
     NEXT_PUBLIC_ADMIN_MOCK_ROLE: resolved.NEXT_PUBLIC_ADMIN_MOCK_ROLE,
+    SITE_URL: resolved.SITE_URL,
     SITE_NAME: resolved.SITE_NAME,
     SITE_DESCRIPTION: resolved.SITE_DESCRIPTION,
     DEFAULT_LOCALE: resolved.DEFAULT_LOCALE,
@@ -86,6 +88,12 @@ export function parseEnv(source?: EnvSource): Env {
     CRAWLER_CONCURRENCY: resolved.CRAWLER_CONCURRENCY,
     CRAWLER_TIMEOUT_MS: resolved.CRAWLER_TIMEOUT_MS,
     AI_PIPELINE_AUTO_PUBLISH: resolved.AI_PIPELINE_AUTO_PUBLISH,
+    INDEXNOW_ENABLED: resolved.INDEXNOW_ENABLED,
+    INDEXNOW_KEY: resolved.INDEXNOW_KEY,
+    INDEXNOW_KEY_LOCATION: resolved.INDEXNOW_KEY_LOCATION,
+    INDEXNOW_ENDPOINT: resolved.INDEXNOW_ENDPOINT,
+    BING_INDEXNOW_KEY: resolved.BING_INDEXNOW_KEY,
+    GOOGLE_INDEXING_SERVICE_ACCOUNT_JSON: resolved.GOOGLE_INDEXING_SERVICE_ACCOUNT_JSON,
     OTEL_EXPORTER_OTLP_ENDPOINT: resolved.OTEL_EXPORTER_OTLP_ENDPOINT,
     SENTRY_DSN: resolved.SENTRY_DSN,
     CORS_ORIGINS: resolved.CORS_ORIGINS,
@@ -171,8 +179,13 @@ function validateProductionEnv(env: Env): void {
     return typeof value !== "string" || isUnsafeProductionSecret(value, placeholders);
   });
 
-  const corsOrigins = env.CORS_ORIGINS
-    ?.split(",")
+  const forbiddenProductionValues: Array<keyof Env> = ["NEXT_PUBLIC_ADMIN_MOCK_ROLE"];
+  const forbiddenValues = forbiddenProductionValues.filter((key) => {
+    const value = env[key];
+    return typeof value === "string" && value.trim() !== "";
+  });
+
+  const corsOrigins = env.CORS_ORIGINS?.split(",")
     .map((origin) => origin.trim())
     .filter(Boolean);
 
@@ -187,11 +200,20 @@ function validateProductionEnv(env: Env): void {
         !isValidCorsOrigin(origin),
     );
 
-  if (missing.length > 0 || placeholderKeys.length > 0 || weakSecrets.length > 0 || invalidCors) {
+  if (
+    missing.length > 0 ||
+    placeholderKeys.length > 0 ||
+    weakSecrets.length > 0 ||
+    forbiddenValues.length > 0 ||
+    invalidCors
+  ) {
     const details = [
       missing.length > 0 ? `missing: ${missing.join(", ")}` : undefined,
       placeholderKeys.length > 0 ? `placeholder: ${placeholderKeys.join(", ")}` : undefined,
       weakSecrets.length > 0 ? `weak secret: ${weakSecrets.join(", ")}` : undefined,
+      forbiddenValues.length > 0
+        ? `forbidden production values: ${forbiddenValues.join(", ")}`
+        : undefined,
       invalidCors ? "invalid CORS_ORIGINS: explicit non-wildcard origins are required" : undefined,
     ]
       .filter(Boolean)
@@ -225,7 +247,9 @@ function isUnsafeProductionSecret(value: string, placeholders: string[]): boolea
 function isValidCorsOrigin(origin: string): boolean {
   try {
     const parsed = new URL(origin);
-    return parsed.origin === origin && (parsed.protocol === "https:" || parsed.hostname === "localhost");
+    return (
+      parsed.origin === origin && (parsed.protocol === "https:" || parsed.hostname === "localhost")
+    );
   } catch {
     return false;
   }

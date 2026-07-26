@@ -1,4 +1,4 @@
-import type { Prisma } from "@prisma/client";
+import type { Prisma } from "../../packages/database/generated/client";
 import { prisma } from "./context";
 
 export async function upsertBySlug<T extends { id: string }>(

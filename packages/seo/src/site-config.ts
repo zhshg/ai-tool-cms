@@ -16,20 +16,40 @@ export type SiteConfig = {
 
 export function getSiteConfig(env: NodeJS.ProcessEnv = process.env): SiteConfig {
   const parsed = safeGetEnv();
-  const siteUrl = parsed.NEXT_PUBLIC_APP_URL ?? parsed.APP_URL ?? "http://localhost:3000";
+  const rawSiteUrl =
+    env.NEXT_PUBLIC_SITE_URL ?? env.SITE_URL ?? env.NEXT_PUBLIC_APP_URL ?? env.APP_URL;
+  const configuredSiteUrl =
+    rawSiteUrl ??
+    parsed.NEXT_PUBLIC_SITE_URL ??
+    parsed.SITE_URL ??
+    parsed.NEXT_PUBLIC_APP_URL ??
+    parsed.APP_URL;
+  const siteUrl = resolveSiteUrl(configuredSiteUrl, env.NODE_ENV);
+  const normalizedSiteUrl = normalizeUrl(siteUrl);
   const locales = parseEnabledLocales(parsed.ENABLED_LOCALES);
+  const siteName = normalizePublicSiteName(env.SITE_NAME ?? parsed.SITE_NAME);
 
   return {
-    siteName: parsed.SITE_NAME ?? "AI Tool CMS",
-    siteDescription: parsed.SITE_DESCRIPTION ?? "",
-    siteUrl: normalizeUrl(siteUrl),
+    siteName,
+    siteDescription:
+      parsed.SITE_DESCRIPTION ??
+      "Discover, compare, and review AI tools by category, pricing, and workflow.",
+    siteUrl: normalizedSiteUrl,
     defaultLocale: parsed.DEFAULT_LOCALE ?? "en",
     locales: locales.length ? [...locales] : ["en"],
     twitterHandle: env.TWITTER_HANDLE,
-    ogImage: env.OG_IMAGE,
+    ogImage: env.OG_IMAGE ?? `${normalizedSiteUrl}/toolsddar-logo.png`,
     robotsNoIndex: env.ROBOTS_NO_INDEX === "true",
     adminUrl: parsed.ADMIN_URL,
   };
+}
+
+function normalizePublicSiteName(siteName: string | undefined): string {
+  if (!siteName) return "ToolsDdar";
+  if (siteName === "AI Tool CMS" || siteName === "AI Tool Directory") {
+    return "ToolsDdar";
+  }
+  return siteName;
 }
 
 function safeGetEnv() {
@@ -38,4 +58,16 @@ function safeGetEnv() {
   } catch {
     return process.env as unknown as ReturnType<typeof getEnv>;
   }
+}
+
+function resolveSiteUrl(siteUrl: string | undefined, nodeEnv: string | undefined) {
+  const value = siteUrl?.trim();
+  if (value) {
+    if (nodeEnv === "production" && /localhost|127\.0\.0\.1/i.test(value)) {
+      return "https://example.com";
+    }
+    return value;
+  }
+
+  return nodeEnv === "production" ? "https://example.com" : "http://localhost";
 }

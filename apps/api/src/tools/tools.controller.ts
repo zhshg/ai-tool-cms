@@ -1,10 +1,32 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, Query } from "@nestjs/common";
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Put,
+  Query,
+  UploadedFile,
+  UseInterceptors,
+} from "@nestjs/common";
 import { ApiOperation, ApiTags } from "@nestjs/swagger";
 import { PermissionCode } from "@ai-tool-cms/auth";
+import { FileInterceptor } from "@nestjs/platform-express";
 import { CurrentUser, RequirePermission, type RequestUser } from "../common/decorators";
 import { PaginationQueryDto } from "../common/dto/pagination.dto";
+import {
+  BulkLogoRefreshDto,
+  BulkScreenshotRefreshDto,
+  BulkPublishToolsDto,
+  BulkUpdateToolsDto,
+  ImportExecuteDto,
+  ImportPreviewDto,
+} from "./dto/content-ops.dto";
 import { CreateToolDto, UpdateToolDto } from "./dto/tool.dto";
 import { CreateToolVersionDto, UpdateToolVersionDto } from "./dto/tool-version.dto";
+import { ToolAssetsService } from "./tool-assets.service";
 import { ToolVersionsService } from "./tool-versions.service";
 import { ToolsService } from "./tools.service";
 
@@ -14,6 +36,7 @@ export class ToolsController {
   constructor(
     private readonly toolsService: ToolsService,
     private readonly toolVersionsService: ToolVersionsService,
+    private readonly toolAssetsService: ToolAssetsService,
   ) {}
 
   @Get()
@@ -90,6 +113,71 @@ export class ToolsController {
   @ApiOperation({ summary: "Create tool" })
   create(@Body() dto: CreateToolDto, @CurrentUser() user: RequestUser) {
     return this.toolsService.create(dto, user.id);
+  }
+
+  @Post("import/preview")
+  @RequirePermission(PermissionCode.ToolCreate)
+  @ApiOperation({ summary: "Preview tool import payload" })
+  previewImport(@Body() dto: ImportPreviewDto) {
+    return this.toolsService.previewImport(dto);
+  }
+
+  @Post("import/execute")
+  @RequirePermission(PermissionCode.ToolCreate)
+  @ApiOperation({ summary: "Execute tool import payload" })
+  executeImport(@Body() dto: ImportExecuteDto, @CurrentUser() user: RequestUser) {
+    return this.toolsService.executeImport(dto, user.id);
+  }
+
+  @Post("bulk/update")
+  @RequirePermission(PermissionCode.ToolUpdate)
+  @ApiOperation({ summary: "Bulk update tools" })
+  bulkUpdate(@Body() dto: BulkUpdateToolsDto, @CurrentUser() user: RequestUser) {
+    return this.toolsService.bulkUpdate(dto, user.id);
+  }
+
+  @Post("bulk/publish")
+  @RequirePermission(PermissionCode.ToolUpdate)
+  @ApiOperation({ summary: "Bulk publish tools" })
+  bulkPublish(@Body() dto: BulkPublishToolsDto, @CurrentUser() user: RequestUser) {
+    return this.toolsService.bulkPublish(dto.toolIds, user.id);
+  }
+
+  @Post("bulk/logo-refresh")
+  @RequirePermission(PermissionCode.ToolUpdate)
+  @ApiOperation({ summary: "Bulk refresh tool logos" })
+  bulkLogoRefresh(@Body() dto: BulkLogoRefreshDto) {
+    return this.toolsService.bulkRefreshLogos(dto.toolIds, dto.force ?? true);
+  }
+
+  @Post("bulk/screenshot-refresh")
+  @RequirePermission(PermissionCode.ToolUpdate)
+  @ApiOperation({ summary: "Bulk refresh tool screenshots" })
+  bulkScreenshotRefresh(@Body() dto: BulkScreenshotRefreshDto) {
+    return this.toolsService.bulkRefreshScreenshots(dto.toolIds, dto.variants);
+  }
+
+  @Post("assets/upload")
+  @RequirePermission(PermissionCode.ToolUpdate)
+  @UseInterceptors(FileInterceptor("file"))
+  @ApiOperation({ summary: "Upload tool logo or screenshot asset" })
+  uploadAsset(
+    @UploadedFile()
+    file:
+      | {
+          buffer: Buffer;
+          mimetype: string;
+          size: number;
+          originalname: string;
+        }
+      | undefined,
+    @Query("kind") kind: string | undefined,
+  ) {
+    if (kind !== "logo" && kind !== "screenshot") {
+      throw new BadRequestException("Upload kind must be logo or screenshot.");
+    }
+
+    return this.toolAssetsService.uploadAsset(file, kind);
   }
 
   @Put(":id")

@@ -6,6 +6,7 @@ import { RequirePermission } from "@/components/rbac/require-permission";
 import {
   fetchUsers,
   fetchUsersSummary,
+  getApiErrorMessage,
   type AdminUser,
   type ApiError,
   type UsersSummary,
@@ -56,7 +57,7 @@ export default function UsersPage() {
           {isLoading ? <p className="p-6 text-sm text-muted-foreground">Loading users...</p> : null}
           {error ? (
             <p className="p-6 text-sm text-destructive">
-              API error {error.status}: {error.message}
+              API error {error.status}: {getApiErrorMessage(error)}
             </p>
           ) : null}
           {!isLoading && !error && items.length === 0 ? (

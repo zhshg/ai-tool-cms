@@ -1,61 +1,122 @@
-# 回滚指南
+# Rollback
 
-当升级导致问题时，快速回滚至上一稳定版本。
+## 目标
 
-## 应用回滚（Kubernetes）
+当新版本发布后出现访问异常、构建异常、页面错误或健康检查失败时，快速回退到上一稳定状态，同时避免误伤数据库与对象存储。
+
+## 回滚原则
+
+1. 优先回滚应用服务，不先动数据库
+2. 先回滚最小影响范围服务
+3. 先确认旧镜像或旧 release 目录仍可用
+4. 回滚后必须重新验收公开 URL
+
+## 应用回滚
+
+### 1. 使用旧镜像回滚
+
+先查看镜像：
 
 ```bash
-# 查看历史
-kubectl rollout history deployment/ai-tool-cms-api
-
-# 回滚至上一版本
-kubectl rollout undo deployment/ai-tool-cms-api
-kubectl rollout status deployment/ai-tool-cms-api
-
-# 回滚至指定 revision
-kubectl rollout undo deployment/ai-tool-cms-api --to-revision=3
+docker images | grep ai-tool-cms-web
+docker images | grep ai-tool-cms-admin
+docker images | grep ai-tool-cms-api
 ```
 
-## Docker 单容器
+如果旧镜像仍在，可按服务回滚。
+
+### 2. 只回滚 web
 
 ```bash
-docker stop ai-tool-cms-api
-docker run -d --name ai-tool-cms-api ghcr.io/zhshg/ai-tool-cms:0.9.0
+cd /opt/ai-tool-cms
+docker compose --env-file .env.production -f docker-compose.prod.yml up -d --force-recreate web nginx
+docker compose --env-file .env.production -f docker-compose.prod.yml ps web nginx
+```
+
+### 3. 只回滚 admin
+
+```bash
+cd /opt/ai-tool-cms
+docker compose --env-file .env.production -f docker-compose.prod.yml up -d --force-recreate admin nginx
+docker compose --env-file .env.production -f docker-compose.prod.yml ps admin nginx
+```
+
+### 4. 只回滚 api
+
+```bash
+cd /opt/ai-tool-cms
+docker compose --env-file .env.production -f docker-compose.prod.yml up -d --force-recreate api
+docker compose --env-file .env.production -f docker-compose.prod.yml ps api
+```
+
+如果 API 影响前后台，再补：
+
+```bash
+docker compose --env-file .env.production -f docker-compose.prod.yml up -d --force-recreate web admin nginx
+```
+
+## 基于旧 release 目录回滚
+
+如果使用的是干净发布目录方式，可直接切回旧目录：
+
+```bash
+cd /opt/ai-tool-cms-release-OLD
+docker compose -p ai-tool-cms --env-file .env.production -f docker-compose.prod.yml up -d --force-recreate web admin api nginx
 ```
 
 ## 数据库回滚
 
-⚠️ **谨慎：** 仅当迁移可逆或已有备份时执行。
+默认不建议把数据库作为第一步回滚手段。
+
+仅在以下情况考虑：
+
+1. 已确认问题由迁移引起
+2. 已确认有可恢复备份
+3. 已明确恢复窗口和影响范围
+
+相关流程参考：
+
+- [Backup.md](./Backup.md)
+- [Restore.md](./Restore.md)
+
+## 回滚后验收
+
+### web
 
 ```bash
-# 1. 停止应用写入
-kubectl scale deployment/ai-tool-cms-api --replicas=0
-
-# 2. 恢复备份（见 Restore.md）
-./scripts/backup/restore-postgres.sh backups/postgres/pre-upgrade.sql.gz
-
-# 3. 重启应用（旧版本镜像）
-kubectl set image deployment/ai-tool-cms-api api=ghcr.io/zhshg/ai-tool-cms:0.9.0
-kubectl scale deployment/ai-tool-cms-api --replicas=2
+curl -I https://toolsdar.io/en
+curl -I https://toolsdar.io/en/tools
+curl -I https://toolsdar.io/en/categories
+curl -I https://toolsdar.io/sitemaps/en.xml
 ```
 
-## 回滚决策树
-
-```
-问题是否由代码引起？
-  ├─ 是 → kubectl rollout undo
-  └─ 否 → 是否由迁移引起？
-         ├─ 是 → 恢复 DB 备份 + 旧镜像
-         └─ 否 → 检查基础设施 / 配置
-```
-
-## 回滚后验证
+### admin
 
 ```bash
-curl -f $API_URL/v1/health/ready
-# Smoke test 关键路径：首页、搜索、工具详情
+curl -I https://admins.toolsdar.io/
+curl -I https://admins.toolsdar.io/login
 ```
 
-## 沟通
+### api
 
-在状态页标注「已回滚至 vX.Y.Z」，72h 内完成 Postmortem。
+```bash
+curl -I https://api.toolsdar.io/v1/health
+curl -I https://api.toolsdar.io/v1/health/ready
+```
+
+## 回滚判断顺序
+
+1. 页面异常但 API 正常
+   - 先回滚 `web`
+2. 后台异常但前台正常
+   - 先回滚 `admin`
+3. API 健康检查失败
+   - 先回滚 `api`
+4. `nginx` 报错
+   - 先检查 `web/admin/api` 是否健康
+
+## 相关文档
+
+- [BuildFailureRootCauseAndFixPlan.md](./BuildFailureRootCauseAndFixPlan.md)
+- [CleanReleaseDeployment.md](./CleanReleaseDeployment.md)
+- [ServerCleanupAndRollback.md](./ServerCleanupAndRollback.md)

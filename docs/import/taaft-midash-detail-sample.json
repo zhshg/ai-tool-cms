@@ -1,0 +1,20 @@
+{
+  "sourceName": "There's An AI For That",
+  "sourceUrl": "https://free.theresanaiforthat.com/ai/midash/?fid=4345",
+  "name": "MiDash AI",
+  "slug": "midash",
+  "logoUrl": "https://media.theresanaiforthat.com/icons/midash.svg?width=100",
+  "screenshotUrl": "https://media.theresanaiforthat.com/midash.png?height=768",
+  "logoXPath": "//*[@id=\"overview\"]/div[2]/div[1]/div[1]/div/img",
+  "screenshotXPath": "//*[@id=\"image_ai_link\"]/img",
+  "overviewParagraphs": [],
+  "releasesParagraphs": [],
+  "metadata": {
+    "status": "manual-evidence",
+    "notes": [
+      "logoUrl 与 screenshotUrl 来自用户提供的真实页面片段。",
+      "Overview 与 Releases 正文尚未自动抓到，等待后续浏览器态补采或人工粘贴。",
+      "该文件是详情证据样例，不替代 canonical import record。"
+    ]
+  }
+}

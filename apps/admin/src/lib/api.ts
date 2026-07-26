@@ -1,32 +1,307 @@
 import { clientEnv } from "@ai-tool-cms/config/client";
 
-const API_BASE = `${clientEnv.NEXT_PUBLIC_API_URL}/v1`;
-
 export type ApiError = {
   status: number;
   message: string;
 };
 
-export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
-  const token = typeof window !== "undefined" ? window.localStorage.getItem("atcms_jwt") : null;
+const ACCESS_TOKEN_KEY = "atcms_jwt";
+const REFRESH_TOKEN_KEY = "atcms_refresh_token";
 
-  const res = await fetch(`${API_BASE}${path}`, {
-    ...init,
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...init?.headers,
-    },
-  });
+function normalizeApiOrigin(origin: string | undefined): string {
+  const value = origin?.trim();
+  if (!value) return "";
+
+  if (typeof window !== "undefined") {
+    const normalized = value.replace(/\/$/, "");
+
+    try {
+      const parsed = new URL(normalized, window.location.origin);
+
+      const isSameOrigin = parsed.origin === window.location.origin;
+
+      if (isSameOrigin) {
+        return "";
+      }
+    } catch {
+      if (normalized.startsWith("/")) {
+        return "";
+      }
+    }
+
+    if (normalized === window.location.origin) {
+      return "";
+    }
+  }
+
+  return value.replace(/\/$/, "");
+}
+
+function isHtmlResponse(contentType: string | null): boolean {
+  return contentType?.toLowerCase().includes("text/html") ?? false;
+}
+
+export function getApiBase(): string {
+  if (typeof window !== "undefined") {
+    const publicOrigin = normalizeApiOrigin(clientEnv.NEXT_PUBLIC_API_URL);
+
+    if (publicOrigin) {
+      return `${publicOrigin}/v1`;
+    }
+
+    return "/v1";
+  }
+
+  const origin = normalizeApiOrigin(clientEnv.NEXT_PUBLIC_API_URL);
+  return origin ? `${origin}/v1` : "/v1";
+}
+
+export function getAdminBasePath(): string {
+  const configuredBasePath = (
+    process.env.NEXT_PUBLIC_ADMIN_BASE_PATH ||
+    process.env.ADMIN_BASE_PATH ||
+    ""
+  ).trim();
+  if (configuredBasePath) {
+    return configuredBasePath.startsWith("/") ? configuredBasePath : `/${configuredBasePath}`;
+  }
+
+  if (typeof window === "undefined") {
+    return "";
+  }
+
+  const segments = window.location.pathname.split("/").filter(Boolean);
+  return segments[0] === "admin" ? "/admin" : "";
+}
+
+export function getPublicAppUrl(): string {
+  return clientEnv.NEXT_PUBLIC_APP_URL.replace(/\/$/, "");
+}
+
+export function getSiteAssetUrl(assetPath: string): string {
+  const normalizedPath = assetPath.startsWith("/") ? assetPath : `/${assetPath}`;
+  const publicAppUrl = getPublicAppUrl();
+  return publicAppUrl ? `${publicAppUrl}${normalizedPath}` : normalizedPath;
+}
+
+function slugifyPreviewValue(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+export function getToolPreviewUrl(input: {
+  slug?: string | null;
+  name?: string | null;
+  website?: string | null;
+}): string {
+  const slug = (input.slug || "").trim();
+  const previewSlug = slug || slugifyPreviewValue(input.name || "");
+
+  if (previewSlug) {
+    return `${getPublicAppUrl()}/en/tools/${previewSlug}`;
+  }
+
+  const website = (input.website || "").trim();
+  return website || "#";
+}
+
+export function getAdminDashboardPath(): string {
+  const basePath = getAdminBasePath();
+  return basePath || "/";
+}
+
+export function getAdminLoginPath(): string {
+  const basePath = getAdminBasePath();
+  return `${basePath || ""}/login`;
+}
+
+export function getAdminRouterDashboardPath(): string {
+  return "/";
+}
+
+export function getAdminRouterLoginPath(): string {
+  return "/login";
+}
+
+export function normalizeAdminNextPath(nextPath: string | null | undefined): string {
+  const fallback = getAdminRouterDashboardPath();
+  const value = nextPath?.trim();
+
+  if (!value) {
+    return fallback;
+  }
+
+  if (/^[a-zA-Z][a-zA-Z\d+\-.]*:/.test(value) || value.startsWith("//")) {
+    return fallback;
+  }
+
+  const [pathWithQuery = "", hashFragment = ""] = value.split("#", 2);
+  const hash = hashFragment ? `#${hashFragment}` : "";
+  const [pathname = "", query = ""] = pathWithQuery.split("?", 2);
+  const search = query ? `?${query}` : "";
+  const normalizedBasePath = getAdminBasePath();
+
+  if (!pathname || pathname === "/") {
+    return `${fallback}${search}${hash}`;
+  }
+
+  if (!pathname.startsWith("/")) {
+    return `${fallback}${search}${hash}`;
+  }
+
+  if (pathname === "/dashboard" || pathname.startsWith("/dashboard/")) {
+    return `${fallback}${search}${hash}`;
+  }
+
+  if (normalizedBasePath && pathname.startsWith(`${normalizedBasePath}/`)) {
+    const relativePath = pathname.slice(normalizedBasePath.length) || fallback;
+    if (relativePath === "/dashboard" || relativePath.startsWith("/dashboard/")) {
+      return `${fallback}${search}${hash}`;
+    }
+    return `${relativePath}${search}${hash}`;
+  }
+
+  if (pathname === normalizedBasePath) {
+    return `${fallback}${search}${hash}`;
+  }
+
+  if (pathname.startsWith("/admin/")) {
+    const relativePath = pathname.slice("/admin".length) || fallback;
+    if (relativePath === "/dashboard" || relativePath.startsWith("/dashboard/")) {
+      return `${fallback}${search}${hash}`;
+    }
+    return `${relativePath}${search}${hash}`;
+  }
+
+  if (pathname === "/admin") {
+    return `${fallback}${search}${hash}`;
+  }
+
+  return `${pathname}${search}${hash}`;
+}
+
+export function clearAdminTokens() {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.removeItem(ACCESS_TOKEN_KEY);
+  window.localStorage.removeItem(REFRESH_TOKEN_KEY);
+}
+
+export function redirectToAdminLogin(nextPath?: string) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  const normalizedNext =
+    nextPath || `${window.location.pathname}${window.location.search}${window.location.hash}`;
+  const search = normalizedNext ? `?next=${encodeURIComponent(normalizedNext)}` : "";
+  window.location.assign(`${getAdminLoginPath()}${search}`);
+}
+
+export function getApiErrorMessage(error: ApiError): string {
+  if (error.status === 401) {
+    return "Unauthorized. Please sign in and make sure atcms_jwt is available.";
+  }
+
+  if (error.status === 403) {
+    return "Forbidden. Your account does not have permission to access this resource.";
+  }
+
+  if (error.status === 0) {
+    return (
+      error.message || "Network request failed. Please check the public API routing and try again."
+    );
+  }
+
+  return error.message || "Request failed.";
+}
+
+export async function readApiError(
+  response: Response,
+  fallbackMessage?: string,
+): Promise<ApiError> {
+  const contentType = response.headers.get("content-type");
+  const body = await response.text();
+  const requestUrl = response.url || "unknown API URL";
+
+  if (isHtmlResponse(contentType)) {
+    return {
+      status: response.status,
+      message:
+        fallbackMessage ||
+        `Request to ${requestUrl} returned HTML with status ${response.status}. Please verify nginx routes /v1/* to the API service.`,
+    };
+  }
+
+  return {
+    status: response.status,
+    message:
+      body ||
+      fallbackMessage ||
+      `Request to ${requestUrl} failed with status ${response.status} ${response.statusText}`.trim(),
+  };
+}
+
+export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
+  const token =
+    typeof window !== "undefined" ? window.localStorage.getItem(ACCESS_TOKEN_KEY) : null;
+
+  if (!token) {
+    redirectToAdminLogin();
+    throw {
+      status: 401,
+      message: "Missing authentication token.",
+    } satisfies ApiError;
+  }
+
+  const requestUrl = `${getApiBase()}${path}`;
+  let res: Response;
+  try {
+    res = await fetch(requestUrl, {
+      ...init,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        ...init?.headers,
+      },
+    });
+  } catch {
+    throw {
+      status: 0,
+      message: `Failed to fetch ${requestUrl}. Please verify API availability, CORS, and nginx routing.`,
+    } satisfies ApiError;
+  }
 
   if (!res.ok) {
-    const body = await res.text();
-    throw { status: res.status, message: body || res.statusText } satisfies ApiError;
+    if (res.status === 401) {
+      clearAdminTokens();
+      redirectToAdminLogin();
+    }
+    throw await readApiError(res);
   }
 
   return res.json() as Promise<T>;
 }
 
+export async function downloadAnalyticsCsv(period: AnalyticsPeriod = "daily") {
+  const token =
+    typeof window !== "undefined" ? window.localStorage.getItem(ACCESS_TOKEN_KEY) : null;
+  if (!token) {
+    redirectToAdminLogin();
+    throw { status: 401, message: "Missing authentication token." } satisfies ApiError;
+  }
+
+  const response = await fetch(`${getApiBase()}/analytics/export.csv?period=${period}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!response.ok) throw await readApiError(response);
+  return response.text();
+}
 export type SeoDashboardResponse = {
   report: {
     score: number;
@@ -53,6 +328,96 @@ export type SearchConsoleResponse = {
   bing: Record<string, unknown>;
 };
 
+export type SeoProviderConfig = {
+  enabled: boolean;
+  siteUrl: string;
+  propertyId: string;
+  propertyName: string;
+  oauthAccessToken?: string;
+  oauthRefreshToken?: string;
+  apiKey?: string;
+  verificationStatus: string;
+  connectedAt?: string;
+  disconnectedAt?: string;
+  disconnectReason?: string;
+  lastRefreshedAt?: string;
+};
+
+export type SeoGeneralConfig = {
+  robots: string[];
+  sitemapEnabled: boolean;
+  canonicalEnabled: boolean;
+  openGraphEnabled: boolean;
+  twitterEnabled: boolean;
+  indexNowEnabled: boolean;
+  indexNowKey?: string;
+  analyticsProvider: string;
+  ga4MeasurementId?: string;
+  ga4ApiSecret?: string;
+};
+
+export type SeoIntegrationSnapshot = {
+  provider: string;
+  configured: boolean;
+  verificationStatus?: string | null;
+  propertyId?: string | null;
+  propertyName?: string | null;
+  siteUrl?: string | null;
+  clicks?: number;
+  impressions?: number;
+  ctr?: number;
+  averagePosition?: number;
+  indexedPages?: number;
+  coverage?: number;
+  sitemaps?: number;
+  keywords?: number;
+  indexStatus?: number;
+  crawlErrors?: number;
+  lastSyncedAt?: string | null;
+  note?: string;
+};
+
+export type SeoProviderStatus = {
+  siteUrl?: string | null;
+  propertyId?: string | null;
+  propertyName?: string | null;
+  verificationStatus: string;
+  hasAccessToken: boolean;
+  hasRefreshToken: boolean;
+  connected: boolean;
+  connectedAt?: string | null;
+  disconnectedAt?: string | null;
+  disconnectReason?: string | null;
+  oauthConfigured?: boolean;
+  authUrl?: string | null;
+};
+
+export type SeoIntegrationsResponse = {
+  providers: {
+    googleSearchConsole: {
+      config: SeoProviderConfig;
+      live: SeoIntegrationSnapshot;
+      status: SeoProviderStatus;
+    };
+    bingWebmaster: {
+      config: SeoProviderConfig;
+      live: SeoIntegrationSnapshot;
+      status: SeoProviderStatus;
+    };
+  };
+  general: SeoGeneralConfig;
+};
+
+export type SeoIntegrationConnectUrlResponse = {
+  provider: string;
+  authUrl: string | null;
+  oauthConfigured: boolean;
+  redirectUri?: string;
+  hasClientId?: boolean;
+  hasClientSecret?: boolean;
+  reason?: string;
+};
+
 export type PaginatedResponse<T> = {
   items: T[];
   total: number;
@@ -65,11 +430,22 @@ export type AdminTool = {
   name: string;
   slug: string;
   website: string;
+  summary?: string | null;
+  description?: string | null;
+  metaTitle?: string | null;
+  metaDescription?: string | null;
+  logoUrl?: string | null;
+  metadata?: Record<string, unknown> | null;
   status: string;
   pricingModel: string;
   createdAt: string;
   updatedAt: string;
-  categories?: Array<{ category: { id: string; name: string; slug: string } }>;
+  completenessScore?: number;
+  categories?: Array<{
+    category: { id: string; name: string; slug: string; iconUrl?: string | null };
+  }>;
+  tags?: Array<{ tag: { id: string; name: string; slug: string } }>;
+  faqs?: Array<{ id: string; question: string; answer: string; sortOrder: number }>;
 };
 
 export type AdminCategory = {
@@ -78,11 +454,80 @@ export type AdminCategory = {
   slug: string;
   description?: string | null;
   sortOrder: number;
+  iconUrl?: string | null;
+  metaTitle?: string | null;
+  metaDescription?: string | null;
   parentId?: string | null;
   createdAt: string;
   updatedAt: string;
 };
 
+export type AdminCollection = {
+  id: string;
+  slug: string;
+  name: string;
+  description?: string | null;
+  isPublic: boolean;
+  metadata?: {
+    featured?: boolean;
+    metaTitle?: string;
+    metaDescription?: string;
+    heroIntro?: string;
+    seoSummary?: string;
+  } | null;
+  createdAt: string;
+  updatedAt: string;
+  items?: Array<{
+    id: string;
+    sortOrder: number;
+    note?: string | null;
+    tool: {
+      id: string;
+      slug: string;
+      name: string;
+      summary?: string | null;
+      pricingModel?: string;
+      logoUrl?: string | null;
+    };
+  }>;
+};
+
+export type BlogCategory = {
+  id: string;
+  slug: string;
+  name: string;
+  description?: string | null;
+  sortOrder: number;
+  metaTitle?: string | null;
+  metaDescription?: string | null;
+};
+
+export type BlogTag = {
+  id: string;
+  slug: string;
+  name: string;
+  description?: string | null;
+};
+
+export type BlogArticle = {
+  id: string;
+  slug: string;
+  title: string;
+  excerpt?: string | null;
+  content: string;
+  status: string;
+  coverImageUrl?: string | null;
+  scheduledAt?: string | null;
+  publishedAt?: string | null;
+  metaTitle?: string | null;
+  metaDescription?: string | null;
+  ogImageUrl?: string | null;
+  canonicalUrl?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  category?: BlogCategory | null;
+  tags?: Array<{ tag: BlogTag }>;
+};
 export type AdminUser = {
   id: string;
   email: string;
@@ -102,6 +547,140 @@ export type UsersSummary = {
   roles: number;
 };
 
+export type AnalyticsPeriod = "daily" | "weekly" | "monthly";
+
+export type AnalyticsOverviewResponse = {
+  period: AnalyticsPeriod;
+  providers: Record<
+    string,
+    {
+      configured: boolean;
+      measurementId?: string | null;
+      host?: string | null;
+      url?: string | null;
+    }
+  >;
+  metrics: {
+    visitors: number;
+    views: number;
+    clicks: number;
+    ctr: number;
+    growth: number;
+    searchQueries: number;
+    publishedTools: number;
+    topTools: number;
+    topCategories: number;
+  };
+  topTools: Array<{
+    id: string;
+    name: string;
+    slug: string;
+    summary?: string | null;
+    clicks: number;
+  }>;
+  topCategories: Array<{ id: string; name: string; slug: string; toolCount: number }>;
+  searchKeywords: Array<{ keyword: string; searches: number; avgLatencyMs: number }>;
+  collections: Array<{ id: string; name: string; slug: string; toolCount: number }>;
+  trafficSources: Array<{ source: string; referrer: string; visits: number }>;
+  trends: Array<{
+    label: string;
+    searches: number;
+    clicks: number;
+    views: number;
+    crawlerJobs: number;
+  }>;
+  importStatistics: { importedTools: number; newTools: number; publishedTools: number };
+  crawlerStatistics: { total: number; success: number; failed: number; pending: number };
+  note: string;
+};
+export type OperationsRecentActivity = {
+  id: string;
+  type: string;
+  label: string;
+  status: string;
+  href?: string;
+  createdAt: string;
+};
+
+export type DashboardStatsResponse = {
+  totalTools: number;
+  publishedTools: number;
+  draftTools: number;
+  categories: number;
+  tags: number;
+  users: number;
+  activeUsers: number;
+  pendingAiReview: number;
+  indexedTools: number;
+  crawlerJobs: number;
+  workerQueue: number;
+  schedulerJobs: number;
+  searchIndex: number;
+  lastCrawl: string | null;
+  contentScore: number;
+  seoScore: number;
+  brokenLinks: number;
+  missingLogos: number;
+  importQueue: number;
+  aiQueue: number;
+  storage: string;
+  database: boolean;
+  systemHealth: {
+    status: string;
+    database: boolean;
+    redis: boolean;
+    meilisearch: boolean;
+    storage?: string;
+  };
+  content: {
+    contentScore: number;
+    seoScore: number;
+    totalTools: number;
+    missingLogos: number;
+    missingDescriptions: number;
+    missingFeatures: number;
+    missingFaq: number;
+    missingScreenshots: number;
+    launchReadyTools: number;
+    needsWork: number;
+  };
+  seo: {
+    indexedTools: number;
+    seoScore: number;
+    brokenLinks: number;
+    missingMetadata: number;
+    lastSnapshotAt: string | null;
+  };
+  crawler: {
+    crawlerJobs: number;
+    workerQueue: number;
+    schedulerJobs: number;
+    failedJobs: number;
+    importQueue: number;
+    recentImportRuns: number;
+    aiQueue: number;
+    failedAiTasks: number;
+    crawlerStatus: string;
+    lastCrawl: string | null;
+  };
+  worker: { status: string; queueDepth: number; failedJobs: number };
+  import: { queued: number; recentRuns: number };
+  ai: { queued: number; pendingReview: number; failedTasks: number };
+  search: {
+    searchIndex: number;
+    status: string;
+    indexedTools: number;
+    weeklyQueries: number;
+    weeklyClicks: number;
+  };
+  infrastructure: {
+    storage: string;
+    searchIndex: string;
+    database: string;
+    redis: string;
+  };
+  recentActivity: OperationsRecentActivity[];
+};
 export type AdminSetting = {
   id: string;
   key: string;
@@ -121,12 +700,83 @@ export type SettingsSummary = {
 
 export type AiRevision = {
   id: string;
+  payload?: unknown;
   stage: string;
   status: string;
   qualityScore?: number | null;
   reviewNote?: string | null;
   createdAt: string;
-  tool?: { id: string; name: string; slug: string };
+  tool?: { id: string; name: string; slug: string; status?: string };
+};
+
+export type AiRevisionCompareResponse = {
+  revision: AiRevision;
+  current: unknown;
+  proposed: unknown;
+};
+
+export type AiReviewHistoryResponse = {
+  revisions: AiRevision[];
+  auditLogs: Array<{
+    id: string;
+    action: string;
+    entityType: string;
+    entityId?: string | null;
+    before?: unknown;
+    after?: unknown;
+    metadata?: unknown;
+    createdAt: string;
+  }>;
+};
+export type ImportPreviewResponse = {
+  format: "csv" | "json";
+  total: number;
+  valid: number;
+  invalid: number;
+  missingCategory: number;
+  missingSeo: number;
+  records: Array<{
+    index: number;
+    name: string;
+    slug: string;
+    website: string;
+    websiteDomain: string | null;
+    categorySlugs: string[];
+    existing?: { id: string; slug: string; website: string; name: string } | null;
+    duplicateReasons: string[];
+    errors: string[];
+    warnings: string[];
+    missingCategory: boolean;
+    missingSeo: boolean;
+    valid: boolean;
+    duplicate: boolean;
+  }>;
+  readyToImport: number;
+  duplicates: number;
+};
+
+export type ToolLogoPreviewResponse = {
+  ok: boolean;
+  reason?: string;
+  storedLogoUrl?: string | null;
+  cachedLogoUrl?: string | null;
+  recommendedUrl?: string | null;
+  recommendedSource?: string | null;
+  candidates: Array<{
+    candidate: { url: string; source: string; priority: number };
+    ok: boolean;
+    reason?: string;
+    mimeType?: string;
+    byteLength?: number;
+    width?: number | null;
+    height?: number | null;
+  }>;
+};
+export type ImportExecuteResponse = {
+  importedCount: number;
+  skippedCount: number;
+  imported: Array<{ id: string; name: string; slug: string }>;
+  skipped: Array<{ name: string; slug: string; reason: string }>;
 };
 
 export type CrawlerDashboard = {
@@ -135,9 +785,24 @@ export type CrawlerDashboard = {
   failed: number;
   pending: number;
   enabledSources: number;
+  totalRules: number;
+  totalFields: number;
+  totalRecords: number;
+  sourceKinds: Array<{ kind: string; count: number }>;
+  recordStatuses: Array<{ status: string; count: number }>;
   queue: {
     total: number;
-    byName: Record<string, { waiting: number; active: number; completed: number; failed: number; delayed: number; total: number }>;
+    byName: Record<
+      string,
+      {
+        waiting: number;
+        active: number;
+        completed: number;
+        failed: number;
+        delayed: number;
+        total: number;
+      }
+    >;
   };
   averageTimeMs: number;
   newTools: number;
@@ -148,15 +813,447 @@ export type CrawlSource = {
   id: string;
   name: string;
   slug: string;
+  kind: string;
   baseUrl: string;
   adapterType: string;
   status: string;
   schedule: string;
+  crawlIntervalMinutes: number;
+  robotsTxt?: string | null;
   priority: number;
+  isEnabled?: boolean;
+  config?: Record<string, unknown> | null;
+  metadata?: Record<string, unknown> | null;
   lastRunAt?: string | null;
   nextRunAt?: string | null;
+  _count?: {
+    rules: number;
+    fieldDefines: number;
+    records: number;
+    jobs: number;
+  };
 };
 
+export type CreateCrawlSourceInput = {
+  name: string;
+  slug?: string;
+  kind?: string;
+  baseUrl: string;
+  adapterType: string;
+  status?: string;
+  schedule?: string;
+  crawlIntervalMinutes?: number;
+  robotsTxt?: string;
+  priority?: number;
+  config?: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
+};
+
+export type UpdateCrawlSourceInput = Partial<CreateCrawlSourceInput> & {
+  isEnabled?: boolean;
+};
+
+export type CrawlRule = {
+  id: string;
+  sourceId: string;
+  ruleType: string;
+  name: string;
+  code: string;
+  isEnabled: boolean;
+  priority: number;
+  listConfig: Record<string, unknown>;
+  detailConfig: Record<string, unknown>;
+  parseConfig: Record<string, unknown>;
+  requestConfig: Record<string, unknown>;
+  metadata?: Record<string, unknown> | null;
+  createdAt: string;
+  updatedAt: string;
+  source?: CrawlSource | null;
+  fields?: CrawlFieldDefine[];
+  _count?: {
+    records: number;
+    fields: number;
+  };
+};
+
+export type CrawlArtifactItem = {
+  fileName: string;
+  fullPath: string;
+  size: number;
+  updatedAt: string;
+};
+
+export type CrawlArtifactDetail = {
+  fileName: string;
+  fullPath: string;
+  content: Record<string, unknown>;
+  raw: string;
+};
+
+export type CrawlFieldDefine = {
+  id: string;
+  sourceId: string;
+  ruleId: string;
+  fieldKey: string;
+  label: string;
+  fieldType: string;
+  sourcePath?: string | null;
+  transform?: string | null;
+  defaultValue?: string | null;
+  isRequired: boolean;
+  isArray: boolean;
+  sortOrder: number;
+  config?: Record<string, unknown> | null;
+  metadata?: Record<string, unknown> | null;
+  createdAt: string;
+  updatedAt: string;
+  source?: CrawlSource | null;
+  rule?: CrawlRule | null;
+};
+
+export type CrawlRecord = {
+  id: string;
+  sourceId: string;
+  ruleId?: string | null;
+  crawlJobId?: string | null;
+  recordKey?: string | null;
+  sourceUrl: string;
+  title?: string | null;
+  status: string;
+  rawData: Record<string, unknown>;
+  parsedData: Record<string, unknown>;
+  cleanedData: Record<string, unknown>;
+  publishedToolId?: string | null;
+  errorMessage?: string | null;
+  fetchedAt?: string | null;
+  publishedAt?: string | null;
+  retryCount: number;
+  metadata?: Record<string, unknown> | null;
+  createdAt: string;
+  updatedAt: string;
+  source?: CrawlSource | null;
+  rule?: CrawlRule | null;
+  crawlJob?: CrawlJob | null;
+  publishedTool?: { id: string; name: string; slug: string; website: string } | null;
+};
+
+export type CreateCrawlRuleInput = {
+  name: string;
+  code: string;
+  ruleType: string;
+  priority?: number;
+  isEnabled?: boolean;
+  listConfig?: Record<string, unknown>;
+  detailConfig?: Record<string, unknown>;
+  parseConfig?: Record<string, unknown>;
+  requestConfig?: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
+};
+
+export type UpdateCrawlRuleInput = Partial<CreateCrawlRuleInput>;
+
+export type RunCrawlRuleInput = {
+  limit?: number;
+  dedupeExisting?: boolean;
+};
+
+export type CreateCrawlFieldDefineInput = {
+  fieldKey: string;
+  label: string;
+  fieldType: string;
+  sourcePath?: string;
+  transform?: string;
+  defaultValue?: string;
+  isRequired?: boolean;
+  isArray?: boolean;
+  sortOrder?: number;
+  config?: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
+};
+
+export type UpdateCrawlFieldDefineInput = Partial<CreateCrawlFieldDefineInput>;
+
+export type CrawlRecordsQueryInput = {
+  sourceId?: string;
+  ruleId?: string;
+  status?: string;
+  page?: number;
+  pageSize?: number;
+};
+
+export type TriggerCrawlJobResponse = {
+  id: string;
+  sourceId: string;
+  jobType: string;
+  status: string;
+  createdAt: string;
+};
+
+export type CrawlStepTestPhase = "LIST" | "DETAIL" | "CONTENT";
+
+export type CrawlStepTestResponse = {
+  phase: CrawlStepTestPhase;
+  source: {
+    id: string;
+    name: string;
+    slug: string;
+    baseUrl: string;
+    adapterType: string;
+    kind: string;
+  };
+  rule?: {
+    id: string;
+    name: string;
+    code: string;
+    ruleType: string;
+  } | null;
+  summary: Record<string, unknown>;
+  categories?: Array<Record<string, unknown>>;
+  listItems?: Array<Record<string, unknown>>;
+  listItem?: Record<string, unknown> | null;
+  detail?: Record<string, unknown> | null;
+  record?: Record<string, unknown> | null;
+  sampleUrl?: string | null;
+  sampleUrls?: string[];
+};
+
+export type CrawlJob = {
+  id: string;
+  sourceId: string;
+  jobType: string;
+  status: string;
+  startedAt?: string | null;
+  finishedAt?: string | null;
+  itemsFound: number;
+  itemsCreated: number;
+  itemsUpdated: number;
+  errorMessage?: string | null;
+  result?: Record<string, unknown> | null;
+  createdAt: string;
+  updatedAt: string;
+  source?: {
+    id: string;
+    name: string;
+    slug: string;
+    baseUrl: string;
+  } | null;
+};
+
+export type CrawlDraftTool = {
+  id: string;
+  name: string;
+  slug: string;
+  website: string;
+  summary?: string | null;
+  status: string;
+  pricingModel: string;
+  createdAt: string;
+  updatedAt: string;
+  metadata?: Record<string, unknown> | null;
+};
+
+export type UpdateCrawlFrequencyInput = {
+  schedule: string;
+  crawlIntervalMinutes: number;
+};
+
+export type ContentIssueTool = {
+  id: string;
+  name: string;
+  slug: string;
+  website: string;
+  status: string;
+  reason: string;
+  updatedAt: string;
+};
+
+export type ContentIssueReport = {
+  total: number;
+  items: ContentIssueTool[];
+};
+
+export type ContentDuplicateGroup = {
+  reason: string;
+  key: string;
+  tools: ContentIssueTool[];
+};
+
+export type ContentDatasetResponse = {
+  generatedAt: string;
+  targets: { initial: number; ready: number; scale: number };
+  summary: {
+    totalTools: number;
+    publishedTools: number;
+    draftTools: number;
+    inReviewTools: number;
+    archivedTools: number;
+    architectureReadyFor2000: boolean;
+    scalableTo10000: boolean;
+    averageContentScore: number;
+  };
+  coverage: Record<string, { covered: number; missing: number; percent: number }>;
+  issues: {
+    duplicateGroups: number;
+    duplicateTools: number;
+    missingLogo: number;
+    missingDescription: number;
+    missingFeatures: number;
+    missingFaq: number;
+    brokenWebsites: number;
+  };
+  missing: Record<string, ContentIssueReport>;
+  brokenWebsites: ContentIssueReport & { note: string };
+  duplicates: {
+    totalGroups: number;
+    totalTools: number;
+    groups: ContentDuplicateGroup[];
+  };
+};
+export type ContentQualityMetric = {
+  score: number;
+  label: string;
+  reason: string;
+};
+
+export type ContentQualityItem = {
+  id: string;
+  name: string;
+  slug: string;
+  website: string;
+  status: string;
+  contentScore: number;
+  seoScore: number;
+  completenessScore: number;
+  readability: number;
+  breakdown: Record<string, ContentQualityMetric>;
+  missing: Array<{ key: string; label: string; reason: string; score: number }>;
+  recommendedAction: string;
+  updatedAt: string;
+};
+
+export type ContentQualityResponse = {
+  generatedAt: string;
+  summary: {
+    totalTools: number;
+    averageContentScore: number;
+    averageSeoScore: number;
+    averageCompletenessScore: number;
+    averageReadability: number;
+    excellentTools: number;
+    needsImprovement: number;
+  };
+  topMissingContent: ContentQualityItem[];
+  qualityRanking: ContentQualityItem[];
+  bestQuality: ContentQualityItem[];
+  metrics: Record<string, { averageScore: number; passing: number; failing: number }>;
+};
+export type MonetizationDashboardResponse = {
+  generatedAt: string;
+  period: string;
+  metrics: {
+    affiliatePrograms: number;
+    affiliateLinks: number;
+    activeAffiliateLinks: number;
+    featuredTools: number;
+    sponsoredTools: number;
+    activeSponsored: number;
+    bannerAds: number;
+    activeBannerAds: number;
+    pricingPlans: number;
+    coupons: number;
+    referrals: number;
+    activeReferrals: number;
+    newsletterSubscribers: number;
+    confirmedNewsletterSubscribers: number;
+    newsletterCampaigns: number;
+    scheduledNewsletterCampaigns: number;
+    partnerLinks: number;
+    activePartnerLinks: number;
+    clicks: number;
+    conversions: number;
+    invoices: number;
+    revenue: number;
+  };
+  revenue: RevenueOverviewResponse;
+  topAffiliateLinks: Array<{
+    id: string;
+    tool: { id: string; name: string; slug: string };
+    network: string;
+    status: string;
+    clicks: number;
+    conversions: number;
+    revenue: number;
+  }>;
+  sponsoredPlacements: Array<{
+    id: string;
+    type: string;
+    status: string;
+    weight: number;
+    startAt?: string | null;
+    endAt?: string | null;
+    tool: { id: string; name: string; slug: string };
+  }>;
+  adSlots: Array<{
+    id: string;
+    slug: string;
+    name: string;
+    network: string;
+    position: string;
+    status: string;
+  }>;
+  pricingPlans: Array<{
+    id: string;
+    name: string;
+    slug: string;
+    amount: number;
+    billingPeriod?: string | null;
+    currency: string;
+    tool: { id: string; name: string; slug: string };
+  }>;
+  unsupported: Record<string, string>;
+};
+
+export type RevenueOverviewResponse = {
+  total: number;
+  weekly: number;
+  monthly: number;
+  bySource: Record<string, number>;
+};
+
+export function fetchContentDataset() {
+  return apiFetch<ContentDatasetResponse>("/content/dataset");
+}
+
+export function fetchContentQuality() {
+  return apiFetch<ContentQualityResponse>("/content/quality");
+}
+
+export function bulkImproveContent(toolIds?: string[]) {
+  return apiFetch<{
+    queued: number;
+    results: Array<{ toolId: string; pipelineRunId: string; jobId: string }>;
+  }>("/content/quality/bulk-improve", {
+    method: "POST",
+    body: JSON.stringify({ toolIds }),
+  });
+}
+
+export function mergeDuplicateTools(sourceToolId: string, targetToolId: string) {
+  return apiFetch<{ sourceToolId: string; targetToolId: string; status: string }>(
+    "/content/duplicates/merge",
+    {
+      method: "POST",
+      body: JSON.stringify({ sourceToolId, targetToolId }),
+    },
+  );
+}
+export function fetchMonetizationDashboard() {
+  return apiFetch<MonetizationDashboardResponse>("/monetization/dashboard");
+}
+
+export function fetchRevenueOverview() {
+  return apiFetch<RevenueOverviewResponse>("/revenue/overview");
+}
 export function fetchSeoDashboard() {
   return apiFetch<SeoDashboardResponse>("/seo/dashboard");
 }
@@ -165,20 +1262,446 @@ export function fetchSearchConsole() {
   return apiFetch<SearchConsoleResponse>("/seo/search-console");
 }
 
-export function fetchTools() {
-  return apiFetch<PaginatedResponse<AdminTool>>("/tools?pageSize=50");
+export function fetchSeoIntegrations() {
+  return apiFetch<SeoIntegrationsResponse>("/seo/integrations");
 }
 
-export function fetchCategories() {
-  return apiFetch<PaginatedResponse<AdminCategory>>("/categories?pageSize=50");
+export function updateSeoIntegrations(payload: {
+  googleSearchConsole?: Partial<SeoProviderConfig>;
+  bingWebmaster?: Partial<SeoProviderConfig>;
+  general?: Partial<SeoGeneralConfig>;
+}) {
+  return apiFetch<SeoIntegrationsResponse>("/seo/integrations", {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
 }
 
+export function disconnectSeoIntegration(provider: "google" | "bing") {
+  return apiFetch<SeoIntegrationsResponse>(`/seo/integrations/${provider}/disconnect`, {
+    method: "POST",
+  });
+}
+
+export function refreshSeoIntegration(provider: "google" | "bing") {
+  return apiFetch<SeoIntegrationsResponse>(`/seo/integrations/${provider}/refresh`, {
+    method: "POST",
+  });
+}
+
+export function fetchSeoIntegrationConnectUrl(provider: "google" | "bing") {
+  return apiFetch<SeoIntegrationConnectUrlResponse>(`/seo/integrations/${provider}/connect-url`);
+}
+
+export function fetchTools(page = 1, pageSize = 50) {
+  return apiFetch<PaginatedResponse<AdminTool>>(`/tools?page=${page}&pageSize=${pageSize}`);
+}
+
+export function searchTools(query: string, pageSize = 8) {
+  return apiFetch<PaginatedResponse<AdminTool>>(
+    `/tools?page=1&pageSize=${pageSize}&search=${encodeURIComponent(query.trim())}`,
+  );
+}
+
+export function fetchToolById(id: string) {
+  return apiFetch<AdminTool & Record<string, unknown>>(`/tools/${id}`);
+}
+
+export function createTool(payload: Record<string, unknown>) {
+  return apiFetch<AdminTool>("/tools", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function updateTool(id: string, payload: Record<string, unknown>) {
+  return apiFetch<AdminTool>(`/tools/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function deleteTool(id: string) {
+  return apiFetch<{ id: string }>(`/tools/${id}`, {
+    method: "DELETE",
+  });
+}
+
+export function previewToolImport(format: "csv" | "json", content: string) {
+  return apiFetch<ImportPreviewResponse>("/tools/import/preview", {
+    method: "POST",
+    body: JSON.stringify({ format, content }),
+  });
+}
+
+export function executeToolImport(
+  format: "csv" | "json",
+  content: string,
+  options?: {
+    defaultStatus?: string;
+    skipDuplicates?: boolean;
+    limit?: number;
+  },
+) {
+  return apiFetch<ImportExecuteResponse>("/tools/import/execute", {
+    method: "POST",
+    body: JSON.stringify({
+      format,
+      content,
+      defaultStatus: options?.defaultStatus,
+      skipDuplicates: options?.skipDuplicates,
+      limit: options?.limit,
+    }),
+  });
+}
+
+export function bulkUpdateTools(payload: {
+  toolIds: string[];
+  status?: string;
+  pricingModel?: string;
+  categoryIds?: string[];
+  tagIds?: string[];
+  metadata?: Record<string, unknown>;
+}) {
+  return apiFetch<{ updated: number }>("/tools/bulk/update", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function bulkPublishTools(toolIds: string[]) {
+  return apiFetch<{ published: number }>("/tools/bulk/publish", {
+    method: "POST",
+    body: JSON.stringify({ toolIds }),
+  });
+}
+
+export function bulkRefreshToolLogos(toolIds: string[], force = true) {
+  return apiFetch<{ queued: number; jobIds: string[] }>("/tools/bulk/logo-refresh", {
+    method: "POST",
+    body: JSON.stringify({ toolIds, force }),
+  });
+}
+
+export function bulkRefreshToolScreenshots(
+  toolIds: string[],
+  variants?: Array<"DESKTOP" | "MOBILE" | "DARK">,
+) {
+  return apiFetch<{ queued: number; jobIds: string[] }>("/tools/bulk/screenshot-refresh", {
+    method: "POST",
+    body: JSON.stringify({ toolIds, variants }),
+  });
+}
+
+export function previewToolLogo(toolId: string) {
+  return apiFetch<ToolLogoPreviewResponse>(`/automation/logos/${toolId}/preview`);
+}
+export function refreshToolLogo(toolId: string, force = true) {
+  return apiFetch<{ jobId: string }>(`/automation/logos/${toolId}`, {
+    method: "POST",
+    body: JSON.stringify({ force }),
+  });
+}
+
+export async function uploadToolAsset(file: File, kind: "logo" | "screenshot") {
+  const token =
+    typeof window !== "undefined" ? window.localStorage.getItem(ACCESS_TOKEN_KEY) : null;
+
+  if (!token) {
+    redirectToAdminLogin();
+    throw {
+      status: 401,
+      message: "Missing authentication token.",
+    } satisfies ApiError;
+  }
+
+  const body = new FormData();
+  body.append("file", file);
+
+  const requestUrl = `${getApiBase()}/tools/assets/upload?kind=${encodeURIComponent(kind)}`;
+  let res: Response;
+  try {
+    res = await fetch(requestUrl, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body,
+    });
+  } catch {
+    throw {
+      status: 0,
+      message: `Failed to fetch ${requestUrl}. Please verify API availability, CORS, and nginx routing.`,
+    } satisfies ApiError;
+  }
+
+  if (!res.ok) {
+    if (res.status === 401) {
+      clearAdminTokens();
+      redirectToAdminLogin();
+    }
+
+    throw await readApiError(res);
+  }
+
+  return (await res.json()) as {
+    url: string;
+    filename: string;
+    mimeType: string;
+    size: number;
+  };
+}
+
+export function fetchCategories(page = 1, pageSize = 50) {
+  return apiFetch<PaginatedResponse<AdminCategory>>(
+    `/categories?page=${page}&pageSize=${pageSize}`,
+  );
+}
+
+export function fetchCategoryById(id: string) {
+  return apiFetch<AdminCategory>(`/categories/${id}`);
+}
+
+export function createCategory(payload: Record<string, unknown>) {
+  return apiFetch<AdminCategory>("/categories", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function updateCategory(id: string, payload: Record<string, unknown>) {
+  return apiFetch<AdminCategory>(`/categories/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function deleteCategory(id: string) {
+  return apiFetch<{ id: string }>(`/categories/${id}`, {
+    method: "DELETE",
+  });
+}
+
+export function fetchTags() {
+  return apiFetch<PaginatedResponse<{ id: string; name: string; slug: string }>>(
+    "/tags?pageSize=100",
+  );
+}
+
+export function fetchCollections() {
+  return apiFetch<PaginatedResponse<AdminCollection>>("/collections?pageSize=50");
+}
+
+export function fetchCollectionById(id: string) {
+  return apiFetch<AdminCollection>(`/collections/${id}`);
+}
+export function fetchBlogArticles() {
+  return apiFetch<PaginatedResponse<BlogArticle>>("/blog/articles?pageSize=50");
+}
+
+export function fetchBlogArticleById(id: string) {
+  return apiFetch<BlogArticle>(`/blog/articles/${id}`);
+}
+
+export function createBlogArticle(payload: Record<string, unknown>) {
+  return apiFetch<BlogArticle>("/blog/articles", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function updateBlogArticle(id: string, payload: Record<string, unknown>) {
+  return apiFetch<BlogArticle>(`/blog/articles/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function deleteBlogArticle(id: string) {
+  return apiFetch<{ id: string }>(`/blog/articles/${id}`, { method: "DELETE" });
+}
+
+export function fetchBlogCategories() {
+  return apiFetch<PaginatedResponse<BlogCategory>>("/blog/categories?pageSize=100");
+}
+
+export function createBlogCategory(payload: Record<string, unknown>) {
+  return apiFetch<BlogCategory>("/blog/categories", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function updateBlogCategory(id: string, payload: Record<string, unknown>) {
+  return apiFetch<BlogCategory>(`/blog/categories/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function deleteBlogCategory(id: string) {
+  return apiFetch<{ id: string }>(`/blog/categories/${id}`, { method: "DELETE" });
+}
+
+export function fetchBlogTags() {
+  return apiFetch<PaginatedResponse<BlogTag>>("/blog/tags?pageSize=100");
+}
+
+export function createBlogTag(payload: Record<string, unknown>) {
+  return apiFetch<BlogTag>("/blog/tags", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function updateBlogTag(id: string, payload: Record<string, unknown>) {
+  return apiFetch<BlogTag>(`/blog/tags/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function deleteBlogTag(id: string) {
+  return apiFetch<{ id: string }>(`/blog/tags/${id}`, { method: "DELETE" });
+}
+
+export function createCollection(payload: Record<string, unknown>) {
+  return apiFetch<AdminCollection>("/collections", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function updateCollection(id: string, payload: Record<string, unknown>) {
+  return apiFetch<AdminCollection>(`/collections/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function deleteCollection(id: string) {
+  return apiFetch<{ id: string }>(`/collections/${id}`, {
+    method: "DELETE",
+  });
+}
 export function fetchUsers() {
   return apiFetch<PaginatedResponse<AdminUser>>("/users?pageSize=50");
 }
 
 export function fetchUsersSummary() {
   return apiFetch<UsersSummary>("/users/summary");
+}
+
+export function fetchAnalyticsOverview(period: AnalyticsPeriod = "daily") {
+  return apiFetch<AnalyticsOverviewResponse>(`/analytics/overview?period=${period}`);
+}
+
+export async function fetchDashboardStats(): Promise<DashboardStatsResponse> {
+  const [stats, users] = await Promise.all([
+    apiFetch<DashboardStatsResponse>("/operations/dashboard"),
+    fetchUsersSummary().catch(() => ({
+      total: 0,
+      active: 0,
+      inactive: 0,
+      suspended: 0,
+      roles: 0,
+    })),
+  ]);
+
+  const content = stats.content ?? {
+    contentScore: stats.contentScore ?? 0,
+    seoScore: stats.seoScore ?? 0,
+    totalTools: stats.totalTools ?? 0,
+    missingLogos: stats.missingLogos ?? 0,
+    missingDescriptions: 0,
+    missingFeatures: 0,
+    missingFaq: 0,
+    missingScreenshots: 0,
+    launchReadyTools: 0,
+    needsWork: 0,
+  };
+  const seo = stats.seo ?? {
+    indexedTools: stats.indexedTools ?? 0,
+    seoScore: stats.seoScore ?? 0,
+    brokenLinks: stats.brokenLinks ?? 0,
+    missingMetadata: 0,
+    lastSnapshotAt: null,
+  };
+  const crawler = stats.crawler ?? {
+    crawlerJobs: stats.crawlerJobs ?? 0,
+    workerQueue: stats.workerQueue ?? 0,
+    schedulerJobs: stats.schedulerJobs ?? 0,
+    failedJobs: 0,
+    importQueue: stats.importQueue ?? 0,
+    recentImportRuns: 0,
+    aiQueue: stats.aiQueue ?? 0,
+    failedAiTasks: 0,
+    crawlerStatus: "unknown",
+    lastCrawl: stats.lastCrawl ?? null,
+  };
+  const search = stats.search ?? {
+    searchIndex: stats.searchIndex ?? 0,
+    status: "unknown",
+    indexedTools: stats.indexedTools ?? 0,
+    weeklyQueries: 0,
+    weeklyClicks: 0,
+  };
+  const systemHealth = stats.systemHealth ?? {
+    status: "unknown",
+    database: false,
+    redis: false,
+    meilisearch: false,
+    storage: "unknown",
+  };
+
+  return {
+    ...stats,
+    users: stats.users ?? users.total ?? 0,
+    activeUsers: users.active ?? stats.activeUsers ?? 0,
+    totalTools: stats.totalTools ?? 0,
+    publishedTools: stats.publishedTools ?? 0,
+    draftTools: stats.draftTools ?? 0,
+    categories: stats.categories ?? 0,
+    tags: stats.tags ?? 0,
+    pendingAiReview: stats.pendingAiReview ?? 0,
+    indexedTools: stats.indexedTools ?? 0,
+    crawlerJobs: stats.crawlerJobs ?? 0,
+    workerQueue: stats.workerQueue ?? 0,
+    schedulerJobs: stats.schedulerJobs ?? 0,
+    searchIndex: stats.searchIndex ?? 0,
+    lastCrawl: stats.lastCrawl ?? null,
+    contentScore: stats.contentScore ?? content.contentScore ?? 0,
+    seoScore: stats.seoScore ?? seo.seoScore ?? 0,
+    brokenLinks: stats.brokenLinks ?? seo.brokenLinks ?? 0,
+    missingLogos: stats.missingLogos ?? content.missingLogos ?? 0,
+    importQueue: stats.importQueue ?? crawler.importQueue ?? 0,
+    aiQueue: stats.aiQueue ?? crawler.aiQueue ?? 0,
+    storage: stats.storage ?? systemHealth.storage ?? "unknown",
+    database: stats.database ?? systemHealth.database ?? false,
+    systemHealth,
+    content,
+    seo,
+    crawler,
+    worker: stats.worker ?? {
+      status: crawler.workerQueue > 0 ? "busy" : "idle",
+      queueDepth: crawler.workerQueue,
+      failedJobs: crawler.failedJobs,
+    },
+    import: stats.import ?? { queued: crawler.importQueue, recentRuns: crawler.recentImportRuns },
+    ai: stats.ai ?? {
+      queued: crawler.aiQueue,
+      pendingReview: stats.pendingAiReview ?? 0,
+      failedTasks: crawler.failedAiTasks,
+    },
+    search,
+    infrastructure: stats.infrastructure ?? {
+      storage: systemHealth.storage ?? "unknown",
+      searchIndex: search.status,
+      database: systemHealth.database ? "healthy" : "degraded",
+      redis: systemHealth.redis ? "healthy" : "degraded",
+    },
+    recentActivity: stats.recentActivity ?? [],
+  };
 }
 
 export function fetchSettings() {
@@ -195,10 +1718,391 @@ export function fetchAiRevisions(status: string) {
   );
 }
 
+export function fetchAiRevision(id: string) {
+  return apiFetch<AiRevision>(`/ai/revisions/${id}`);
+}
+
+export function compareAiRevision(id: string) {
+  return apiFetch<AiRevisionCompareResponse>(`/ai/revisions/${id}/compare`);
+}
+
+export function editAiRevision(id: string, payload: unknown, reviewNote?: string) {
+  return apiFetch<AiRevision>(`/ai/revisions/${id}/edit`, {
+    method: "POST",
+    body: JSON.stringify({ payload, reviewNote }),
+  });
+}
+
+export function approveAiRevision(id: string, reviewNote?: string) {
+  return apiFetch<AiRevision>(`/ai/revisions/${id}/approve`, {
+    method: "POST",
+    body: JSON.stringify({ reviewNote }),
+  });
+}
+
+export function rejectAiRevision(id: string, reviewNote?: string) {
+  return apiFetch<AiRevision>(`/ai/revisions/${id}/reject`, {
+    method: "POST",
+    body: JSON.stringify({ reviewNote }),
+  });
+}
+
+export function bulkApproveAiRevisions(revisionIds: string[], reviewNote?: string) {
+  return apiFetch<{ approved: number }>("/ai/revisions/bulk-approve", {
+    method: "POST",
+    body: JSON.stringify({ revisionIds, reviewNote }),
+  });
+}
+
+export function bulkRejectAiRevisions(revisionIds: string[], reviewNote?: string) {
+  return apiFetch<{ rejected: number }>("/ai/revisions/bulk-reject", {
+    method: "POST",
+    body: JSON.stringify({ revisionIds, reviewNote }),
+  });
+}
+
+export function publishAiReviewTool(toolId: string) {
+  return apiFetch<{ id: string; status: string }>(`/ai/tools/${toolId}/publish`, {
+    method: "POST",
+  });
+}
+
+export function archiveAiReviewTool(toolId: string) {
+  return apiFetch<{ id: string; status: string }>(`/ai/tools/${toolId}/archive`, {
+    method: "POST",
+  });
+}
+
+export function fetchAiReviewHistory(toolId: string) {
+  return apiFetch<AiReviewHistoryResponse>(`/ai/tools/${toolId}/history`);
+}
+
+export function regenerateAiTool(toolId: string) {
+  return apiFetch<{ toolId: string; pipelineRunId: string; jobId: string }>(
+    `/ai/tools/${toolId}/regenerate`,
+    {
+      method: "POST",
+    },
+  );
+}
+
+export function bulkGenerateAiTools(toolIds: string[]) {
+  return apiFetch<{
+    queued: number;
+    results: Array<{ toolId: string; pipelineRunId: string; jobId: string }>;
+  }>("/ai/tools/bulk-generate", {
+    method: "POST",
+    body: JSON.stringify({ toolIds }),
+  });
+}
+
 export function fetchCrawlerDashboard() {
   return apiFetch<CrawlerDashboard>("/crawler/dashboard");
 }
 
 export function fetchCrawlSources() {
   return apiFetch<PaginatedResponse<CrawlSource>>("/crawler/sources?pageSize=50");
+}
+
+export function fetchCrawlerSourceGraph(sourceId: string) {
+  return apiFetch<
+    CrawlSource & {
+      rules: CrawlRule[];
+      records: CrawlRecord[];
+      _count: { rules: number; fieldDefines: number; records: number; jobs: number };
+    }
+  >(`/crawler/sources/${sourceId}/graph`);
+}
+
+export function fetchCrawlRules(sourceId: string) {
+  return apiFetch<CrawlRule[]>(`/crawler/sources/${sourceId}/rules`);
+}
+
+export function createCrawlRule(sourceId: string, payload: CreateCrawlRuleInput) {
+  return apiFetch<CrawlRule>(`/crawler/sources/${sourceId}/rules`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function updateCrawlRule(ruleId: string, payload: UpdateCrawlRuleInput) {
+  return apiFetch<CrawlRule>(`/crawler/rules/${ruleId}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function deleteCrawlRule(ruleId: string) {
+  return apiFetch<CrawlRule>(`/crawler/rules/${ruleId}`, {
+    method: "DELETE",
+  });
+}
+
+export function runCrawlRule(ruleId: string, payload: RunCrawlRuleInput) {
+  return apiFetch<{
+    rule: { id: string; name: string; code: string };
+    source: { id: string; name: string; adapterType: string };
+    limit: number;
+    dedupeExisting: boolean;
+    command: string;
+    output: string;
+    artifacts: { snapshot: string | null; report: string | null; log: string | null };
+    executedById: string;
+    executedAt: string;
+  }>(`/crawler/rules/${ruleId}/run`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function fetchCrawlFields(sourceId?: string, ruleId?: string) {
+  const query = new URLSearchParams();
+  if (sourceId) query.set("sourceId", sourceId);
+  if (ruleId) query.set("ruleId", ruleId);
+  const suffix = query.toString() ? `?${query.toString()}` : "";
+  return apiFetch<CrawlFieldDefine[]>(`/crawler/fields${suffix}`);
+}
+
+export function createCrawlFieldDefine(ruleId: string, payload: CreateCrawlFieldDefineInput) {
+  return apiFetch<CrawlFieldDefine>(`/crawler/rules/${ruleId}/fields`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function updateCrawlFieldDefine(fieldId: string, payload: UpdateCrawlFieldDefineInput) {
+  return apiFetch<CrawlFieldDefine>(`/crawler/fields/${fieldId}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function fetchCrawlRecords(query: CrawlRecordsQueryInput = {}) {
+  const params = new URLSearchParams();
+  if (query.sourceId) params.set("sourceId", query.sourceId);
+  if (query.ruleId) params.set("ruleId", query.ruleId);
+  if (query.status) params.set("status", query.status);
+  if (query.page) params.set("page", String(query.page));
+  if (query.pageSize) params.set("pageSize", String(query.pageSize));
+  const suffix = params.toString() ? `?${params.toString()}` : "";
+  return apiFetch<PaginatedResponse<CrawlRecord>>(`/crawler/records${suffix}`);
+}
+
+export function fetchRecentCrawlJobs() {
+  return apiFetch<{ items: CrawlJob[]; total: number }>("/crawler/jobs/recent");
+}
+
+export function fetchCrawlerArtifacts(source?: string, pageSize = 20) {
+  const params = new URLSearchParams();
+  if (source) params.set("source", source);
+  params.set("pageSize", String(pageSize));
+  return apiFetch<{ items: CrawlArtifactItem[]; total: number }>(
+    `/crawler/artifacts?${params.toString()}`,
+  );
+}
+
+export function fetchCrawlerArtifact(fileName: string) {
+  return apiFetch<CrawlArtifactDetail>(`/crawler/artifacts/${encodeURIComponent(fileName)}`);
+}
+
+export function fetchCrawlerDraftTools(pageSize = 50) {
+  return apiFetch<{ items: CrawlDraftTool[]; total: number }>(
+    `/crawler/draft-tools?pageSize=${pageSize}`,
+  );
+}
+
+export function createCrawlSource(payload: CreateCrawlSourceInput) {
+  return apiFetch<CrawlSource>("/crawler/sources", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function updateCrawlSource(id: string, payload: UpdateCrawlSourceInput) {
+  return apiFetch<CrawlSource>(`/crawler/sources/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function updateCrawlSourceFrequency(id: string, payload: UpdateCrawlFrequencyInput) {
+  return apiFetch<CrawlSource>(`/crawler/sources/${id}/frequency`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function setCrawlSourceStatus(id: string, status: "ENABLED" | "DISABLED" | "PAUSED") {
+  const suffix = status === "ENABLED" ? "enable" : status === "DISABLED" ? "disable" : "pause";
+  return apiFetch<CrawlSource>(`/crawler/sources/${id}/${suffix}`, {
+    method: "POST",
+  });
+}
+
+export function triggerCrawlerJob(sourceId: string) {
+  return apiFetch<TriggerCrawlJobResponse>("/crawler/jobs", {
+    method: "POST",
+    body: JSON.stringify({ sourceId }),
+  });
+}
+
+export function runCrawlerFlow(sourceId: string) {
+  return apiFetch<{
+    jobId: string;
+    sourceId: string;
+    categoriesCount: number;
+    listItemsCount: number;
+    created: number;
+    updated: number;
+    duplicates: number;
+    skipped: number;
+  }>(`/crawler/sources/${sourceId}/run-flow`, {
+    method: "POST",
+  });
+}
+
+export function testCrawlerStep(
+  sourceId: string,
+  payload: { phase: CrawlStepTestPhase; ruleId?: string },
+) {
+  return apiFetch<CrawlStepTestResponse>(`/crawler/sources/${sourceId}/test`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+// ============ Automation Center API ============
+
+export type AutomationQueueStats = {
+  waiting: number;
+  active: number;
+  completed: number;
+  failed: number;
+  delayed: number;
+  total: number;
+};
+
+export type AutomationCenterResponse = {
+  discovery: {
+    sourcesTotal: number;
+    sourcesEnabled: number;
+    tasksPending: number;
+    tasksCompleted: number;
+    resultsNew: number;
+    resultsDismissed: number;
+    recentResults?: Array<{ id: string; name: string; status: string; createdAt: string }>;
+  };
+  queues: {
+    automation: Record<string, AutomationQueueStats>;
+    crawl: number;
+    ai: Record<string, AutomationQueueStats>;
+    growth: Record<string, AutomationQueueStats>;
+    search: Record<string, AutomationQueueStats>;
+    platform: Record<string, AutomationQueueStats>;
+    i18n: number;
+  };
+  monitors: {
+    websiteActive: number;
+    priceActive: number;
+    brokenLinksOpen: number;
+    aiRefreshDue: number;
+    socialScheduled: number;
+    indexPending: number;
+  };
+  recentRuns: Array<{
+    id: string;
+    kind: string;
+    status: string;
+    createdAt: string;
+    errorMessage: string | null;
+  }>;
+};
+
+export function fetchAutomationCenter() {
+  return apiFetch<AutomationCenterResponse>("/automation/center");
+}
+
+export function triggerAutomationBootstrap() {
+  return apiFetch<Record<string, number>>("/automation/bootstrap", { method: "POST" });
+}
+
+export function triggerAutomationDaily() {
+  return apiFetch<Record<string, number>>("/automation/daily", { method: "POST" });
+}
+
+export function triggerAutomationWeekly() {
+  return apiFetch<{ newsletters: number }>("/automation/weekly", { method: "POST" });
+}
+
+export function triggerAutomationSocial(
+  template: "NEW_AI" | "TRENDING_AI" | "WEEKLY_AI" | "TOP_AI" = "WEEKLY_AI",
+) {
+  return apiFetch<{ postIds: string[]; jobIds: string[] }>("/automation/social", {
+    method: "POST",
+    body: JSON.stringify({ template }),
+  });
+}
+
+export function triggerAutomationIndex() {
+  return apiFetch<{ submissionIds: string[]; jobIds: string[] }>("/automation/index", {
+    method: "POST",
+  });
+}
+
+export function triggerAutomationDiscovery() {
+  return apiFetch<{ taskIds: string[]; jobIds: string[] }>("/automation/discovery/run", {
+    method: "POST",
+  });
+}
+
+export type AutomationRunItem = {
+  id: string;
+  kind: string;
+  status: string;
+  referenceId: string | null;
+  startedAt: string | null;
+  finishedAt: string | null;
+  errorMessage: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type AutomationRunDetail = {
+  id: string;
+  kind: string;
+  status: string;
+  referenceId: string | null;
+  startedAt: string | null;
+  finishedAt: string | null;
+  errorMessage: string | null;
+  result: Record<string, unknown>;
+  metadata: Record<string, unknown>;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type AutomationRunsResponse = {
+  items: AutomationRunItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+};
+
+export function fetchAutomationRuns(params?: {
+  page?: number;
+  pageSize?: number;
+  kind?: string;
+  status?: string;
+}) {
+  const searchParams = new URLSearchParams();
+  if (params?.page) searchParams.set("page", String(params.page));
+  if (params?.pageSize) searchParams.set("pageSize", String(params.pageSize));
+  if (params?.kind) searchParams.set("kind", params.kind);
+  if (params?.status) searchParams.set("status", params.status);
+  const query = searchParams.toString();
+  return apiFetch<AutomationRunsResponse>(`/automation/runs${query ? `?${query}` : ""}`);
+}
+
+export function fetchAutomationRun(id: string) {
+  return apiFetch<AutomationRunDetail>(`/automation/runs/${id}`);
 }

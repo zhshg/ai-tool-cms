@@ -9,6 +9,7 @@ import {
 } from "./client";
 import { buildSearchableText } from "./ranking";
 import type { SearchToolDocument } from "./types";
+import { resolveSearchLogoUrl } from "./logo";
 
 const activeOnly = { deletedAt: null } as const;
 
@@ -22,7 +23,18 @@ type SearchBootstrapResult = {
   };
 };
 
-export async function bootstrapSearch(client: PrismaClient = prisma): Promise<SearchBootstrapResult> {
+const SEARCH_BOOTSTRAP_TASK_TIMEOUT_MS = Number.parseInt(
+  process.env.SEARCH_BOOTSTRAP_TASK_TIMEOUT_MS ?? "60000",
+  10,
+);
+const SEARCH_BOOTSTRAP_TASK_INTERVAL_MS = Number.parseInt(
+  process.env.SEARCH_BOOTSTRAP_TASK_INTERVAL_MS ?? "1000",
+  10,
+);
+
+export async function bootstrapSearch(
+  client: PrismaClient = prisma,
+): Promise<SearchBootstrapResult> {
   const meili = getMeiliClient();
   if (!meili) {
     return {
@@ -48,7 +60,10 @@ export async function bootstrapSearch(client: PrismaClient = prisma): Promise<Se
 
   if (tools.length > 0) {
     const task = await meili.index(TOOLS_INDEX).addDocuments(tools);
-    await meili.waitForTask(task.taskUid);
+    await meili.waitForTask(task.taskUid, {
+      timeOutMs: SEARCH_BOOTSTRAP_TASK_TIMEOUT_MS,
+      intervalMs: SEARCH_BOOTSTRAP_TASK_INTERVAL_MS,
+    });
   }
 
   if (categories.length > 0) {
@@ -61,10 +76,15 @@ export async function bootstrapSearch(client: PrismaClient = prisma): Promise<Se
         parentId: category.parentId,
         sortOrder: category.sortOrder,
         updatedAt: category.updatedAt.toISOString(),
-        searchableText: [category.name, category.slug, category.description].filter(Boolean).join(" "),
+        searchableText: [category.name, category.slug, category.description]
+          .filter(Boolean)
+          .join(" "),
       })),
     );
-    await meili.waitForTask(task.taskUid);
+    await meili.waitForTask(task.taskUid, {
+      timeOutMs: SEARCH_BOOTSTRAP_TASK_TIMEOUT_MS,
+      intervalMs: SEARCH_BOOTSTRAP_TASK_INTERVAL_MS,
+    });
   }
 
   if (tags.length > 0) {
@@ -78,7 +98,10 @@ export async function bootstrapSearch(client: PrismaClient = prisma): Promise<Se
         searchableText: [tag.name, tag.slug, tag.description].filter(Boolean).join(" "),
       })),
     );
-    await meili.waitForTask(task.taskUid);
+    await meili.waitForTask(task.taskUid, {
+      timeOutMs: SEARCH_BOOTSTRAP_TASK_TIMEOUT_MS,
+      intervalMs: SEARCH_BOOTSTRAP_TASK_INTERVAL_MS,
+    });
   }
 
   return {
@@ -105,6 +128,8 @@ async function loadToolDocuments(client: PrismaClient): Promise<SearchToolDocume
 
   return tools.map((tool) => {
     const metadata = (tool.metadata ?? {}) as Record<string, unknown>;
+    const tagSlugs = tool.tags.map((item) => item.tag.slug);
+    const popularityScore = Number(metadata.popularityScore ?? metadata.overallScore ?? 0);
     const document: SearchToolDocument = {
       id: tool.id,
       slug: tool.slug,
@@ -112,17 +137,21 @@ async function loadToolDocuments(client: PrismaClient): Promise<SearchToolDocume
       description: tool.description ?? undefined,
       summary: tool.summary ?? undefined,
       website: tool.website,
-      logoUrl: tool.logoUrl ?? undefined,
+      logoUrl: resolveSearchLogoUrl(tool.logoUrl, metadata, tool.website),
       pricingModel: tool.pricingModel,
       categorySlugs: tool.categories.map((item) => item.category.slug),
       categoryNames: tool.categories.map((item) => item.category.name),
-      tagSlugs: tool.tags.map((item) => item.tag.slug),
+      tagSlugs,
       tagNames: tool.tags.map((item) => item.tag.name),
-      platforms: (metadata.aiPlatforms as string[] | undefined) ?? [],
-      languages: (metadata.aiLanguages as string[] | undefined) ?? [],
-      features: (metadata.aiFeatures as string[] | undefined) ?? [],
-      useCases: (metadata.aiUseCases as string[] | undefined) ?? [],
-      popularityScore: Number(metadata.popularityScore ?? metadata.overallScore ?? 0),
+      platforms: normalizeStringList(metadata.aiPlatforms ?? metadata.platforms),
+      languages: normalizeStringList(metadata.aiLanguages ?? metadata.languages),
+      features: normalizeStringList(metadata.aiFeatures ?? metadata.features),
+      useCases: normalizeStringList(metadata.aiUseCases ?? metadata.useCases),
+      hasApi: hasApiAccess(metadata),
+      isFree: tool.pricingModel === "FREE" || tool.pricingModel === "FREEMIUM",
+      isOpenSource: isOpenSourceTool(metadata, tagSlugs),
+      popularityScore,
+      trendingScore: Number(metadata.trendingScore ?? popularityScore),
       reviewScore:
         tool.reviews.length > 0
           ? tool.reviews.reduce((sum, review) => sum + review.rating, 0) / tool.reviews.length
@@ -135,4 +164,21 @@ async function loadToolDocuments(client: PrismaClient): Promise<SearchToolDocume
     document.searchableText = buildSearchableText(document);
     return document;
   });
+}
+
+function normalizeStringList(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.map((item) => (typeof item === "string" ? item.trim() : "")).filter(Boolean);
+}
+
+function hasApiAccess(metadata: Record<string, unknown>): boolean {
+  const explicit = metadata.hasApi ?? metadata.apiAccess ?? metadata.aiApiAccess ?? metadata.api;
+  if (typeof explicit === "boolean") return explicit;
+  const integrations = normalizeStringList(metadata.aiIntegrations ?? metadata.integrations);
+  return integrations.some((item) => /api|webhook|zapier|make|n8n/i.test(item));
+}
+
+function isOpenSourceTool(metadata: Record<string, unknown>, tagSlugs: string[]): boolean {
+  if (metadata.openSource === true || metadata.isOpenSource === true) return true;
+  return tagSlugs.some((slug) => ["open-source", "opensource", "oss"].includes(slug));
 }

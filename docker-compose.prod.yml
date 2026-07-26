@@ -36,10 +36,11 @@ services:
     volumes:
       - meilisearch_data:/meili_data
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--spider", "http://127.0.0.1:7700/health"]
+      test: ["CMD-SHELL", "wget --no-verbose --spider http://127.0.0.1:7700/health || exit 1"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 20s
 
   minio:
     image: minio/minio:RELEASE.2024-12-18T13-15-44Z
@@ -79,7 +80,9 @@ services:
       dockerfile: docker/Dockerfile.node
       args:
         APP_NAME: api
-    image: ${IMAGE_REGISTRY:-ghcr.io/zhshg}/ai-tool-cms-api:${IMAGE_TAG:-latest}
+        PNPM_REGISTRY: ${PNPM_REGISTRY:-https://registry.npmmirror.com}
+    image: ai-tool-cms-api:${IMAGE_TAG:-local}
+    pull_policy: never
     restart: "no"
     command: pnpm db:migrate:deploy
     environment:
@@ -97,13 +100,15 @@ services:
       dockerfile: docker/Dockerfile.node
       args:
         APP_NAME: api
-    image: ${IMAGE_REGISTRY:-ghcr.io/zhshg}/ai-tool-cms-api:${IMAGE_TAG:-latest}
+        PNPM_REGISTRY: ${PNPM_REGISTRY:-https://registry.npmmirror.com}
+    image: ai-tool-cms-api:${IMAGE_TAG:-local}
+    pull_policy: never
     restart: "no"
     command:
       [
         "sh",
         "-c",
-        "node -e \"require('/app/packages/search/dist').bootstrapSearch().then((result)=>{console.log(JSON.stringify(result));}).catch((error)=>{console.error(error);process.exit(1);})\"",
+        'node -e "require(''/app/packages/search/dist'').bootstrapSearch().then((result)=>{console.log(JSON.stringify(result));}).catch((error)=>{console.error(error);process.exit(1);})"',
       ]
     environment:
       NODE_ENV: production
@@ -111,6 +116,10 @@ services:
       ADMIN_URL: ${ADMIN_URL}
       API_URL: ${API_URL}
       NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      GOOGLE_SEARCH_CONSOLE_REDIRECT_URI: ${GOOGLE_SEARCH_CONSOLE_REDIRECT_URI}
+      GOOGLE_SEARCH_CONSOLE_SCOPES: ${GOOGLE_SEARCH_CONSOLE_SCOPES}
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
       QUEUE_URL: redis://:${REDIS_PASSWORD}@redis:6379/1
@@ -133,20 +142,47 @@ services:
       meilisearch:
         condition: service_healthy
 
+  seed:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.node
+      args:
+        APP_NAME: api
+        PNPM_REGISTRY: ${PNPM_REGISTRY:-https://registry.npmmirror.com}
+    image: ai-tool-cms-api:${IMAGE_TAG:-local}
+    pull_policy: never
+    restart: "no"
+    command: pnpm db:seed
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+    depends_on:
+      search-bootstrap:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+
   api:
     build:
       context: .
       dockerfile: docker/Dockerfile.node
       args:
         APP_NAME: api
-    image: ${IMAGE_REGISTRY:-ghcr.io/zhshg}/ai-tool-cms-api:${IMAGE_TAG:-latest}
+        PNPM_REGISTRY: ${PNPM_REGISTRY:-https://registry.npmmirror.com}
+    image: ai-tool-cms-api:${IMAGE_TAG:-local}
+    pull_policy: never
     restart: unless-stopped
+    user: "0:0"
     environment:
       NODE_ENV: production
       PORT: 4000
       APP_URL: ${APP_URL}
       ADMIN_URL: ${ADMIN_URL}
       API_URL: ${API_URL}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      GOOGLE_SEARCH_CONSOLE_REDIRECT_URI: ${GOOGLE_SEARCH_CONSOLE_REDIRECT_URI}
+      GOOGLE_SEARCH_CONSOLE_SCOPES: ${GOOGLE_SEARCH_CONSOLE_SCOPES}
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
       QUEUE_URL: redis://:${REDIS_PASSWORD}@redis:6379/1
@@ -187,7 +223,7 @@ services:
       SENTRY_DSN: ${SENTRY_DSN}
       CACHE_DEFAULT_TTL_SECONDS: ${CACHE_DEFAULT_TTL_SECONDS}
     depends_on:
-      search-bootstrap:
+      seed:
         condition: service_completed_successfully
       postgres:
         condition: service_healthy
@@ -197,11 +233,14 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
+    volumes:
+      - ./storage:/app/storage
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--spider", "http://127.0.0.1:4000/v1/health/ready"]
       interval: 15s
       timeout: 5s
       retries: 10
+      start_period: 20s
 
   worker:
     build:
@@ -209,8 +248,11 @@ services:
       dockerfile: docker/Dockerfile.node
       args:
         APP_NAME: worker
-    image: ${IMAGE_REGISTRY:-ghcr.io/zhshg}/ai-tool-cms-worker:${IMAGE_TAG:-latest}
+        PNPM_REGISTRY: ${PNPM_REGISTRY:-https://registry.npmmirror.com}
+    image: ai-tool-cms-worker:${IMAGE_TAG:-local}
+    pull_policy: never
     restart: unless-stopped
+    user: "0:0"
     environment:
       NODE_ENV: production
       APP_URL: ${APP_URL}
@@ -247,6 +289,8 @@ services:
     depends_on:
       api:
         condition: service_healthy
+    volumes:
+      - ./storage:/app/storage
     healthcheck:
       test: ["CMD", "node", "-e", "process.exit(0)"]
       interval: 30s
@@ -259,7 +303,9 @@ services:
       dockerfile: docker/Dockerfile.node
       args:
         APP_NAME: scheduler
-    image: ${IMAGE_REGISTRY:-ghcr.io/zhshg}/ai-tool-cms-scheduler:${IMAGE_TAG:-latest}
+        PNPM_REGISTRY: ${PNPM_REGISTRY:-https://registry.npmmirror.com}
+    image: ai-tool-cms-scheduler:${IMAGE_TAG:-local}
+    pull_policy: never
     restart: unless-stopped
     environment:
       NODE_ENV: production
@@ -302,7 +348,12 @@ services:
       dockerfile: docker/Dockerfile.next
       args:
         APP_NAME: web
-    image: ${IMAGE_REGISTRY:-ghcr.io/zhshg}/ai-tool-cms-web:${IMAGE_TAG:-latest}
+        PNPM_REGISTRY: ${PNPM_REGISTRY:-https://registry.npmmirror.com}
+        NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+        NEXT_PUBLIC_GA_ID: ${NEXT_PUBLIC_GA_ID}
+    image: ai-tool-cms-web:${IMAGE_TAG:-local}
+    pull_policy: never
     restart: unless-stopped
     environment:
       NODE_ENV: production
@@ -312,6 +363,7 @@ services:
       INTERNAL_API_URL: http://api:4000
       NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+      NEXT_PUBLIC_GA_ID: ${NEXT_PUBLIC_GA_ID}
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
       QUEUE_URL: redis://:${REDIS_PASSWORD}@redis:6379/1
@@ -336,11 +388,14 @@ services:
     depends_on:
       api:
         condition: service_healthy
+    volumes:
+      - ./storage:/app/storage
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--spider", "http://127.0.0.1:3000"]
       interval: 15s
       timeout: 5s
       retries: 10
+      start_period: 30s
 
   admin:
     build:
@@ -348,34 +403,42 @@ services:
       dockerfile: docker/Dockerfile.next
       args:
         APP_NAME: admin
-        ADMIN_BASE_PATH: /admin
-    image: ${IMAGE_REGISTRY:-ghcr.io/zhshg}/ai-tool-cms-admin:${IMAGE_TAG:-latest}
+        PNPM_REGISTRY: ${PNPM_REGISTRY:-https://registry.npmmirror.com}
+        ADMIN_BASE_PATH: ${ADMIN_BASE_PATH:-}
+        NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
+        NEXT_PUBLIC_API_URL: ""
+    image: ai-tool-cms-admin:${IMAGE_TAG:-local}
+    pull_policy: never
     restart: unless-stopped
     environment:
       NODE_ENV: production
       PORT: 3000
-      ADMIN_BASE_PATH: /admin
+      ADMIN_BASE_PATH: ${ADMIN_BASE_PATH:-}
       APP_URL: ${APP_URL}
       ADMIN_URL: ${ADMIN_URL}
       API_URL: ${API_URL}
       NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+      NEXT_PUBLIC_API_URL: ""
     depends_on:
       api:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--spider", "http://127.0.0.1:3000/admin"]
+      test: ["CMD", "wget", "--no-verbose", "--spider", "http://127.0.0.1:3000/"]
       interval: 15s
       timeout: 5s
       retries: 10
+      start_period: 30s
 
   nginx:
     image: nginx:1.27-alpine
     restart: unless-stopped
     ports:
       - "${HTTP_PORT:-80}:80"
+      - "${HTTPS_PORT:-443}:443"
     volumes:
       - ./docker/nginx/conf.d/production.conf:/etc/nginx/conf.d/default.conf:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - ./storage:/var/www/storage:ro
     depends_on:
       web:
         condition: service_healthy
@@ -383,6 +446,12 @@ services:
         condition: service_healthy
       api:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "nginx -t && pgrep nginx >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
 volumes:
   postgres_data:

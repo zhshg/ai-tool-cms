@@ -1,5 +1,13 @@
 export type PromptTemplateId =
-  "summary" | "faq" | "seo" | "geo" | "compare" | "pros-cons" | "feature";
+  | "summary"
+  | "faq"
+  | "seo"
+  | "geo"
+  | "compare"
+  | "pros-cons"
+  | "feature"
+  | "translate"
+  | "translate-category";
 
 export type PromptVariables = Record<string, string | undefined>;
 

@@ -1,0 +1,39 @@
+name: Tools Auto Update
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 19 * * *"
+
+jobs:
+  manual-review-dry-run:
+    runs-on: ubuntu-latest
+    env:
+      TOOLS_AUTO_UPDATE_ENABLED: "true"
+      TOOLS_AUTO_APPLY: "false"
+      TOOLS_AUTO_DAILY_LIMIT: "5"
+      TOOLS_AUTO_MODE: "manual-review"
+      TOOLS_AUTO_MIN_CONFIDENCE: "0.85"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm db:generate
+
+      - name: Run auto update dry-run
+        run: pnpm run tools:auto-update -- --mode=manual-review --limit=10 --dry-run

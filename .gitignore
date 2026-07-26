@@ -62,3 +62,7 @@ temp/
 *.p12
 *.pfx
 secrets/
+apps/web/public/*.txt
+
+.pnpm-store/
+storage/

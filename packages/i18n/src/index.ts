@@ -23,5 +23,11 @@ export {
 export { enqueueAllLocaleTranslations, enqueueTranslationWorkflow } from "./enqueue";
 export { getCountryAnalytics, getGlobalDashboardMetrics } from "./global-dashboard";
 export type { GlobalDashboardMetrics } from "./global-dashboard";
-export { generateLocaleContent, runTranslationWorkflow } from "./workflow";
-export type { LocaleContentInput } from "./workflow";
+export {
+  generateLocaleContent,
+  generateTranslatedContent,
+  generateTranslatedCategoryContent,
+  runCategoryTranslationWorkflow,
+  runTranslationWorkflow,
+} from "./workflow";
+export type { LocaleContentInput, TranslatedCategoryContent, TranslatedContent } from "./workflow";

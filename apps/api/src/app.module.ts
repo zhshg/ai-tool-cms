@@ -29,6 +29,11 @@ import { PluginsModule } from "./plugins/plugins.module";
 import { PlatformBootstrapService } from "./platform-bootstrap.service";
 import { UsersModule } from "./users/users.module";
 import { SettingsModule } from "./settings/settings.module";
+import { OperationsModule } from "./operations/operations.module";
+import { CollectionsModule } from "./collections/collections.module";
+import { BlogModule } from "./blog/blog.module";
+import { ContentModule } from "./content/content.module";
+import { RedisThrottlerStorage } from "./common/throttler/redis-throttler.storage";
 
 @Module({
   imports: [
@@ -41,12 +46,15 @@ import { SettingsModule } from "./settings/settings.module";
         ".env",
       ],
     }),
-    ThrottlerModule.forRoot([
-      {
-        ttl: 60_000,
-        limit: 300,
-      },
-    ]),
+    ThrottlerModule.forRoot({
+      throttlers: [
+        {
+          ttl: 60_000,
+          limit: 300,
+        },
+      ],
+      storage: new RedisThrottlerStorage(),
+    }),
     LoggerModule,
     PrismaModule,
     RbacModule,
@@ -69,6 +77,10 @@ import { SettingsModule } from "./settings/settings.module";
     PluginsModule,
     UsersModule,
     SettingsModule,
+    OperationsModule,
+    CollectionsModule,
+    BlogModule,
+    ContentModule,
   ],
   providers: [
     PlatformBootstrapService,
